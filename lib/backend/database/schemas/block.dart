@@ -1,0 +1,31 @@
+import 'package:isar_community/isar.dart';
+
+part 'block.g.dart';
+
+@collection
+class Block {
+  Id id = Isar.autoIncrement;
+
+  @Index(type: IndexType.value)
+  int? phraseId;
+
+  int? blockPositionIndex;
+
+  List<int> translatedPositionIndex = [];
+
+  String? blockTranslation;
+
+  @Index(type: IndexType.hash)
+  String? contentSignature;
+
+  String? colorHex;
+
+  Block({
+    this.phraseId,
+    this.blockPositionIndex,
+    this.translatedPositionIndex = const [],
+    this.blockTranslation,
+    this.contentSignature,
+    this.colorHex,
+  });
+}

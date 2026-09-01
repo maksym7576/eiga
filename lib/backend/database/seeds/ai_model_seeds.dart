@@ -1,0 +1,222 @@
+import 'package:eiga/backend/database/schemas/ai_model.dart';
+import 'package:eiga/backend/database/schemas/translation_pipeline_step.dart';
+
+Future<List<AiModel>> standardAiModels() async {
+  final allSteps = TranslationPipelineStep.values.toList();
+  final basicSteps = [
+    TranslationPipelineStep.research,
+    TranslationPipelineStep.translate,
+    TranslationPipelineStep.fullTranslate,
+  ];
+
+  return [
+    AiModel()
+      ..provider = AiProvider.google
+      ..name = 'gemini-2.5-flash-lite'
+      ..url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite'
+      ..defaultLimit = 20
+      ..currentMaxLimit = 20
+      ..defaultDailyMaxLimit = 100
+      ..currentDailyMaxLimit = 100
+      ..defaultPhrasesPerRequest = 10
+      ..currentPhrasesPerRequest = 10
+      ..supportsWebSearch = true
+      ..supportsStreaming = true
+      ..currentStreamingEnabled = true
+      ..supportsLiveApi = false
+      ..quality = ModelQuality.basic
+      ..speed = ModelSpeed.ultraFast
+      ..estimatedTokensPerSec = 150
+      ..contextWindow = 1000000
+      ..maxOutputTokens = 8192
+      ..supportedInputs = [InputType.text, InputType.image]
+      ..supportedSteps = allSteps
+      ..inputPricePerMToken = 0.075
+      ..outputPricePerMToken = 0.30,
+    AiModel()
+      ..provider = AiProvider.google
+      ..name = 'gemini-2.5-flash'
+      ..url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash'
+      ..defaultLimit = 20
+      ..currentMaxLimit = 20
+      ..defaultDailyMaxLimit = 100
+      ..currentDailyMaxLimit = 100
+      ..defaultPhrasesPerRequest = 10
+      ..currentPhrasesPerRequest = 10
+      ..supportsWebSearch = true
+      ..supportsStreaming = true
+      ..currentStreamingEnabled = true
+      ..supportsLiveApi = true
+      ..quality = ModelQuality.standard
+      ..speed = ModelSpeed.fast
+      ..estimatedTokensPerSec = 100
+      ..contextWindow = 1000000
+      ..maxOutputTokens = 8192
+      ..supportedInputs = [InputType.text, InputType.image, InputType.audio, InputType.video, InputType.pdf]
+      ..supportedSteps = allSteps
+      ..inputPricePerMToken = 0.15
+      ..outputPricePerMToken = 0.60,
+    AiModel()
+      ..provider = AiProvider.google
+      ..name = 'gemini-3-flash'
+      ..url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash'
+      ..defaultLimit = 20
+      ..currentMaxLimit = 20
+      ..defaultDailyMaxLimit = 100
+      ..currentDailyMaxLimit = 100
+      ..defaultPhrasesPerRequest = 10
+      ..currentPhrasesPerRequest = 10
+      ..supportsWebSearch = true
+      ..supportsStreaming = true
+      ..currentStreamingEnabled = true
+      ..supportsLiveApi = true
+      ..quality = ModelQuality.standard
+      ..speed = ModelSpeed.fast
+      ..estimatedTokensPerSec = 110
+      ..contextWindow = 1000000
+      ..maxOutputTokens = 8192
+      ..supportedInputs = [InputType.text, InputType.image, InputType.audio, InputType.video, InputType.pdf]
+      ..supportedSteps = allSteps
+      ..inputPricePerMToken = 0.15
+      ..outputPricePerMToken = 0.60,
+    AiModel()
+      ..provider = AiProvider.google
+      ..name = 'gemini-3.1-flash-lite'
+      ..url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite'
+      ..defaultLimit = 500
+      ..currentMaxLimit = 500
+      ..defaultDailyMaxLimit = 1500
+      ..currentDailyMaxLimit = 1500
+      ..defaultPhrasesPerRequest = 10
+      ..currentPhrasesPerRequest = 10
+      ..supportsWebSearch = true
+      ..supportsStreaming = true
+      ..currentStreamingEnabled = true
+      ..supportsLiveApi = false
+      ..quality = ModelQuality.basic
+      ..speed = ModelSpeed.ultraFast
+      ..estimatedTokensPerSec = 180
+      ..contextWindow = 1000000
+      ..maxOutputTokens = 8192
+      ..supportedInputs = [InputType.text, InputType.image]
+      ..supportedSteps = allSteps
+      ..inputPricePerMToken = 0.07
+      ..outputPricePerMToken = 0.25,
+    AiModel()
+      ..provider = AiProvider.google
+      ..name = 'gemini-3.5-flash-lite'
+      ..url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite'
+      ..defaultLimit = 500
+      ..currentMaxLimit = 500
+      ..defaultDailyMaxLimit = 2000
+      ..currentDailyMaxLimit = 2000
+      ..defaultPhrasesPerRequest = 10
+      ..currentPhrasesPerRequest = 10
+      ..supportsWebSearch = true
+      ..supportsStreaming = true
+      ..currentStreamingEnabled = true
+      ..supportsLiveApi = false
+      ..quality = ModelQuality.basic
+      ..speed = ModelSpeed.ultraFast
+      ..estimatedTokensPerSec = 200
+      ..contextWindow = 2000000
+      ..maxOutputTokens = 8192
+      ..supportedInputs = [InputType.text, InputType.image]
+      ..supportedSteps = allSteps
+      ..inputPricePerMToken = 0.05
+      ..outputPricePerMToken = 0.20,
+    AiModel()
+      ..provider = AiProvider.google
+      ..name = 'gemini-3.5-flash'
+      ..url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash'
+      ..defaultLimit = 20
+      ..currentMaxLimit = 20
+      ..defaultDailyMaxLimit = 100
+      ..currentDailyMaxLimit = 100
+      ..defaultPhrasesPerRequest = 10
+      ..currentPhrasesPerRequest = 10
+      ..supportsWebSearch = true
+      ..supportsStreaming = true
+      ..currentStreamingEnabled = true
+      ..supportsLiveApi = true
+      ..quality = ModelQuality.high
+      ..speed = ModelSpeed.fast
+      ..estimatedTokensPerSec = 120
+      ..contextWindow = 2000000
+      ..maxOutputTokens = 16384
+      ..supportedInputs = [InputType.text, InputType.image, InputType.audio, InputType.video, InputType.pdf]
+      ..supportedSteps = allSteps
+      ..inputPricePerMToken = 0.10
+      ..outputPricePerMToken = 0.40,
+    AiModel()
+      ..provider = AiProvider.google
+      ..name = 'gemini-3.6-flash'
+      ..url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash'
+      ..defaultLimit = 20
+      ..currentMaxLimit = 20
+      ..defaultDailyMaxLimit = 100
+      ..currentDailyMaxLimit = 100
+      ..defaultPhrasesPerRequest = 10
+      ..currentPhrasesPerRequest = 10
+      ..supportsWebSearch = true
+      ..supportsStreaming = true
+      ..currentStreamingEnabled = true
+      ..supportsLiveApi = true
+      ..quality = ModelQuality.high
+      ..speed = ModelSpeed.fast
+      ..estimatedTokensPerSec = 130
+      ..contextWindow = 2000000
+      ..maxOutputTokens = 16384
+      ..supportedInputs = [InputType.text, InputType.image, InputType.audio, InputType.video, InputType.pdf]
+      ..supportedSteps = allSteps
+      ..inputPricePerMToken = 0.10
+      ..outputPricePerMToken = 0.40,
+    AiModel()
+      ..provider = AiProvider.google
+      ..name = 'gemma-4-26b'
+      ..url = 'https://generativelanguage.googleapis.com/v1beta/models/gemma-4-26b'
+      ..defaultLimit = 14400
+      ..currentMaxLimit = 14400
+      ..defaultDailyMaxLimit = 14400
+      ..currentDailyMaxLimit = 14400
+      ..defaultPhrasesPerRequest = 10
+      ..currentPhrasesPerRequest = 10
+      ..supportsWebSearch = false
+      ..supportsStreaming = true
+      ..currentStreamingEnabled = true
+      ..supportsLiveApi = false
+      ..quality = ModelQuality.standard
+      ..speed = ModelSpeed.medium
+      ..estimatedTokensPerSec = 60
+      ..contextWindow = 128000
+      ..maxOutputTokens = 8192
+      ..supportedInputs = [InputType.text]
+      ..supportedSteps = basicSteps
+      ..inputPricePerMToken = 0.0
+      ..outputPricePerMToken = 0.0,
+    AiModel()
+      ..provider = AiProvider.google
+      ..name = 'gemma-4-31b'
+      ..url = 'https://generativelanguage.googleapis.com/v1beta/models/gemma-4-31b'
+      ..defaultLimit = 14400
+      ..currentMaxLimit = 14400
+      ..defaultDailyMaxLimit = 14400
+      ..currentDailyMaxLimit = 14400
+      ..defaultPhrasesPerRequest = 10
+      ..currentPhrasesPerRequest = 10
+      ..supportsWebSearch = false
+      ..supportsStreaming = true
+      ..currentStreamingEnabled = true
+      ..supportsLiveApi = false
+      ..quality = ModelQuality.high
+      ..supportsThinking = true
+      ..speed = ModelSpeed.medium
+      ..estimatedTokensPerSec = 45
+      ..contextWindow = 128000
+      ..maxOutputTokens = 8192
+      ..supportedInputs = [InputType.text]
+      ..supportedSteps = basicSteps
+      ..inputPricePerMToken = 0.0
+      ..outputPricePerMToken = 0.0,
+  ];
+}
