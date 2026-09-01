@@ -1,0 +1,14 @@
+targets:
+  $default:
+    builders:
+      freezed:freezed:
+        enabled: true
+      isar_community_generator:isar_community_generator:
+        enabled: true
+        # Ми не використовуємо runs_before тут, оскільки він має бути в global_options
+        # або визначатися автоматично через залежності файлів.
+
+global_options:
+  freezed:freezed:
+    runs_before:
+      - isar_community_generator:isar_community_generator
