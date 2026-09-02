@@ -1,18 +1,36 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import '../database/schemas/translation_pipeline_step.dart';
+import '../backend/database/schemas/translation_pipeline_step.dart';
 
-class AppConfigs {
+class AppConfig {
   final SharedPreferences _prefs;
 
-  AppConfigs(this._prefs);
+  AppConfig(this._prefs);
 
+  // --- API Constants ---
+  static const String aniListEndpoint = 'https://graphql.anilist.co';
+  static const String jimakuBaseUrl = 'https://jimaku.cc/api';
+  static const Duration defaultTimeout = Duration(seconds: 15);
+
+  // --- Default Values ---
+  static const int defaultPhrasesPerRequest = 40;
+  static const int defaultSecondsAhead = 100;
+  
+  static const Map<TranslationPipelineStep, String> defaultModels = {
+    TranslationPipelineStep.research: 'gemini-2.5-flash-lite',
+    TranslationPipelineStep.translate: 'gemini-3.5-flash',
+    TranslationPipelineStep.morphemes: 'gemini-2.5-flash',
+    TranslationPipelineStep.fullTranslate: 'gemini-3.5-flash',
+  };
+
+  // --- Storage Keys ---
   static const _keySecondsAhead = 'seconds_before_send';
   static const _keyNumberOfPhrases = 'number_of_phrases';
   static const _keyIsThreeStepMethod = 'is_three_step_method';
   static const _keyLastResetDate = 'last_reset_date_utc';
   
-  // Model selection keys
   static String _modelKey(TranslationPipelineStep step) => 'active_model_${step.name}';
+
+  // --- Getters & Setters ---
 
   Future<void> setSecondsAhead(int value) async {
     await _prefs.setInt(_keySecondsAhead, value);
@@ -30,9 +48,9 @@ class AppConfigs {
     await _prefs.setString(_modelKey(step), modelName);
   }
 
-  int get getSecondsAhead => _prefs.getInt(_keySecondsAhead) ?? 100;
+  int get getSecondsAhead => _prefs.getInt(_keySecondsAhead) ?? defaultSecondsAhead;
 
-  int get getNumberOfPhrases => _prefs.getInt(_keyNumberOfPhrases) ?? 40;
+  int get getNumberOfPhrases => _prefs.getInt(_keyNumberOfPhrases) ?? defaultPhrasesPerRequest;
 
   bool get getIsThreeStepMethod => _prefs.getBool(_keyIsThreeStepMethod) ?? true;
 
@@ -43,12 +61,6 @@ class AppConfigs {
   }
 
   String getActiveModelForStep(TranslationPipelineStep step) {
-    final defaultModels = {
-      TranslationPipelineStep.research: 'gemini-2.5-flash-lite',
-      TranslationPipelineStep.translate: 'gemini-3.5-flash',
-      TranslationPipelineStep.morphemes: 'gemini-2.5-flash',
-      TranslationPipelineStep.fullTranslate: 'gemini-3.5-flash',
-    };
     return _prefs.getString(_modelKey(step)) ?? defaultModels[step]!;
   }
 
