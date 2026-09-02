@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:eiga/ui/widgets/appBarWidgets/app_app_bar.dart';
+import 'package:eiga/ui/widgets/app_bar/app_app_bar.dart';
 
 class MainScreen extends ConsumerWidget {
   const MainScreen({super.key});

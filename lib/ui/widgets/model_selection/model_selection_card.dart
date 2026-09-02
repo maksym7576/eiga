@@ -3,14 +3,14 @@ import 'package:eiga/backend/database/schemas/ai_model.dart';
 import 'package:eiga/backend/database/schemas/translation_pipeline_step.dart';
 import 'package:eiga/ui/styles/model_selection_theme.dart';
 
-class ModelWidget extends StatelessWidget {
+class ModelSelectionCard extends StatelessWidget {
   final AiModel model;
   final TranslationPipelineStep step;
   final bool isActive;
   final VoidCallback onSelect;
   final VoidCallback onToggleStreaming;
 
-  const ModelWidget({
+  const ModelSelectionCard({
     super.key,
     required this.model,
     required this.step,

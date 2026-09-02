@@ -4,21 +4,21 @@ import 'package:eiga/backend/database/schemas/translation_pipeline_step.dart';
 import 'package:eiga/providers/ui/ai_models_state_provider.dart';
 import 'package:eiga/ui/styles/model_selection_theme.dart';
 import 'package:eiga/ui/widgets/buttons/equal_toggle_buttons.dart';
-import 'modelWidget.dart';
+import 'model_selection_card.dart';
 
-class ModelPreviewWidget extends ConsumerStatefulWidget {
+class ModelSelectionSheet extends ConsumerStatefulWidget {
   final TranslationPipelineStep initialStep;
 
-  const ModelPreviewWidget({
+  const ModelSelectionSheet({
     super.key,
     this.initialStep = TranslationPipelineStep.research,
   });
 
   @override
-  ConsumerState<ModelPreviewWidget> createState() => _ModelPreviewWidgetState();
+  ConsumerState<ModelSelectionSheet> createState() => _ModelSelectionSheetState();
 }
 
-class _ModelPreviewWidgetState extends ConsumerState<ModelPreviewWidget> {
+class _ModelSelectionSheetState extends ConsumerState<ModelSelectionSheet> {
   late TranslationPipelineStep _activeStep;
   final _scrollController = ScrollController();
 
@@ -138,7 +138,7 @@ class _ModelPreviewWidgetState extends ConsumerState<ModelPreviewWidget> {
                       final model = sortedModels[index];
                       final isActive = model.name == activeName;
                       
-                      return ModelWidget(
+                      return ModelSelectionCard(
                         model: model,
                         step: effectiveStep,
                         isActive: isActive,

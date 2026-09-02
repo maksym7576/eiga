@@ -6,12 +6,12 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:eiga/ui/widgets/animations/eiga_logo_animation.dart';
 import 'package:eiga/backend/database/schemas/ai_model.dart';
-import 'package:eiga/ui/widgets/appBarWidgets/modelsPreviewWidget.dart';
+import 'package:eiga/ui/widgets/model_selection/model_selection_sheet.dart';
 import 'package:eiga/backend/database/schemas/translation_pipeline_step.dart';
 import 'package:eiga/providers/ui/ai_models_state_provider.dart';
 import 'package:eiga/ui/styles/AppAppBarTheme.dart';
 import 'package:eiga/ui/widgets/dialogs/app_bottom_sheet.dart';
-import 'package:eiga/ui/widgets/appBarWidgets/TranslationGlobalBanner.dart';
+import 'package:eiga/ui/widgets/app_bar/translation_global_banner.dart';
 
 import 'package:eiga/providers/services/translation_queue_provider.dart';
 
@@ -108,7 +108,7 @@ class _AppAppBarInternalState extends ConsumerState<_AppAppBarInternal> {
       await AppBottomSheet.show(
         context: context,
         barrierLabel: "ModelsLabel",
-        child: ModelPreviewWidget(initialStep: step),
+        child: ModelSelectionSheet(initialStep: step),
       );
     } finally {
       if (mounted) setState(() => _isModelDialogOpen = false);
