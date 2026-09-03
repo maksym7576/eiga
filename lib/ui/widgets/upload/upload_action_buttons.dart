@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../providers/ui/upload_provider.dart';
+import '../../../providers/ui/search_provider.dart';
 import '../../styles/additional_window_theme.dart';
 
 class UploadActionButtons extends ConsumerWidget {
@@ -18,7 +19,24 @@ class UploadActionButtons extends ConsumerWidget {
       children: [
         Expanded(
           child: OutlinedButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              // Reset all relevant providers
+              ref.invalidate(uploadProvider);
+              ref.invalidate(videoPathProvider);
+              
+              // Clear selection
+              ref.read(selectedEntryProvider(SearchSourceKeys.jimaku).notifier).state = null;
+              ref.read(selectedEntryProvider(SearchSourceKeys.anilist).notifier).state = null;
+              ref.read(selectedResultProvider(SearchSourceKeys.jimaku).notifier).state = null;
+              ref.read(selectedResultProvider(SearchSourceKeys.anilist).notifier).state = null;
+              
+              // Clear search results list
+              ref.read(searchResultsProvider(SearchSourceKeys.jimaku).notifier).state = [];
+              ref.read(searchResultsProvider(SearchSourceKeys.anilist).notifier).state = [];
+              ref.read(jimakuSearchFullResultsProvider.notifier).state = [];
+              
+              Navigator.pop(context);
+            },
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

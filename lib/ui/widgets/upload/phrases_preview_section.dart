@@ -4,6 +4,8 @@ import '../../../providers/ui/upload_provider.dart';
 import '../../styles/additional_window_theme.dart';
 import '../dialogs/app_bottom_sheet.dart';
 
+import '../shared/section_title.dart';
+
 class PhrasesPreviewSection extends ConsumerWidget {
   const PhrasesPreviewSection({super.key});
 
@@ -22,7 +24,7 @@ class PhrasesPreviewSection extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _SectionTitle(title: 'Phrases Preview', theme: theme),
+            SectionTitle(title: 'Phrases Preview'),
             if (state.previewPhrases.isNotEmpty)
               TextButton(
                 onPressed: () => _showAllPhrases(context, state, theme),
@@ -154,24 +156,6 @@ class _PhrasesFullView extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  final AdditionalWindowTheme theme;
-
-  const _SectionTitle({required this.title, required this.theme});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8, left: 4),
-      child: Text(
-        title,
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: theme.mutedText, letterSpacing: 0.5),
       ),
     );
   }

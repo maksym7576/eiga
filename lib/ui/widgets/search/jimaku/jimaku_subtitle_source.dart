@@ -129,27 +129,50 @@ class JimakuSubtitleSource
 
   List<int> _extractEpisodeNumbers(List<FileJimakuDTO> files) {
     final numbers = <int>{};
-    final digitRegex = RegExp(r'\d+');
+    
+    // Prioritized patterns: E01, Ep01, etc.
+    final explicitEpRegex = RegExp(r'[Ee][Pp]?[\s.\-_]*(\d+)', caseSensitive: false);
+    // Patterns like " - 01 ", " [01] "
+    final separatorEpRegex = RegExp(r'[\s\-_.]+(\d+)[\s\-_.]+', caseSensitive: false);
+    // Bracket patterns
+    final bracketEpRegex = RegExp(r'[\[(](\d+)[\])]', caseSensitive: false);
 
     for (final file in files) {
       final name = file.name.toLowerCase();
-      for (final match in digitRegex.allMatches(name)) {
-        final rawValue = match.group(0)!;
-        final value = int.tryParse(rawValue);
-        if (value == null || value <= 0 || value > 9999) continue;
-
-        final nextChar = match.end < name.length ? name[match.end] : '';
-        final prevChar = match.start > 0 ? name[match.start - 1] : '';
-        if (nextChar == 'p' || nextChar == 'i' || nextChar == 'k' || prevChar == 'x') {
-          continue;
+      
+      // 1. Try explicit markers first
+      var matches = explicitEpRegex.allMatches(name);
+      if (matches.isNotEmpty) {
+        for (final m in matches) {
+          final val = int.tryParse(m.group(1)!);
+          if (val != null && val > 0 && val < 2000) {
+            numbers.add(val);
+          }
         }
+        continue; // Found explicit, move to next file
+      }
 
-        if (value >= 2000 && value <= 2100) continue;
-        if (value >= 1000 && value <= 9999 && value % 100 == 0 && value > 100) {
-          continue;
+      // 2. Try bracketed numbers
+      matches = bracketEpRegex.allMatches(name);
+      if (matches.isNotEmpty) {
+        for (final m in matches) {
+          final val = int.tryParse(m.group(1)!);
+          // Ignore years like 2024
+          if (val != null && val > 0 && val < 1900) {
+            numbers.add(val);
+          }
         }
+        continue;
+      }
 
-        numbers.add(value);
+      // 3. Try generic separator numbers
+      matches = separatorEpRegex.allMatches(name);
+      for (final m in matches) {
+        final val = int.tryParse(m.group(1)!);
+        // Filter out years and resolutions
+        if (val != null && val > 0 && val < 1900 && val != 480 && val != 720 && val != 1080 && val != 2160) {
+          numbers.add(val);
+        }
       }
     }
 
@@ -161,26 +184,28 @@ class JimakuSubtitleSource
       JimakuDataDTO entry, List<JimakuGroup> groups, WidgetRef ref) {
     if (groups.isEmpty) return;
 
-    JimakuGroup bestGroup = groups.first;
-    for (var g in groups) {
-      if (g.files.length > bestGroup.files.length) {
-        bestGroup = g;
-      }
-    }
-
-    final episodes = _extractEpisodeNumbers(bestGroup.files);
+    // Aggregate files from ALL groups to find every possible episode
+    final allFiles = groups.expand((g) => g.files).toList();
+    final episodes = _extractEpisodeNumbers(allFiles);
+    
     int srtCount = 0;
     int assCount = 0;
 
-    for (var file in bestGroup.files) {
+    for (var file in allFiles) {
       final name = file.name.toLowerCase();
       if (name.endsWith('.srt')) srtCount++;
       if (name.endsWith('.ass')) assCount++;
     }
 
+    // Still try to find a season marker from the largest group for labeling
+    JimakuGroup bestGroup = groups.first;
+    for (var g in groups) {
+      if (g.files.length > bestGroup.files.length) bestGroup = g;
+    }
     final seasonMatch = RegExp(r'[Ss](\d+)').firstMatch(bestGroup.name);
     final season = seasonMatch?.group(1);
-    final episodeCount = episodes.isNotEmpty ? episodes.last : bestGroup.files.length;
+    
+    final episodeCount = episodes.length;
 
     ref.read(jimakuSummaryProvider(entry.id).notifier).state = JimakuSummary(
       episodeCount: episodeCount,
@@ -188,6 +213,13 @@ class JimakuSubtitleSource
       bestFormat: srtCount >= assCount ? 'srt' : 'ass',
       episodes: episodes,
     );
+
+    // Default selection: select the first found episode if none is selected
+    if (episodes.isNotEmpty && ref.read(uploadProvider).episode == null) {
+      Future.microtask(() {
+        ref.read(uploadProvider.notifier).setEpisode(episodes.first.toString());
+      });
+    }
   }
 
   /// Finds the best matching file for the current video state
@@ -197,7 +229,8 @@ class JimakuSubtitleSource
 
     if (targetEp == null || targetEp.trim().isEmpty) return null;
 
-    var rawFiles = await (await _service(ref)).getFiles(entry.id);
+    final service = await _service(ref);
+    var rawFiles = await service.getFiles(entry.id);
     if (rawFiles.isEmpty) return null;
 
     final groups = JimakuClusteringUtil.groupFiles(rawFiles);
@@ -206,14 +239,6 @@ class JimakuSubtitleSource
     final summary = ref.read(jimakuSummaryProvider(entry.id));
     final preferredExt = summary?.bestFormat ?? 'srt';
 
-    if (groups.isEmpty) return null;
-
-    JimakuGroup bestGroup = groups.first;
-    for (var g in groups) {
-      if (g.files.length > bestGroup.files.length) bestGroup = g;
-    }
-
-    FileJimakuDTO? selectedFile;
     final targetValue = targetEp.trim();
     final paddedValue = targetValue.padLeft(2, '0');
     final targetTokens = <String>{
@@ -227,19 +252,26 @@ class JimakuSubtitleSource
       'episode$paddedValue',
     };
 
-    final matches = bestGroup.files.where((f) {
+    // Search across ALL files from ALL groups
+    final allFiles = groups.expand((g) => g.files).toList();
+    final matches = allFiles.where((f) {
       final normalizedName = f.name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), ' ');
       return targetTokens.any((token) => normalizedName.contains(token));
     }).toList();
 
-    if (matches.isNotEmpty) {
-      selectedFile = matches.firstWhere(
-        (f) => f.name.toLowerCase().endsWith('.$preferredExt'),
-        orElse: () => matches.first,
-      );
-    }
+    if (matches.isEmpty) return null;
+
+    // Preference: 1. Format (.ass > .srt), 2. Group size (larger group preferred)
+    matches.sort((a, b) {
+      final aExt = a.name.toLowerCase().endsWith(preferredExt) ? 1 : 0;
+      final bExt = b.name.toLowerCase().endsWith(preferredExt) ? 1 : 0;
+      if (aExt != bExt) return bExt.compareTo(aExt);
+      
+      // If extension is same, return first found (or we could count group sizes here)
+      return 0;
+    });
     
-    return selectedFile;
+    return matches.first;
   }
 
   Future<void> autoSelectSubtitle(

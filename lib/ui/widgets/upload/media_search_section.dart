@@ -89,6 +89,14 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
 
     final sourceKey = subtitleSource == SubtitleSource.local ? _aniListSource.key : _jimakuSource.key;
 
+    // Auto-search when switching sources if text is present
+    ref.listen(uploadProvider.select((s) => s.subtitleSource), (previous, next) {
+      final query = _controller.text.trim();
+      if (query.length >= 3) {
+        _performSearch(query, next);
+      }
+    });
+
     // Auto-scroll to start when selection changes
     ref.listen(selectedEntryProvider(sourceKey), (previous, next) {
       if (next != null && _scrollController.hasClients) {
@@ -326,7 +334,7 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
                  onTap: canAutoSelect ? () => _jimakuSource.autoSelectSubtitle(entry as JimakuDataDTO, ref) : null,
                  child: _buildSummaryBadge(
                    context,
-                   '$epCount Episodes',
+                   'Found $epCount Eps',
                    Icons.layers_outlined,
                    theme.primaryAccent,
                    isClickable: canAutoSelect,
@@ -395,17 +403,17 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
       borderRadius: BorderRadius.circular(10),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10), // Increased padding
         decoration: BoxDecoration(
           color: isSelected ? theme.primaryAccent : theme.cardBackground,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isSelected ? theme.primaryAccent : theme.cardBorder,
-            width: isSelected ? 1.5 : 1,
+            width: isSelected ? 2.0 : 1,
           ),
           boxShadow: isSelected ? [
             BoxShadow(
-              color: theme.primaryAccent.withValues(alpha: 0.2),
+              color: theme.primaryAccent.withValues(alpha: 0.25),
               blurRadius: 8,
               offset: const Offset(0, 2),
             )
@@ -414,9 +422,9 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
         child: Text(
           'Ep $episode',
           style: TextStyle(
-            color: isSelected ? theme.backgroundColor : theme.normalText,
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+            color: isSelected ? Colors.white : theme.normalText,
+            fontSize: 13, // Increased font size
+            fontWeight: FontWeight.w800, // Thicker font
           ),
         ),
       ),
@@ -431,112 +439,92 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
       onTap: () => AppBottomSheet.show(
         context: context,
         heightFactor: 0.82,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 12, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-             Row(
-               children: [
-                 Expanded(
-                   child: Text(
-                     'Select episode',
-                     style: TextStyle(
-                       fontSize: 20,
-                       fontWeight: FontWeight.w800,
-                       color: theme.normalText,
+        child: Builder(
+          builder: (sheetContext) => Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 12, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+               Row(
+                 children: [
+                   Expanded(
+                     child: Text(
+                       'Select episode',
+                       style: TextStyle(
+                         fontSize: 22,
+                         fontWeight: FontWeight.w900,
+                         color: theme.normalText,
+                       ),
                      ),
                    ),
-                 ),
-                 IconButton(
-                   onPressed: () => Navigator.of(context).pop(),
-                   icon: Icon(Icons.close_rounded, color: theme.mutedText),
-                 ),
-               ],
-             ),
-             const SizedBox(height: 8),
-             if (selectedEp != null) ...[
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: theme.primaryAccent.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      'Selected: Episode $selectedEp',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: theme.primaryAccent,
-                      ),
-                    ),
-                  ),
-                ),
-             ],
-             Flexible(
-               child: GridView.builder(
-                 shrinkWrap: true,
-                 padding: const EdgeInsets.only(right: 8),
-                 itemCount: episodes.length,
-                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                   crossAxisCount: 3,
-                   mainAxisSpacing: 12,
-                   crossAxisSpacing: 12,
-                   childAspectRatio: 2.2,
-                 ),
-                 itemBuilder: (context, index) {
-                   final episode = episodes[index];
-                   final isSelected = selectedEp == episode.toString();
-                   return InkWell(
-                     onTap: () {
-                       Navigator.of(context).pop();
-                       _jimakuSource.selectEpisodeSubtitle(entry, episode, ref);
-                     },
-                     borderRadius: BorderRadius.circular(12),
-                     child: AnimatedContainer(
-                       duration: const Duration(milliseconds: 180),
-                       alignment: Alignment.center,
-                       decoration: BoxDecoration(
-                         color: isSelected ? theme.primaryAccent : theme.cardBackground,
-                         borderRadius: BorderRadius.circular(12),
-                         border: Border.all(
-                           color: isSelected ? theme.primaryAccent : theme.cardBorder,
-                           width: isSelected ? 2.0 : 1.5,
-                         ),
-                         boxShadow: isSelected
-                             ? [
-                                 BoxShadow(
-                                   color: theme.primaryAccent.withValues(alpha: 0.25),
-                                   blurRadius: 12,
-                                   spreadRadius: 1,
-                                   offset: const Offset(0, 4),
-                                 )
-                               ]
-                             : null,
-                       ),
-                       child: Text(
-                         'Ep $episode',
-                         style: TextStyle(
-                           color: isSelected ? theme.backgroundColor : theme.normalText,
-                           fontSize: 14,
-                           fontWeight: FontWeight.w900,
-                         ),
-                       ),
-                     ),
-                   );
-                 },
+                   IconButton(
+                     onPressed: () => Navigator.of(sheetContext).pop(),
+                     icon: Icon(Icons.close_rounded, color: theme.mutedText),
+                   ),
+                 ],
                ),
-             ),
-            ],
+               const SizedBox(height: 20),
+               Flexible(
+                 child: GridView.builder(
+                   shrinkWrap: true,
+                   padding: const EdgeInsets.only(right: 8, bottom: 20),
+                   itemCount: episodes.length,
+                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                     crossAxisCount: 3, // Keep 3 for better size
+                     mainAxisSpacing: 14,
+                     crossAxisSpacing: 14,
+                     childAspectRatio: 2.0, // Taller items
+                   ),
+                   itemBuilder: (context, index) {
+                     final episode = episodes[index];
+                     final isSelected = selectedEp == episode.toString();
+                     return InkWell(
+                       onTap: () {
+                         Navigator.of(sheetContext).pop();
+                         _jimakuSource.selectEpisodeSubtitle(entry, episode, ref);
+                       },
+                       borderRadius: BorderRadius.circular(14),
+                       child: AnimatedContainer(
+                         duration: const Duration(milliseconds: 180),
+                         alignment: Alignment.center,
+                         decoration: BoxDecoration(
+                           color: isSelected ? theme.primaryAccent : theme.cardBackground,
+                           borderRadius: BorderRadius.circular(14),
+                           border: Border.all(
+                             color: isSelected ? theme.primaryAccent : theme.cardBorder,
+                             width: isSelected ? 2.5 : 1.5,
+                           ),
+                           boxShadow: isSelected
+                               ? [
+                                   BoxShadow(
+                                     color: theme.primaryAccent.withValues(alpha: 0.3),
+                                     blurRadius: 12,
+                                     offset: const Offset(0, 4),
+                                   )
+                                 ]
+                               : null,
+                         ),
+                         child: Text(
+                           'Ep $episode',
+                           style: TextStyle(
+                             color: isSelected ? Colors.white : theme.normalText,
+                             fontSize: 16,
+                             fontWeight: FontWeight.w900,
+                           ),
+                         ),
+                       ),
+                     );
+                   },
+                 ),
+               ),
+              ],
+            ),
           ),
         ),
       ),
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: theme.primaryAccent.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(10),
@@ -546,8 +534,8 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
           'See more',
           style: TextStyle(
             color: theme.primaryAccent,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ),

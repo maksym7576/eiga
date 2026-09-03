@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
 
+import '../widgets/shared/section_title.dart';
 import '../widgets/upload/video_source_selector.dart';
 import '../widgets/upload/video_input_section.dart';
 import '../widgets/upload/language_selection_section.dart';
@@ -32,12 +33,12 @@ class UploadScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Language Selection (Moved to top)
-            _SectionTitle(title: 'Translation Settings', theme: theme),
+            const SectionTitle(title: 'Translation Settings'),
             const LanguageSelectionSection(),
             const SizedBox(height: 32),
 
             // 2. Video Source Selector
-            _SectionTitle(title: 'Video Source', theme: theme),
+            const SectionTitle(title: 'Video Source'),
             const VideoSourceSelector(),
             const SizedBox(height: 16),
 
@@ -49,7 +50,7 @@ class UploadScreen extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _SectionTitle(title: 'Subtitles', theme: theme, bottomPadding: 0),
+                const SectionTitle(title: 'Subtitles', bottomPadding: 0),
                 const SizedBox(
                   width: 200,
                   child: SubtitleSourceSelector(),
@@ -88,33 +89,5 @@ class _ConditionalSpacer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return SizedBox(height: height);
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  final AdditionalWindowTheme theme;
-  final double bottomPadding;
-
-  const _SectionTitle({
-    required this.title, 
-    required this.theme,
-    this.bottomPadding = 8,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottomPadding, left: 4),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w800,
-          color: theme.mutedText,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
   }
 }

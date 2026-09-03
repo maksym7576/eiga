@@ -10,6 +10,9 @@ import '../services/subtitle_depacker_providers.dart';
 import '../videoComponentsProvider.dart';
 import 'dto_providers.dart';
 
+import '../services/token_provider.dart';
+import '../../config/secure_storage.dart';
+
 final videoPathProvider = StateProvider<String?>((ref) => null);
 
 enum VideoSource { url, youtube, file }
@@ -70,7 +73,10 @@ class UploadState {
 class UploadNotifier extends Notifier<UploadState> {
   @override
   UploadState build() {
-    return UploadState();
+    final jimakuToken = ref.watch(tokenProvider(ApiTokenType.jimaku)).value ?? '';
+    final defaultSource = jimakuToken.isNotEmpty ? SubtitleSource.jimaku : SubtitleSource.local;
+    
+    return UploadState(subtitleSource: defaultSource);
   }
 
   void setVideoSource(VideoSource source) {
