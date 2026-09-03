@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../styles/app_bottom_sheet_theme.dart';
 
@@ -129,45 +130,53 @@ class _DraggableSheetBodyState extends State<_DraggableSheetBody>
 
     return Transform.translate(
       offset: Offset(0, _dragExtent * sheetHeight),
-      child: Container(
-        width: double.infinity,
-        constraints: BoxConstraints(maxHeight: sheetHeight),
-        decoration: BoxDecoration(
-          color: widget.backgroundColor ?? theme.backgroundColor,
-          borderRadius: theme.borderRadius,
-          boxShadow: theme.shadow,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onVerticalDragStart: _onDragStart,
-              onVerticalDragUpdate: (d) =>
-                  _onDragUpdate(d, sheetHeight),
-              onVerticalDragEnd: _onDragEnd,
-              child: Container(
-                width: double.infinity,
-                padding: theme.handlePadding,
-                child: Center(
+      child: ClipRRect(
+        borderRadius: theme.borderRadius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            width: double.infinity,
+            constraints: BoxConstraints(maxHeight: sheetHeight),
+            decoration: BoxDecoration(
+              color: (widget.backgroundColor ?? theme.backgroundColor)
+                  .withValues(alpha: 0.85),
+              borderRadius: theme.borderRadius,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.1),
+                width: 1.5,
+              ),
+              boxShadow: theme.shadow,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onVerticalDragStart: _onDragStart,
+                  onVerticalDragUpdate: (d) => _onDragUpdate(d, sheetHeight),
+                  onVerticalDragEnd: _onDragEnd,
                   child: Container(
-                    width: theme.handleWidth,
-                    height: theme.handleHeight,
-                    decoration: BoxDecoration(
-                      color: theme.handleColor,
-                      borderRadius: BorderRadius.circular(theme.handleRadius),
+                    width: double.infinity,
+                    padding: theme.handlePadding,
+                    child: Center(
+                      child: Container(
+                        width: theme.handleWidth,
+                        height: theme.handleHeight,
+                        decoration: BoxDecoration(
+                          color: theme.handleColor,
+                          borderRadius:
+                              BorderRadius.circular(theme.handleRadius),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+                Flexible(
+                  child: widget.child,
+                ),
+              ],
             ),
-            Flexible(
-              child: ClipRRect(
-                borderRadius: theme.borderRadius,
-                child: widget.child,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -19,8 +19,8 @@ class AppBottomSheetTheme {
   Color get dividerColor => isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05);
   
   BorderRadius get borderRadius => const BorderRadius.only(
-    topLeft: Radius.circular(20),
-    topRight: Radius.circular(20),
+    topLeft: Radius.circular(32),
+    topRight: Radius.circular(32),
   );
 
   List<BoxShadow> get shadow => [

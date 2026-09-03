@@ -72,8 +72,13 @@ class FileJimakuDTO {
 class JimakuGroup {
   final String name;
   final List<FileJimakuDTO> files;
+  bool isExpanded;
 
-  JimakuGroup({required this.name, required this.files});
+  JimakuGroup({
+    required this.name,
+    required this.files,
+    this.isExpanded = false,
+  });
 }
 
 class JimakuFileOrGroupDTO {

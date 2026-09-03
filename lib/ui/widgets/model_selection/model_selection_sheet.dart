@@ -62,12 +62,7 @@ class _ModelSelectionSheetState extends ConsumerState<ModelSelectionSheet> {
     final models = ref.watch(modelsForStepProvider(effectiveStep));
     final activeName = aiState[effectiveStep];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.backgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
+    return Column(
         children: [
           _buildHeader(theme),
           const SizedBox(height: 8),
@@ -149,8 +144,7 @@ class _ModelSelectionSheetState extends ConsumerState<ModelSelectionSheet> {
                   ),
           ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildHeader(ModelSelectionTheme theme) {

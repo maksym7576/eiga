@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../providers/database/database_providers.dart';
 import '../../providers/services/app_configs_provider.dart';
 import '../../providers/ui/ai_models_state_provider.dart';
+import '../widgets/settings/control_button_widget.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -60,8 +61,18 @@ class SettingsScreen extends ConsumerWidget {
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
-        children: [
-          const _SettingsSection(
+        children: const [
+          _SettingsSection(
+            title: 'Account & Services',
+            children: [
+              Padding(
+                padding: EdgeInsets.all(12),
+                child: ControlButtonWidget(),
+              ),
+            ],
+          ),
+          SizedBox(height: 24),
+          _SettingsSection(
             title: 'General',
             children: [
               ListTile(
@@ -69,19 +80,6 @@ class SettingsScreen extends ConsumerWidget {
                 title: Text('App Language'),
                 subtitle: Text('System Default'),
                 trailing: Icon(Icons.chevron_right),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          _SettingsSection(
-            title: 'Danger Zone',
-            titleColor: Colors.red,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.delete_forever, color: Colors.red),
-                title: const Text('Clear All Data', style: TextStyle(color: Colors.red)),
-                subtitle: const Text('Wipe database and reset all configs'),
-                onTap: () => _handleFullReset(context, ref),
               ),
             ],
           ),

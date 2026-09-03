@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:eiga/config/app_config.dart';
-import '../database/dto/anilist_dto.dart';
+import 'package:eiga/backend/database/dto/anilist_dto.dart';
 
 class AniListService {
   static const _endpoint = AppConfig.aniListEndpoint;
@@ -23,6 +23,10 @@ class AniListService {
         description(asHtml: false)
         bannerImage
         genres
+        season
+        seasonYear
+        episodes
+        format
         coverImage {
           extraLarge
           large
@@ -45,6 +49,9 @@ class AniListService {
           description(asHtml: false)
           bannerImage
           genres
+          season
+          seasonYear
+          episodes
           coverImage {
             extraLarge
             large
@@ -68,6 +75,9 @@ class AniListService {
           description(asHtml: false)
           bannerImage
           genres
+          season
+          seasonYear
+          episodes
           coverImage {
             extraLarge
             large

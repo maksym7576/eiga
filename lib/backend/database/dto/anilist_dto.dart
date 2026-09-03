@@ -10,6 +10,10 @@ class AniListDataDTO {
   final String? description;
   final List<String>? genres;
   final int? colorThemeValue;
+  final String? season;
+  final int? seasonYear;
+  final int? episodes;
+  final String? format;
 
   const AniListDataDTO({
     this.id,
@@ -23,6 +27,10 @@ class AniListDataDTO {
     this.description,
     this.genres,
     this.colorThemeValue,
+    this.season,
+    this.seasonYear,
+    this.episodes,
+    this.format,
   });
 
   factory AniListDataDTO.fromJson(Map<String, dynamic> json) {
@@ -48,6 +56,10 @@ class AniListDataDTO {
           ?.map((e) => e.toString())
           .toList(),
       colorThemeValue: colorValue,
+      season: json['season'] as String?,
+      seasonYear: json['seasonYear'] as int?,
+      episodes: json['episodes'] as int?,
+      format: json['format'] as String?,
     );
   }
 
@@ -63,6 +75,10 @@ class AniListDataDTO {
     String? description,
     List<String>? genres,
     int? colorThemeValue,
+    String? season,
+    int? seasonYear,
+    int? episodes,
+    String? format,
   }) {
     return AniListDataDTO(
       id: id ?? this.id,
@@ -76,6 +92,10 @@ class AniListDataDTO {
       description: description ?? this.description,
       genres: genres ?? this.genres,
       colorThemeValue: colorThemeValue ?? this.colorThemeValue,
+      season: season ?? this.season,
+      seasonYear: seasonYear ?? this.seasonYear,
+      episodes: episodes ?? this.episodes,
+      format: format ?? this.format,
     );
   }
 }
