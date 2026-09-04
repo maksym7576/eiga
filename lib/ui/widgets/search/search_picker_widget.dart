@@ -6,10 +6,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../styles/additional_window_theme.dart';
 import '../../../providers/ui/search_provider.dart';
 import 'package:eiga/ui/widgets/search/search_source_abstract.dart';
-import 'package:eiga/ui/widgets/dialogs/app_bottom_sheet.dart';
-import 'package:eiga/ui/widgets/upload/jimaku_files_sheet.dart';
-import 'package:eiga/backend/database/dto/jimaku_dto.dart';
 import 'package:eiga/ui/widgets/search/jimaku/jimaku_subtitle_source.dart';
+import 'package:eiga/utils/debounce.dart';
 
 class SearchPickerWidget<TEntry, TFile> extends ConsumerStatefulWidget {
   final SearchSource<TEntry, TFile> source;
@@ -32,7 +30,7 @@ class _SearchPickerWidgetState<TEntry, TFile>
     extends ConsumerState<SearchPickerWidget<TEntry, TFile>> {
   final _controller = TextEditingController();
   late final String _key = widget.source.key;
-  Timer? _debounce;
+  final _debouncer = Debouncer(delay: const Duration(milliseconds: 600));
   
   int _currentPage = 1;
   bool _isLoadingNextPage = false;
@@ -67,8 +65,7 @@ class _SearchPickerWidgetState<TEntry, TFile>
   }
 
   void _onSearchChanged() {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 600), () {
+    _debouncer.run(() {
       final query = _controller.text.trim();
       if (query.length >= 3) {
         _search();
@@ -222,6 +219,7 @@ class _SearchPickerWidgetState<TEntry, TFile>
   @override
   void dispose() {
     _controller.dispose();
+    _debouncer.dispose();
     super.dispose();
   }
 

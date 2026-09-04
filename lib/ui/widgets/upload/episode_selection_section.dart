@@ -8,6 +8,9 @@ import 'package:eiga/backend/database/dto/anilist_dto.dart';
 import '../../styles/additional_window_theme.dart';
 import '../dialogs/app_bottom_sheet.dart';
 import '../search/jimaku/jimaku_subtitle_source.dart';
+import '../shared/app_section_card.dart';
+import '../shared/app_text_field.dart';
+import '../shared/app_text_button.dart';
 
 class EpisodeSelectionSection extends ConsumerWidget {
   const EpisodeSelectionSection({super.key});
@@ -21,9 +24,26 @@ class EpisodeSelectionSection extends ConsumerWidget {
         ? ref.watchAniListSelectedEntry()
         : ref.watchJimakuSelectedEntry();
 
-    if (selectedEntry == null) return const SizedBox.shrink();
+    if (selectedEntry == null) {
+      return AppSectionCard(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, size: 16, color: theme.mutedText),
+            const SizedBox(width: 10),
+            Text(
+              'Match media in step 3 to select episodes',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: theme.mutedText,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
-    String? season;
     int? epCount;
     List<int> episodes = const [];
 
@@ -31,12 +51,10 @@ class EpisodeSelectionSection extends ConsumerWidget {
       final aniListData = ref.watch(aniListProvider).value;
       final data = selectedEntry as AniListDataDTO;
       final displayData = (aniListData != null && aniListData.id == data.id) ? aniListData : data;
-      season = displayData.season;
       epCount = displayData.episodes;
     } else {
       final data = selectedEntry as JimakuDataDTO;
       final summary = ref.watch(jimakuSummaryProvider(data.id));
-      season = summary?.season;
       epCount = summary?.episodeCount;
       episodes = summary?.episodes ?? const [];
     }
@@ -44,20 +62,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
     final visibleEpisodes = episodes.length > 12 ? episodes.take(12).toList() : episodes;
     final hasMoreEpisodes = episodes.length > 12;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: theme.cardBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          )
-        ],
-      ),
+    return AppSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -73,14 +78,9 @@ class EpisodeSelectionSection extends ConsumerWidget {
                 ),
               ),
               if (subtitleSource == SubtitleSource.jimaku && epCount != null && episodes.isNotEmpty && hasMoreEpisodes)
-                TextButton(
+                AppTextButton(
                   onPressed: () => _showAllEpisodes(context, ref, episodes, selectedEntry as JimakuDataDTO),
-                  style: TextButton.styleFrom(
-                    foregroundColor: theme.primaryAccent,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-                  ),
-                  child: Text('See all $epCount'),
+                  text: 'See all $epCount',
                 ),
             ],
           ),
@@ -109,31 +109,10 @@ class EpisodeSelectionSection extends ConsumerWidget {
             ),
           ] else if (subtitleSource == SubtitleSource.local) ...[
             const SizedBox(height: 4),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    onChanged: (val) => ref.read(uploadProvider.notifier).setEpisode(val),
-                    keyboardType: TextInputType.number,
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.normalText),
-                    decoration: InputDecoration(
-                      hintText: 'Episode number (Optional)',
-                      hintStyle: TextStyle(color: theme.mutedText, fontSize: 12),
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: theme.cardBorder),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: theme.cardBorder),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            AppTextField(
+              onChanged: (val) => ref.read(uploadProvider.notifier).setEpisode(val),
+              keyboardType: TextInputType.number,
+              hintText: 'Episode number (Optional)',
             ),
           ] else ...[
             Text(
@@ -166,22 +145,15 @@ class EpisodeSelectionSection extends ConsumerWidget {
             )
           ] : null,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isSelected) ...[
-              const Icon(Icons.check, size: 9, color: Colors.white),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              'Ep $episode',
-              style: TextStyle(
-                color: isSelected ? Colors.white : const Color(0xFF334155),
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
-              ),
+        child: Center(
+          child: Text(
+            'Ep $episode',
+            style: TextStyle(
+              color: isSelected ? Colors.white : const Color(0xFF334155),
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
             ),
-          ],
+          ),
         ),
       ),
     );

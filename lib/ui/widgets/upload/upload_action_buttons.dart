@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../providers/ui/upload_provider.dart';
-import '../../../providers/ui/search_provider.dart';
 import '../../styles/additional_window_theme.dart';
+import '../shared/app_action_button.dart';
 
 import '../../../providers/videoComponentsProvider.dart';
 
@@ -34,44 +34,23 @@ class UploadActionButtons extends ConsumerWidget {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
+                child: AppActionButton(
                   onPressed: () {
                     notifier.reset();
                     Navigator.pop(context);
                   },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    side: const BorderSide(color: Color(0xFFE2E8F0)),
-                    foregroundColor: const Color(0xFF334155),
-                    textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                  ),
-                  child: const Text('Cancel'),
+                  text: 'Cancel',
+                  type: AppActionButtonType.outlined,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 flex: 2,
-                child: ElevatedButton(
+                child: AppActionButton(
                   onPressed: canAdd ? () => _onSave(context, notifier) : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F172A), // Slate 900
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    elevation: 0,
-                    textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                  ),
-                  child: state.isSaving 
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.play_arrow_rounded, size: 16, color: Color(0xFF3B66F5)),
-                          SizedBox(width: 8),
-                          Text('Add Video'),
-                        ],
-                      ),
+                  text: 'Add Video',
+                  isLoading: state.isSaving,
+                  icon: const Icon(Icons.play_arrow_rounded, size: 16, color: Color(0xFF3B66F5)),
                 ),
               ),
             ],

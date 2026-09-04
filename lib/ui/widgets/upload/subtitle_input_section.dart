@@ -6,6 +6,7 @@ import '../../../providers/ui/search_provider.dart';
 import '../../styles/additional_window_theme.dart';
 import '../dialogs/app_bottom_sheet.dart';
 import '../shared/upload_drop_box.dart';
+import 'package:eiga/ui/widgets/shared/app_section_card.dart';
 import 'jimaku_files_sheet.dart';
 
 class SubtitleInputSection extends ConsumerWidget {
@@ -37,23 +38,13 @@ class SubtitleInputSection extends ConsumerWidget {
     final hasFile = state.subtitlePath != null;
     final isJimaku = state.subtitleSource == SubtitleSource.jimaku;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
+    return AppSectionCard(
+      padding: EdgeInsets.zero,
+      child: InkWell(
+        onTap: () => _openJimakuFiles(context, entry),
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: theme.cardBorder),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              )
-            ],
-          ),
           child: Column(
             children: [
               Row(
@@ -76,34 +67,15 @@ class SubtitleInputSection extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                isJimaku ? 'Manual Subtitle Selection' : 'Selected Subtitles',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                  color: theme.normalText,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: theme.brandBlue50,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: theme.brandBlue100),
-                              ),
-                              child: Text(
-                                isJimaku ? 'Manual' : 'Local',
-                                style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: theme.primaryAccent),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          isJimaku ? 'Subtitle Selection' : 'Selected Subtitles',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: theme.normalText,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           isJimaku ? 'Choose release group or track' : 'Locally provided subtitle file',
@@ -114,24 +86,7 @@ class SubtitleInputSection extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  if (isJimaku)
-                    TextButton(
-                      onPressed: () => _openJimakuFiles(context, entry),
-                      style: TextButton.styleFrom(
-                        foregroundColor: theme.primaryAccent,
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11),
-                      ),
-                      child: const Row(
-                        children: [
-                          Text('Browse'),
-                          SizedBox(width: 4),
-                          Icon(Icons.chevron_right, size: 10),
-                        ],
-                      ),
-                    ),
+                  Icon(Icons.chevron_right, size: 16, color: theme.mutedText.withValues(alpha: 0.5)),
                 ],
               ),
               if (hasFile) ...[
@@ -159,22 +114,17 @@ class SubtitleInputSection extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      TextButton(
-                        onPressed: isJimaku 
-                            ? () => _openJimakuFiles(context, entry)
-                            : () => ref.read(uploadProvider.notifier).pickSubtitle(),
-                        style: TextButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF475569),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          minimumSize: Size.zero,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            side: const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
-                        child: const Text('Change'),
+                        child: const Text(
+                          'Change',
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: Color(0xFF475569)),
+                        ),
                       ),
                     ],
                   ),
@@ -183,7 +133,7 @@ class SubtitleInputSection extends ConsumerWidget {
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 

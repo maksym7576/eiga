@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
-import 'package:eiga/providers/ui/search_provider.dart';
-import 'package:eiga/providers/videoComponentsProvider.dart';
-import 'package:eiga/providers/services/token_provider.dart';
-import 'package:eiga/config/secure_storage.dart';
 
 import '../widgets/shared/section_title.dart';
 import '../widgets/upload/video_source_selector.dart';
@@ -24,10 +20,15 @@ class UploadScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = AdditionalWindowTheme.of(context);
-    final state = ref.watch(uploadProvider);
 
-    return Scaffold(
-      backgroundColor: theme.backgroundColor,
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          ref.read(uploadProvider.notifier).reset();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: theme.backgroundColor,
       appBar: AppBar(
         title: const Text('Create Video', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         backgroundColor: Colors.white.withValues(alpha: 0.9),
@@ -55,24 +56,9 @@ class UploadScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Video Source
-            SectionTitle(
+            const SectionTitle(
               title: 'Video Source', 
               step: 1,
-              trailing: state.videoPath != null ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: const Color(0xFFD1FAE5)),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.check, size: 10, color: Color(0xFF059669)),
-                    SizedBox(width: 4),
-                    Text('File Loaded', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF059669))),
-                  ],
-                ),
-              ) : null,
             ),
             const VideoSourceSelector(),
             const SizedBox(height: 12),
@@ -80,44 +66,17 @@ class UploadScreen extends ConsumerWidget {
             const SizedBox(height: 28),
 
             // 2. Subtitles Source
-            SectionTitle(
+            const SectionTitle(
               title: 'Subtitles Source', 
               step: 2,
-              trailing: state.subtitleSource == SubtitleSource.jimaku && (ref.watch(tokenProvider(ApiTokenType.jimaku)).value ?? '').isNotEmpty ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: theme.brandBlue50,
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: theme.brandBlue100),
-                ),
-                child: Text(
-                  'Jimaku Connected', 
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: theme.primaryAccent)
-                ),
-              ) : null,
             ),
             const SubtitleSourceSelector(),
             const SizedBox(height: 28),
 
             // 3. Media Match
-            SectionTitle(
+            const SectionTitle(
               title: 'Media Match', 
               step: 3,
-              trailing: ref.watchJimakuSelectedEntry() != null || ref.watchAniListSelectedEntry() != null ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: const Color(0xFFD1FAE5)),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.check, size: 10, color: Color(0xFF059669)),
-                    SizedBox(width: 4),
-                    Text('Matched', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF059669))),
-                  ],
-                ),
-              ) : null,
             ),
             const MediaSearchSection(),
             const _ConditionalSpacer(height: 28),
@@ -135,21 +94,9 @@ class UploadScreen extends ConsumerWidget {
             const _ConditionalSpacer(height: 28),
 
             // 5. Language & Translation
-            SectionTitle(
+            const SectionTitle(
               title: 'Language & Translation', 
               step: 5,
-              trailing: ref.watch(languageProvider).original != null && ref.watch(languageProvider).target != null ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: theme.brandBlue50,
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: theme.brandBlue100),
-                ),
-                child: Text(
-                  'Smart AI Ready', 
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: theme.primaryAccent)
-                ),
-              ) : null,
             ),
             const LanguageSelectionSection(),
             
@@ -158,7 +105,7 @@ class UploadScreen extends ConsumerWidget {
         ),
       ),
       bottomNavigationBar: const UploadActionButtons(),
-    );
+    ));
   }
 }
 

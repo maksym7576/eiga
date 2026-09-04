@@ -5,13 +5,15 @@ import 'package:eiga/providers/ui/upload_provider.dart';
 import 'package:eiga/providers/ui/search_provider.dart';
 import 'package:eiga/providers/ui/dto_providers.dart';
 import 'package:eiga/backend/database/dto/jimaku_dto.dart';
-import 'package:eiga/backend/database/dto/anilist_dto.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
-import 'package:eiga/ui/widgets/dialogs/app_bottom_sheet.dart';
 import 'package:eiga/ui/widgets/search/search_source_abstract.dart';
 import 'package:eiga/ui/widgets/search/search_picker_widget.dart';
 import 'package:eiga/ui/widgets/search/anilist/anilist_search_source.dart';
 import 'package:eiga/ui/widgets/search/jimaku/jimaku_subtitle_source.dart';
+import 'package:eiga/ui/widgets/shared/app_text_field.dart';
+import 'package:eiga/ui/widgets/shared/app_section_card.dart';
+import 'package:eiga/ui/widgets/shared/app_text_button.dart';
+import 'package:eiga/utils/debounce.dart';
 
 class MediaSearchSection extends ConsumerStatefulWidget {
   const MediaSearchSection({super.key});
@@ -23,7 +25,7 @@ class MediaSearchSection extends ConsumerStatefulWidget {
 class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
-  Timer? _debounce;
+  final _debouncer = Debouncer(delay: const Duration(milliseconds: 600));
   final _aniListSource = AniListSearchSource();
   final _jimakuSource = JimakuSubtitleSource();
   String? _lastAutoSearchQuery;
@@ -32,13 +34,12 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
-    _debounce?.cancel();
+    _debouncer.dispose();
     super.dispose();
   }
 
   void _onSearchChanged(String query, SubtitleSource source) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 600), () {
+    _debouncer.run(() {
       if (query.length >= 3) {
         _performSearch(query, source);
       }
@@ -176,53 +177,34 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 8),
-        TextField(
+        AppTextField(
           controller: _controller,
           onChanged: (val) => _onSearchChanged(val, subtitleSource),
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.normalText),
-          decoration: InputDecoration(
-            hintText: subtitleSource == SubtitleSource.local ? 'Search AniList...' : 'Search Jimaku...',
-            hintStyle: TextStyle(color: theme.mutedText, fontSize: 13, fontWeight: FontWeight.w500),
-            prefixIcon: Icon(Icons.auto_awesome, color: theme.mutedText, size: 16),
-            suffixIcon: Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isSearching)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3B66F5)),
-                    ),
-                  TextButton(
-                    onPressed: () => _performSearch(_controller.text, subtitleSource),
-                    child: Text(
-                      'Search',
-                      style: TextStyle(
-                        color: theme.primaryAccent,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
+          hintText: subtitleSource == SubtitleSource.local ? 'Search AniList...' : 'Search Jimaku...',
+          prefixIcon: Icon(Icons.auto_awesome, color: theme.mutedText, size: 16),
+          suffixIcon: Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isSearching)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3B66F5)),
+                  ),
+                TextButton(
+                  onPressed: () => _performSearch(_controller.text, subtitleSource),
+                  child: Text(
+                    'Search',
+                    style: TextStyle(
+                      color: theme.primaryAccent,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ],
-              ),
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12), 
-              borderSide: BorderSide(color: theme.cardBorder)
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12), 
-              borderSide: BorderSide(color: theme.cardBorder)
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12), 
-              borderSide: BorderSide(color: theme.primaryAccent.withValues(alpha: 0.5))
+                ),
+              ],
             ),
           ),
         ),
@@ -251,27 +233,17 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
                 ),
               ],
             ),
-            TextButton(
+            AppTextButton(
               onPressed: () => _openFullSearch(subtitleSource),
-              style: TextButton.styleFrom(
-                foregroundColor: theme.primaryAccent,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-              ),
-              child: const Text('See more'),
+              text: 'See more',
             ),
           ],
         ),
         const SizedBox(height: 12),
         results.isEmpty && !isSearching
-            ? Container(
+            ? AppSectionCard(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: theme.cardBorder),
-                ),
                 child: Column(
                   children: [
                     Icon(Icons.search_rounded, color: theme.mutedText.withValues(alpha: 0.5), size: 28),

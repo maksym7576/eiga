@@ -3,8 +3,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../providers/ui/upload_provider.dart';
 import '../../styles/additional_window_theme.dart';
 import '../dialogs/app_bottom_sheet.dart';
-
-import '../shared/section_title.dart';
+import '../shared/app_section_card.dart';
+import '../shared/app_text_button.dart';
 
 class PhrasesPreviewSection extends ConsumerWidget {
   const PhrasesPreviewSection({super.key});
@@ -18,83 +18,46 @@ class PhrasesPreviewSection extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: theme.cardBorder),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              )
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  border: Border(bottom: BorderSide(color: theme.dividerColor)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return AppSectionCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              border: Border(bottom: BorderSide(color: theme.dividerColor)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(Icons.checklist_rounded, size: 14, color: theme.primaryAccent),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Phrases Preview',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: theme.normalText),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '(${state.previewPhrases.length} lines)',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: theme.mutedText),
-                        ),
-                      ],
+                    Icon(Icons.checklist_rounded, size: 14, color: theme.primaryAccent),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Phrases Preview',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: theme.normalText),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFECFDF5),
-                        borderRadius: BorderRadius.circular(99),
-                        border: Border.all(color: const Color(0xFFD1FAE5)),
-                      ),
-                      child: const Text(
-                        'Sync OK',
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFF059669)),
-                      ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '(${state.previewPhrases.length} lines)',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: theme.mutedText),
                     ),
                   ],
                 ),
-              ),
-              _buildPhrasesList(theme, state),
-              if (state.previewPhrases.length > 5)
-                GestureDetector(
-                  onTap: () => _showAllPhrases(context, state, theme),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    color: Colors.white,
-                    alignment: Alignment.center,
-                    child: Text(
-                      'See all phrases',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: theme.primaryAccent),
-                    ),
+                if (state.previewPhrases.length > 5)
+                  AppTextButton(
+                    onPressed: () => _showAllPhrases(context, state, theme),
+                    text: 'See all phrases',
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+          _buildPhrasesList(theme, state),
+          const SizedBox(height: 12),
+        ],
+      ),
     );
   }
 

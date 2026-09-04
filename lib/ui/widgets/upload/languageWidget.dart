@@ -92,7 +92,14 @@ class LanguageWidget extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               if (isSelected)
-                Icon(Icons.check_circle, color: theme.checkIconColor, size: 20)
+                Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: theme.primaryAccent,
+                  ),
+                )
               else if (isOccupied)
                 Icon(Icons.lock, color: theme.lockIconColor, size: 18)
               else
