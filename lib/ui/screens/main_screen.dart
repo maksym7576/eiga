@@ -6,6 +6,7 @@ import 'package:eiga/ui/widgets/main_hub/active_process_card.dart';
 import 'package:eiga/ui/widgets/main_hub/video_library_card.dart';
 import 'package:eiga/ui/widgets/main_hub/vocabulary_feed_item.dart';
 import 'package:eiga/providers/ui/main_hub_providers.dart';
+import 'package:eiga/providers/ui/video_data_providers.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
@@ -30,50 +31,53 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             sliver: SliverToBoxAdapter(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                clipBehavior: Clip.none,
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 280,
-                      child: ActiveProcessCard(
-                        modelName: 'Gemini 1.5 Pro',
-                        videoTitle: 'Tongari Boushi no Atelier',
-                        stepName: 'Morpheme Analysis',
-                        stepIcon: Icons.psychology,
-                        currentPhrases: 89,
-                        totalPhrases: 356,
-                        accentColor: theme.colorScheme.primary,
+              child: SizedBox(
+                height: 170,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  clipBehavior: Clip.none,
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 280,
+                        child: ActiveProcessCard(
+                          modelName: 'Gemini 1.5 Pro',
+                          videoTitle: 'Tongari Boushi no Atelier',
+                          stepName: 'Morpheme Analysis',
+                          stepIcon: Icons.psychology,
+                          currentPhrases: 89,
+                          totalPhrases: 356,
+                          accentColor: theme.colorScheme.primary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: 280,
-                      child: ActiveProcessCard(
-                        modelName: 'GPT-4o',
-                        videoTitle: 'Witch Hat Atelier - Ep 2',
-                        stepName: 'Translation',
-                        stepIcon: Icons.translate,
-                        currentPhrases: 210,
-                        totalPhrases: 412,
-                        accentColor: Colors.deepPurple,
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 280,
+                        child: ActiveProcessCard(
+                          modelName: 'GPT-4o',
+                          videoTitle: 'Witch Hat Atelier - Ep 2',
+                          stepName: 'Translation',
+                          stepIcon: Icons.translate,
+                          currentPhrases: 210,
+                          totalPhrases: 412,
+                          accentColor: Colors.deepPurple,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: 280,
-                      child: ActiveProcessCard(
-                        modelName: 'Claude 3.5 Sonnet',
-                        videoTitle: 'Witch Hat Atelier Episode 1',
-                        stepName: 'Validation',
-                        stepIcon: Icons.fact_check,
-                        currentPhrases: 305,
-                        totalPhrases: 359,
-                        accentColor: Colors.orangeAccent,
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 280,
+                        child: ActiveProcessCard(
+                          modelName: 'Claude 3.5 Sonnet',
+                          videoTitle: 'Witch Hat Atelier Episode 1',
+                          stepName: 'Validation',
+                          stepIcon: Icons.fact_check,
+                          currentPhrases: 305,
+                          totalPhrases: 359,
+                          accentColor: Colors.orangeAccent,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -132,7 +136,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () => _showFullLibrary(context),
                     child: Row(
                       children: [
                         Text(
@@ -152,45 +156,41 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             ),
           ),
 
-          // 4. Video Grid (Real Data)
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: videosAsync.when(
-              data: (videos) {
-                if (videos.isEmpty) {
-                  return const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 32),
-                      child: Center(
-                        child: Text(
-                          'No videos added yet',
-                          style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
-                        ),
+          // 4. Video Horizontal List (Real Data)
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 240,
+              child: videosAsync.when(
+                data: (videos) {
+                  if (videos.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No videos added yet',
+                        style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
                       ),
-                    ),
-                  );
-                }
-                return SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 0.7,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
+                    );
+                  }
+                  return ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: videos.length,
+                    separatorBuilder: (context, index) => const SizedBox(width: 16),
+                    itemBuilder: (context, index) {
                       final video = videos[index];
                       return VideoLibraryCard(
                         video: video,
-                        onTap: () => context.push('/player'),
+                        width: 150,
+                        onTap: () {
+                          ref.read(playerIdProvider.notifier).state = video.id;
+                          context.push('/player');
+                        },
                       );
                     },
-                    childCount: videos.length,
-                  ),
-                );
-              },
-              loading: () => const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator())),
-              error: (err, stack) => SliverToBoxAdapter(child: Text('Error: $err')),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, stack) => Center(child: Text('Error: $err')),
+              ),
             ),
           ),
 
@@ -255,9 +255,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             sliver: SliverToBoxAdapter(
               child: Container(
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.08),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
+                  border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.1)),
                 ),
                 child: Column(
                   children: [
@@ -313,6 +313,96 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showFullLibrary(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _FullLibrarySheet(),
+    );
+  }
+}
+
+class _FullLibrarySheet extends ConsumerWidget {
+  const _FullLibrarySheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final videosAsync = ref.watch(allVideosProvider);
+    final theme = Theme.of(context);
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.9,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: theme.scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Full Library',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: videosAsync.when(
+                  data: (videos) => GridView.builder(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 0.7,
+                    ),
+                    itemCount: videos.length,
+                    itemBuilder: (context, index) {
+                      final video = videos[index];
+                      return VideoLibraryCard(
+                        video: video,
+                        onTap: () {
+                          ref.read(playerIdProvider.notifier).state = video.id;
+                          Navigator.pop(context);
+                          context.push('/player');
+                        },
+                      );
+                    },
+                  ),
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => Center(child: Text('Error: $err')),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

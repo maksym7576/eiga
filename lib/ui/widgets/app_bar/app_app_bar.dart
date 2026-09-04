@@ -36,7 +36,7 @@ class AppAppBar extends ConsumerWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 4);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 8);
 }
 
 class _AppAppBarInternal extends ConsumerStatefulWidget {
@@ -156,6 +156,9 @@ class _AppAppBarInternalState extends ConsumerState<_AppAppBarInternal> {
       ..currentStreamingEnabled = false
       ..supportsStreaming = false);
 
+    final displayUsed = (selectedItem.used < 0 || selectedItem.used > 1000000) ? 0 : selectedItem.used;
+    final displayLimit = (selectedItem.currentDailyMaxLimit < 0 || selectedItem.currentDailyMaxLimit > 1000000) ? 100 : selectedItem.currentDailyMaxLimit;
+
     centerWidget = GestureDetector(
       onTap: () => _showAllModelsDialog(effectiveStep),
       child: AnimatedContainer(
@@ -208,14 +211,14 @@ class _AppAppBarInternalState extends ConsumerState<_AppAppBarInternal> {
                 vertical: 8,
               ),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisSize: MainAxisSize.max,
                 children: [
                   _MethodBadge(
                     isThreeStep: isThreeStep,
                     color: isThreeStep ? theme.advancedModeColor : theme.standardModeColor,
                   ),
                   const SizedBox(width: 10),
-                  Flexible(
+                  Expanded(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,6 +227,7 @@ class _AppAppBarInternalState extends ConsumerState<_AppAppBarInternal> {
                           effectiveStep.displayName.toUpperCase(),
                           style: theme.stepLabelStyle,
                           maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 1),
                         FittedBox(
@@ -249,7 +253,7 @@ class _AppAppBarInternalState extends ConsumerState<_AppAppBarInternal> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      '${selectedItem.used}/${selectedItem.currentDailyMaxLimit}',
+                      '$displayUsed/$displayLimit',
                       style: theme.badgeTextStyle,
                     ),
                   ),
@@ -305,7 +309,7 @@ class _MethodBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Icon(

@@ -22,82 +22,139 @@ const AiModelSchema = CollectionSchema(
       name: r'contextWindow',
       type: IsarType.long,
     ),
-    r'defaultLimit': PropertySchema(
+    r'currentDailyMaxLimit': PropertySchema(
       id: 1,
+      name: r'currentDailyMaxLimit',
+      type: IsarType.long,
+    ),
+    r'currentMaxLimit': PropertySchema(
+      id: 2,
+      name: r'currentMaxLimit',
+      type: IsarType.long,
+    ),
+    r'currentPhrasesPerRequest': PropertySchema(
+      id: 3,
+      name: r'currentPhrasesPerRequest',
+      type: IsarType.long,
+    ),
+    r'currentStreamingEnabled': PropertySchema(
+      id: 4,
+      name: r'currentStreamingEnabled',
+      type: IsarType.bool,
+    ),
+    r'dailyUsed': PropertySchema(
+      id: 5,
+      name: r'dailyUsed',
+      type: IsarType.long,
+    ),
+    r'defaultDailyMaxLimit': PropertySchema(
+      id: 6,
+      name: r'defaultDailyMaxLimit',
+      type: IsarType.long,
+    ),
+    r'defaultLimit': PropertySchema(
+      id: 7,
       name: r'defaultLimit',
       type: IsarType.long,
     ),
     r'defaultPhrasesPerRequest': PropertySchema(
-      id: 2,
+      id: 8,
       name: r'defaultPhrasesPerRequest',
       type: IsarType.long,
     ),
     r'estimatedTokensPerSec': PropertySchema(
-      id: 3,
+      id: 9,
       name: r'estimatedTokensPerSec',
       type: IsarType.long,
     ),
     r'inputPricePerMToken': PropertySchema(
-      id: 4,
+      id: 10,
       name: r'inputPricePerMToken',
       type: IsarType.double,
     ),
+    r'isDailyMaxLimitCustom': PropertySchema(
+      id: 11,
+      name: r'isDailyMaxLimitCustom',
+      type: IsarType.bool,
+    ),
+    r'isMaxLimitCustom': PropertySchema(
+      id: 12,
+      name: r'isMaxLimitCustom',
+      type: IsarType.bool,
+    ),
+    r'isPhrasesPerRequestCustom': PropertySchema(
+      id: 13,
+      name: r'isPhrasesPerRequestCustom',
+      type: IsarType.bool,
+    ),
+    r'isStreamingCustom': PropertySchema(
+      id: 14,
+      name: r'isStreamingCustom',
+      type: IsarType.bool,
+    ),
     r'maxOutputTokens': PropertySchema(
-      id: 5,
+      id: 15,
       name: r'maxOutputTokens',
       type: IsarType.long,
     ),
-    r'name': PropertySchema(id: 6, name: r'name', type: IsarType.string),
+    r'name': PropertySchema(id: 16, name: r'name', type: IsarType.string),
     r'outputPricePerMToken': PropertySchema(
-      id: 7,
+      id: 17,
       name: r'outputPricePerMToken',
       type: IsarType.double,
     ),
     r'provider': PropertySchema(
-      id: 8,
+      id: 18,
       name: r'provider',
       type: IsarType.string,
       enumMap: _AiModelproviderEnumValueMap,
     ),
     r'quality': PropertySchema(
-      id: 9,
+      id: 19,
       name: r'quality',
       type: IsarType.string,
       enumMap: _AiModelqualityEnumValueMap,
     ),
     r'speed': PropertySchema(
-      id: 10,
+      id: 20,
       name: r'speed',
       type: IsarType.string,
       enumMap: _AiModelspeedEnumValueMap,
     ),
     r'supportedInputs': PropertySchema(
-      id: 11,
+      id: 21,
       name: r'supportedInputs',
       type: IsarType.stringList,
       enumMap: _AiModelsupportedInputsEnumValueMap,
     ),
+    r'supportedSteps': PropertySchema(
+      id: 22,
+      name: r'supportedSteps',
+      type: IsarType.stringList,
+      enumMap: _AiModelsupportedStepsEnumValueMap,
+    ),
     r'supportsLiveApi': PropertySchema(
-      id: 12,
+      id: 23,
       name: r'supportsLiveApi',
       type: IsarType.bool,
     ),
     r'supportsStreaming': PropertySchema(
-      id: 13,
+      id: 24,
       name: r'supportsStreaming',
       type: IsarType.bool,
     ),
     r'supportsThinking': PropertySchema(
-      id: 14,
+      id: 25,
       name: r'supportsThinking',
       type: IsarType.bool,
     ),
     r'supportsWebSearch': PropertySchema(
-      id: 15,
+      id: 26,
       name: r'supportsWebSearch',
       type: IsarType.bool,
     ),
-    r'url': PropertySchema(id: 16, name: r'url', type: IsarType.string),
+    r'url': PropertySchema(id: 27, name: r'url', type: IsarType.string),
+    r'used': PropertySchema(id: 28, name: r'used', type: IsarType.long),
   },
 
   estimateSize: _aiModelEstimateSize,
@@ -146,6 +203,13 @@ int _aiModelEstimateSize(
       bytesCount += value.name.length * 3;
     }
   }
+  bytesCount += 3 + object.supportedSteps.length * 3;
+  {
+    for (var i = 0; i < object.supportedSteps.length; i++) {
+      final value = object.supportedSteps[i];
+      bytesCount += value.name.length * 3;
+    }
+  }
   bytesCount += 3 + object.url.length * 3;
   return bytesCount;
 }
@@ -157,25 +221,40 @@ void _aiModelSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeLong(offsets[0], object.contextWindow);
-  writer.writeLong(offsets[1], object.defaultLimit);
-  writer.writeLong(offsets[2], object.defaultPhrasesPerRequest);
-  writer.writeLong(offsets[3], object.estimatedTokensPerSec);
-  writer.writeDouble(offsets[4], object.inputPricePerMToken);
-  writer.writeLong(offsets[5], object.maxOutputTokens);
-  writer.writeString(offsets[6], object.name);
-  writer.writeDouble(offsets[7], object.outputPricePerMToken);
-  writer.writeString(offsets[8], object.provider.name);
-  writer.writeString(offsets[9], object.quality.name);
-  writer.writeString(offsets[10], object.speed.name);
+  writer.writeLong(offsets[1], object.currentDailyMaxLimit);
+  writer.writeLong(offsets[2], object.currentMaxLimit);
+  writer.writeLong(offsets[3], object.currentPhrasesPerRequest);
+  writer.writeBool(offsets[4], object.currentStreamingEnabled);
+  writer.writeLong(offsets[5], object.dailyUsed);
+  writer.writeLong(offsets[6], object.defaultDailyMaxLimit);
+  writer.writeLong(offsets[7], object.defaultLimit);
+  writer.writeLong(offsets[8], object.defaultPhrasesPerRequest);
+  writer.writeLong(offsets[9], object.estimatedTokensPerSec);
+  writer.writeDouble(offsets[10], object.inputPricePerMToken);
+  writer.writeBool(offsets[11], object.isDailyMaxLimitCustom);
+  writer.writeBool(offsets[12], object.isMaxLimitCustom);
+  writer.writeBool(offsets[13], object.isPhrasesPerRequestCustom);
+  writer.writeBool(offsets[14], object.isStreamingCustom);
+  writer.writeLong(offsets[15], object.maxOutputTokens);
+  writer.writeString(offsets[16], object.name);
+  writer.writeDouble(offsets[17], object.outputPricePerMToken);
+  writer.writeString(offsets[18], object.provider.name);
+  writer.writeString(offsets[19], object.quality.name);
+  writer.writeString(offsets[20], object.speed.name);
   writer.writeStringList(
-    offsets[11],
+    offsets[21],
     object.supportedInputs.map((e) => e.name).toList(),
   );
-  writer.writeBool(offsets[12], object.supportsLiveApi);
-  writer.writeBool(offsets[13], object.supportsStreaming);
-  writer.writeBool(offsets[14], object.supportsThinking);
-  writer.writeBool(offsets[15], object.supportsWebSearch);
-  writer.writeString(offsets[16], object.url);
+  writer.writeStringList(
+    offsets[22],
+    object.supportedSteps.map((e) => e.name).toList(),
+  );
+  writer.writeBool(offsets[23], object.supportsLiveApi);
+  writer.writeBool(offsets[24], object.supportsStreaming);
+  writer.writeBool(offsets[25], object.supportsThinking);
+  writer.writeBool(offsets[26], object.supportsWebSearch);
+  writer.writeString(offsets[27], object.url);
+  writer.writeLong(offsets[28], object.used);
 }
 
 AiModel _aiModelDeserialize(
@@ -186,34 +265,55 @@ AiModel _aiModelDeserialize(
 ) {
   final object = AiModel();
   object.contextWindow = reader.readLong(offsets[0]);
-  object.defaultLimit = reader.readLong(offsets[1]);
-  object.defaultPhrasesPerRequest = reader.readLong(offsets[2]);
-  object.estimatedTokensPerSec = reader.readLong(offsets[3]);
+  object.currentDailyMaxLimit = reader.readLong(offsets[1]);
+  object.currentMaxLimit = reader.readLong(offsets[2]);
+  object.currentPhrasesPerRequest = reader.readLong(offsets[3]);
+  object.currentStreamingEnabled = reader.readBool(offsets[4]);
+  object.dailyUsed = reader.readLong(offsets[5]);
+  object.defaultDailyMaxLimit = reader.readLong(offsets[6]);
+  object.defaultLimit = reader.readLong(offsets[7]);
+  object.defaultPhrasesPerRequest = reader.readLong(offsets[8]);
+  object.estimatedTokensPerSec = reader.readLong(offsets[9]);
   object.id = id;
-  object.inputPricePerMToken = reader.readDouble(offsets[4]);
-  object.maxOutputTokens = reader.readLong(offsets[5]);
-  object.name = reader.readString(offsets[6]);
-  object.outputPricePerMToken = reader.readDouble(offsets[7]);
+  object.inputPricePerMToken = reader.readDouble(offsets[10]);
+  object.isDailyMaxLimitCustom = reader.readBool(offsets[11]);
+  object.isMaxLimitCustom = reader.readBool(offsets[12]);
+  object.isPhrasesPerRequestCustom = reader.readBool(offsets[13]);
+  object.isStreamingCustom = reader.readBool(offsets[14]);
+  object.maxOutputTokens = reader.readLong(offsets[15]);
+  object.name = reader.readString(offsets[16]);
+  object.outputPricePerMToken = reader.readDouble(offsets[17]);
   object.provider =
-      _AiModelproviderValueEnumMap[reader.readStringOrNull(offsets[8])] ??
+      _AiModelproviderValueEnumMap[reader.readStringOrNull(offsets[18])] ??
       AiProvider.google;
   object.quality =
-      _AiModelqualityValueEnumMap[reader.readStringOrNull(offsets[9])] ??
+      _AiModelqualityValueEnumMap[reader.readStringOrNull(offsets[19])] ??
       ModelQuality.basic;
   object.speed =
-      _AiModelspeedValueEnumMap[reader.readStringOrNull(offsets[10])] ??
+      _AiModelspeedValueEnumMap[reader.readStringOrNull(offsets[20])] ??
       ModelSpeed.ultraFast;
   object.supportedInputs =
       reader
-          .readStringList(offsets[11])
+          .readStringList(offsets[21])
           ?.map((e) => _AiModelsupportedInputsValueEnumMap[e] ?? InputType.text)
           .toList() ??
       [];
-  object.supportsLiveApi = reader.readBool(offsets[12]);
-  object.supportsStreaming = reader.readBool(offsets[13]);
-  object.supportsThinking = reader.readBool(offsets[14]);
-  object.supportsWebSearch = reader.readBool(offsets[15]);
-  object.url = reader.readString(offsets[16]);
+  object.supportedSteps =
+      reader
+          .readStringList(offsets[22])
+          ?.map(
+            (e) =>
+                _AiModelsupportedStepsValueEnumMap[e] ??
+                TranslationPipelineStep.research,
+          )
+          .toList() ??
+      [];
+  object.supportsLiveApi = reader.readBool(offsets[23]);
+  object.supportsStreaming = reader.readBool(offsets[24]);
+  object.supportsThinking = reader.readBool(offsets[25]);
+  object.supportsWebSearch = reader.readBool(offsets[26]);
+  object.url = reader.readString(offsets[27]);
+  object.used = reader.readLong(offsets[28]);
   return object;
 }
 
@@ -233,26 +333,46 @@ P _aiModelDeserializeProp<P>(
     case 3:
       return (reader.readLong(offset)) as P;
     case 4:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 5:
       return (reader.readLong(offset)) as P;
     case 6:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 7:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 8:
+      return (reader.readLong(offset)) as P;
+    case 9:
+      return (reader.readLong(offset)) as P;
+    case 10:
+      return (reader.readDouble(offset)) as P;
+    case 11:
+      return (reader.readBool(offset)) as P;
+    case 12:
+      return (reader.readBool(offset)) as P;
+    case 13:
+      return (reader.readBool(offset)) as P;
+    case 14:
+      return (reader.readBool(offset)) as P;
+    case 15:
+      return (reader.readLong(offset)) as P;
+    case 16:
+      return (reader.readString(offset)) as P;
+    case 17:
+      return (reader.readDouble(offset)) as P;
+    case 18:
       return (_AiModelproviderValueEnumMap[reader.readStringOrNull(offset)] ??
               AiProvider.google)
           as P;
-    case 9:
+    case 19:
       return (_AiModelqualityValueEnumMap[reader.readStringOrNull(offset)] ??
               ModelQuality.basic)
           as P;
-    case 10:
+    case 20:
       return (_AiModelspeedValueEnumMap[reader.readStringOrNull(offset)] ??
               ModelSpeed.ultraFast)
           as P;
-    case 11:
+    case 21:
       return (reader
                   .readStringList(offset)
                   ?.map(
@@ -263,16 +383,29 @@ P _aiModelDeserializeProp<P>(
                   .toList() ??
               [])
           as P;
-    case 12:
+    case 22:
+      return (reader
+                  .readStringList(offset)
+                  ?.map(
+                    (e) =>
+                        _AiModelsupportedStepsValueEnumMap[e] ??
+                        TranslationPipelineStep.research,
+                  )
+                  .toList() ??
+              [])
+          as P;
+    case 23:
       return (reader.readBool(offset)) as P;
-    case 13:
+    case 24:
       return (reader.readBool(offset)) as P;
-    case 14:
+    case 25:
       return (reader.readBool(offset)) as P;
-    case 15:
+    case 26:
       return (reader.readBool(offset)) as P;
-    case 16:
+    case 27:
       return (reader.readString(offset)) as P;
+    case 28:
+      return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -327,6 +460,18 @@ const _AiModelsupportedInputsValueEnumMap = {
   r'audio': InputType.audio,
   r'video': InputType.video,
   r'pdf': InputType.pdf,
+};
+const _AiModelsupportedStepsEnumValueMap = {
+  r'research': r'research',
+  r'translate': r'translate',
+  r'morphemes': r'morphemes',
+  r'fullTranslate': r'fullTranslate',
+};
+const _AiModelsupportedStepsValueEnumMap = {
+  r'research': TranslationPipelineStep.research,
+  r'translate': TranslationPipelineStep.translate,
+  r'morphemes': TranslationPipelineStep.morphemes,
+  r'fullTranslate': TranslationPipelineStep.fullTranslate,
 };
 
 Id _aiModelGetId(AiModel object) {
@@ -575,6 +720,308 @@ extension AiModelQueryFilter
       return query.addFilterCondition(
         FilterCondition.between(
           property: r'contextWindow',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  currentDailyMaxLimitEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'currentDailyMaxLimit',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  currentDailyMaxLimitGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'currentDailyMaxLimit',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  currentDailyMaxLimitLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'currentDailyMaxLimit',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  currentDailyMaxLimitBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'currentDailyMaxLimit',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> currentMaxLimitEqualTo(
+    int value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'currentMaxLimit', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  currentMaxLimitGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'currentMaxLimit',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> currentMaxLimitLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'currentMaxLimit',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> currentMaxLimitBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'currentMaxLimit',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  currentPhrasesPerRequestEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'currentPhrasesPerRequest',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  currentPhrasesPerRequestGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'currentPhrasesPerRequest',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  currentPhrasesPerRequestLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'currentPhrasesPerRequest',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  currentPhrasesPerRequestBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'currentPhrasesPerRequest',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  currentStreamingEnabledEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'currentStreamingEnabled',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> dailyUsedEqualTo(
+    int value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'dailyUsed', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> dailyUsedGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'dailyUsed',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> dailyUsedLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'dailyUsed',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> dailyUsedBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'dailyUsed',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  defaultDailyMaxLimitEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'defaultDailyMaxLimit',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  defaultDailyMaxLimitGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'defaultDailyMaxLimit',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  defaultDailyMaxLimitLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'defaultDailyMaxLimit',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  defaultDailyMaxLimitBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'defaultDailyMaxLimit',
           lower: lower,
           includeLower: includeLower,
           upper: upper,
@@ -887,6 +1334,49 @@ extension AiModelQueryFilter
 
           epsilon: epsilon,
         ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  isDailyMaxLimitCustomEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'isDailyMaxLimitCustom',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> isMaxLimitCustomEqualTo(
+    bool value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'isMaxLimitCustom', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  isPhrasesPerRequestCustomEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'isPhrasesPerRequestCustom',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  isStreamingCustomEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'isStreamingCustom', value: value),
       );
     });
   }
@@ -1807,6 +2297,203 @@ extension AiModelQueryFilter
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsElementEqualTo(
+    TranslationPipelineStep value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'supportedSteps',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsElementGreaterThan(
+    TranslationPipelineStep value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'supportedSteps',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsElementLessThan(
+    TranslationPipelineStep value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'supportedSteps',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsElementBetween(
+    TranslationPipelineStep lower,
+    TranslationPipelineStep upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'supportedSteps',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsElementStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'supportedSteps',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsElementEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'supportedSteps',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'supportedSteps',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'supportedSteps',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'supportedSteps', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'supportedSteps', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'supportedSteps', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'supportedSteps', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'supportedSteps', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'supportedSteps', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'supportedSteps', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  supportedStepsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'supportedSteps',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QAfterFilterCondition> supportsLiveApiEqualTo(
     bool value,
   ) {
@@ -1990,6 +2677,63 @@ extension AiModelQueryFilter
       );
     });
   }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> usedEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'used', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> usedGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'used',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> usedLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'used',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> usedBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'used',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
 }
 
 extension AiModelQueryObject
@@ -2008,6 +2752,83 @@ extension AiModelQuerySortBy on QueryBuilder<AiModel, AiModel, QSortBy> {
   QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByContextWindowDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'contextWindow', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByCurrentDailyMaxLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentDailyMaxLimit', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  sortByCurrentDailyMaxLimitDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentDailyMaxLimit', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByCurrentMaxLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentMaxLimit', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByCurrentMaxLimitDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentMaxLimit', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  sortByCurrentPhrasesPerRequest() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentPhrasesPerRequest', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  sortByCurrentPhrasesPerRequestDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentPhrasesPerRequest', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByCurrentStreamingEnabled() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentStreamingEnabled', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  sortByCurrentStreamingEnabledDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentStreamingEnabled', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByDailyUsed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dailyUsed', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByDailyUsedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dailyUsed', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByDefaultDailyMaxLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'defaultDailyMaxLimit', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  sortByDefaultDailyMaxLimitDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'defaultDailyMaxLimit', Sort.desc);
     });
   }
 
@@ -2059,6 +2880,57 @@ extension AiModelQuerySortBy on QueryBuilder<AiModel, AiModel, QSortBy> {
   QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByInputPricePerMTokenDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'inputPricePerMToken', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByIsDailyMaxLimitCustom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDailyMaxLimitCustom', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  sortByIsDailyMaxLimitCustomDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDailyMaxLimitCustom', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByIsMaxLimitCustom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isMaxLimitCustom', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByIsMaxLimitCustomDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isMaxLimitCustom', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  sortByIsPhrasesPerRequestCustom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPhrasesPerRequestCustom', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  sortByIsPhrasesPerRequestCustomDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPhrasesPerRequestCustom', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByIsStreamingCustom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isStreamingCustom', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByIsStreamingCustomDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isStreamingCustom', Sort.desc);
     });
   }
 
@@ -2194,6 +3066,18 @@ extension AiModelQuerySortBy on QueryBuilder<AiModel, AiModel, QSortBy> {
       return query.addSortBy(r'url', Sort.desc);
     });
   }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByUsed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'used', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByUsedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'used', Sort.desc);
+    });
+  }
 }
 
 extension AiModelQuerySortThenBy
@@ -2207,6 +3091,83 @@ extension AiModelQuerySortThenBy
   QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByContextWindowDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'contextWindow', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByCurrentDailyMaxLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentDailyMaxLimit', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  thenByCurrentDailyMaxLimitDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentDailyMaxLimit', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByCurrentMaxLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentMaxLimit', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByCurrentMaxLimitDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentMaxLimit', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  thenByCurrentPhrasesPerRequest() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentPhrasesPerRequest', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  thenByCurrentPhrasesPerRequestDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentPhrasesPerRequest', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByCurrentStreamingEnabled() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentStreamingEnabled', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  thenByCurrentStreamingEnabledDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentStreamingEnabled', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByDailyUsed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dailyUsed', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByDailyUsedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dailyUsed', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByDefaultDailyMaxLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'defaultDailyMaxLimit', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  thenByDefaultDailyMaxLimitDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'defaultDailyMaxLimit', Sort.desc);
     });
   }
 
@@ -2270,6 +3231,57 @@ extension AiModelQuerySortThenBy
   QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByInputPricePerMTokenDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'inputPricePerMToken', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByIsDailyMaxLimitCustom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDailyMaxLimitCustom', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  thenByIsDailyMaxLimitCustomDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDailyMaxLimitCustom', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByIsMaxLimitCustom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isMaxLimitCustom', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByIsMaxLimitCustomDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isMaxLimitCustom', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  thenByIsPhrasesPerRequestCustom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPhrasesPerRequestCustom', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  thenByIsPhrasesPerRequestCustomDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPhrasesPerRequestCustom', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByIsStreamingCustom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isStreamingCustom', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByIsStreamingCustomDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isStreamingCustom', Sort.desc);
     });
   }
 
@@ -2405,6 +3417,18 @@ extension AiModelQuerySortThenBy
       return query.addSortBy(r'url', Sort.desc);
     });
   }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByUsed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'used', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByUsedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'used', Sort.desc);
+    });
+  }
 }
 
 extension AiModelQueryWhereDistinct
@@ -2412,6 +3436,44 @@ extension AiModelQueryWhereDistinct
   QueryBuilder<AiModel, AiModel, QDistinct> distinctByContextWindow() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'contextWindow');
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByCurrentDailyMaxLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'currentDailyMaxLimit');
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByCurrentMaxLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'currentMaxLimit');
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QDistinct>
+  distinctByCurrentPhrasesPerRequest() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'currentPhrasesPerRequest');
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QDistinct>
+  distinctByCurrentStreamingEnabled() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'currentStreamingEnabled');
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByDailyUsed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'dailyUsed');
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByDefaultDailyMaxLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'defaultDailyMaxLimit');
     });
   }
 
@@ -2437,6 +3499,31 @@ extension AiModelQueryWhereDistinct
   QueryBuilder<AiModel, AiModel, QDistinct> distinctByInputPricePerMToken() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'inputPricePerMToken');
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByIsDailyMaxLimitCustom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isDailyMaxLimitCustom');
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByIsMaxLimitCustom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isMaxLimitCustom');
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QDistinct>
+  distinctByIsPhrasesPerRequestCustom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isPhrasesPerRequestCustom');
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByIsStreamingCustom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isStreamingCustom');
     });
   }
 
@@ -2490,6 +3577,12 @@ extension AiModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctBySupportedSteps() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'supportedSteps');
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QDistinct> distinctBySupportsLiveApi() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'supportsLiveApi');
@@ -2521,6 +3614,12 @@ extension AiModelQueryWhereDistinct
       return query.addDistinctBy(r'url', caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByUsed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'used');
+    });
+  }
 }
 
 extension AiModelQueryProperty
@@ -2534,6 +3633,44 @@ extension AiModelQueryProperty
   QueryBuilder<AiModel, int, QQueryOperations> contextWindowProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'contextWindow');
+    });
+  }
+
+  QueryBuilder<AiModel, int, QQueryOperations> currentDailyMaxLimitProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'currentDailyMaxLimit');
+    });
+  }
+
+  QueryBuilder<AiModel, int, QQueryOperations> currentMaxLimitProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'currentMaxLimit');
+    });
+  }
+
+  QueryBuilder<AiModel, int, QQueryOperations>
+  currentPhrasesPerRequestProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'currentPhrasesPerRequest');
+    });
+  }
+
+  QueryBuilder<AiModel, bool, QQueryOperations>
+  currentStreamingEnabledProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'currentStreamingEnabled');
+    });
+  }
+
+  QueryBuilder<AiModel, int, QQueryOperations> dailyUsedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'dailyUsed');
+    });
+  }
+
+  QueryBuilder<AiModel, int, QQueryOperations> defaultDailyMaxLimitProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'defaultDailyMaxLimit');
     });
   }
 
@@ -2560,6 +3697,32 @@ extension AiModelQueryProperty
   inputPricePerMTokenProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'inputPricePerMToken');
+    });
+  }
+
+  QueryBuilder<AiModel, bool, QQueryOperations>
+  isDailyMaxLimitCustomProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isDailyMaxLimitCustom');
+    });
+  }
+
+  QueryBuilder<AiModel, bool, QQueryOperations> isMaxLimitCustomProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isMaxLimitCustom');
+    });
+  }
+
+  QueryBuilder<AiModel, bool, QQueryOperations>
+  isPhrasesPerRequestCustomProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isPhrasesPerRequestCustom');
+    });
+  }
+
+  QueryBuilder<AiModel, bool, QQueryOperations> isStreamingCustomProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isStreamingCustom');
     });
   }
 
@@ -2607,6 +3770,13 @@ extension AiModelQueryProperty
     });
   }
 
+  QueryBuilder<AiModel, List<TranslationPipelineStep>, QQueryOperations>
+  supportedStepsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'supportedSteps');
+    });
+  }
+
   QueryBuilder<AiModel, bool, QQueryOperations> supportsLiveApiProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'supportsLiveApi');
@@ -2634,6 +3804,12 @@ extension AiModelQueryProperty
   QueryBuilder<AiModel, String, QQueryOperations> urlProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'url');
+    });
+  }
+
+  QueryBuilder<AiModel, int, QQueryOperations> usedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'used');
     });
   }
 }

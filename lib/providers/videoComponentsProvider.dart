@@ -29,13 +29,25 @@ class LanguageNotifier extends Notifier<LanguageState> {
   void setTarget(String? language) {
     state = state.copyWith(target: language);
   }
+
+  void reset() {
+    state = LanguageState();
+  }
 }
 
-final languageProvider = NotifierProvider<LanguageNotifier, LanguageState>(
+final languageProvider = NotifierProvider.autoDispose<LanguageNotifier, LanguageState>(
   LanguageNotifier.new,
 );
 
 final allLanguagesProvider = FutureProvider<List<Language>>((ref) async {
   final service = ref.watch(languageServiceProvider);
   return await service.getAllLanguages();
+});
+
+final languageCodesProvider = FutureProvider<Map<String, String>>((ref) async {
+  final languages = await ref.watch(allLanguagesProvider.future);
+  return {
+    for (var l in languages)
+      if (l.name != null && l.code != null) l.name!: l.code!,
+  };
 });

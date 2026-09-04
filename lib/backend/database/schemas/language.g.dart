@@ -17,24 +17,25 @@ const LanguageSchema = CollectionSchema(
   name: r'Language',
   id: -2011595345252117802,
   properties: {
+    r'code': PropertySchema(id: 0, name: r'code', type: IsarType.string),
     r'isSupported': PropertySchema(
-      id: 0,
+      id: 1,
       name: r'isSupported',
       type: IsarType.bool,
     ),
-    r'name': PropertySchema(id: 1, name: r'name', type: IsarType.string),
+    r'name': PropertySchema(id: 2, name: r'name', type: IsarType.string),
     r'readingOptions': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'readingOptions',
       type: IsarType.stringList,
     ),
     r'removeAllSpaces': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'removeAllSpaces',
       type: IsarType.bool,
     ),
     r'spacingOptions': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'spacingOptions',
       type: IsarType.stringList,
     ),
@@ -59,6 +60,19 @@ const LanguageSchema = CollectionSchema(
         ),
       ],
     ),
+    r'code': IndexSchema(
+      id: 329780482934683790,
+      name: r'code',
+      unique: true,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'code',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+      ],
+    ),
   },
   links: {},
   embeddedSchemas: {},
@@ -75,6 +89,12 @@ int _languageEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.code;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   {
     final value = object.name;
     if (value != null) {
@@ -104,11 +124,12 @@ void _languageSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeBool(offsets[0], object.isSupported);
-  writer.writeString(offsets[1], object.name);
-  writer.writeStringList(offsets[2], object.readingOptions);
-  writer.writeBool(offsets[3], object.removeAllSpaces);
-  writer.writeStringList(offsets[4], object.spacingOptions);
+  writer.writeString(offsets[0], object.code);
+  writer.writeBool(offsets[1], object.isSupported);
+  writer.writeString(offsets[2], object.name);
+  writer.writeStringList(offsets[3], object.readingOptions);
+  writer.writeBool(offsets[4], object.removeAllSpaces);
+  writer.writeStringList(offsets[5], object.spacingOptions);
 }
 
 Language _languageDeserialize(
@@ -118,11 +139,12 @@ Language _languageDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Language(
-    isSupported: reader.readBoolOrNull(offsets[0]) ?? false,
-    name: reader.readStringOrNull(offsets[1]),
-    readingOptions: reader.readStringList(offsets[2]) ?? const [],
-    removeAllSpaces: reader.readBoolOrNull(offsets[3]) ?? false,
-    spacingOptions: reader.readStringList(offsets[4]) ?? const [],
+    code: reader.readStringOrNull(offsets[0]),
+    isSupported: reader.readBoolOrNull(offsets[1]) ?? false,
+    name: reader.readStringOrNull(offsets[2]),
+    readingOptions: reader.readStringList(offsets[3]) ?? const [],
+    removeAllSpaces: reader.readBoolOrNull(offsets[4]) ?? false,
+    spacingOptions: reader.readStringList(offsets[5]) ?? const [],
   );
   object.id = id;
   return object;
@@ -136,14 +158,16 @@ P _languageDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readBoolOrNull(offset) ?? false) as P;
-    case 1:
       return (reader.readStringOrNull(offset)) as P;
-    case 2:
-      return (reader.readStringList(offset) ?? const []) as P;
-    case 3:
+    case 1:
       return (reader.readBoolOrNull(offset) ?? false) as P;
+    case 2:
+      return (reader.readStringOrNull(offset)) as P;
+    case 3:
+      return (reader.readStringList(offset) ?? const []) as P;
     case 4:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
+    case 5:
       return (reader.readStringList(offset) ?? const []) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -213,6 +237,58 @@ extension LanguageByIndex on IsarCollection<Language> {
 
   List<Id> putAllByNameSync(List<Language> objects, {bool saveLinks = true}) {
     return putAllByIndexSync(r'name', objects, saveLinks: saveLinks);
+  }
+
+  Future<Language?> getByCode(String? code) {
+    return getByIndex(r'code', [code]);
+  }
+
+  Language? getByCodeSync(String? code) {
+    return getByIndexSync(r'code', [code]);
+  }
+
+  Future<bool> deleteByCode(String? code) {
+    return deleteByIndex(r'code', [code]);
+  }
+
+  bool deleteByCodeSync(String? code) {
+    return deleteByIndexSync(r'code', [code]);
+  }
+
+  Future<List<Language?>> getAllByCode(List<String?> codeValues) {
+    final values = codeValues.map((e) => [e]).toList();
+    return getAllByIndex(r'code', values);
+  }
+
+  List<Language?> getAllByCodeSync(List<String?> codeValues) {
+    final values = codeValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'code', values);
+  }
+
+  Future<int> deleteAllByCode(List<String?> codeValues) {
+    final values = codeValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'code', values);
+  }
+
+  int deleteAllByCodeSync(List<String?> codeValues) {
+    final values = codeValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'code', values);
+  }
+
+  Future<Id> putByCode(Language object) {
+    return putByIndex(r'code', object);
+  }
+
+  Id putByCodeSync(Language object, {bool saveLinks = true}) {
+    return putByIndexSync(r'code', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByCode(List<Language> objects) {
+    return putAllByIndex(r'code', objects);
+  }
+
+  List<Id> putAllByCodeSync(List<Language> objects, {bool saveLinks = true}) {
+    return putAllByIndexSync(r'code', objects, saveLinks: saveLinks);
   }
 }
 
@@ -367,10 +443,247 @@ extension LanguageQueryWhere on QueryBuilder<Language, Language, QWhereClause> {
       }
     });
   }
+
+  QueryBuilder<Language, Language, QAfterWhereClause> codeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'code', value: [null]),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterWhereClause> codeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'code',
+          lower: [null],
+          includeLower: false,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterWhereClause> codeEqualTo(
+    String? code,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'code', value: [code]),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterWhereClause> codeNotEqualTo(
+    String? code,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'code',
+                lower: [],
+                upper: [code],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'code',
+                lower: [code],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'code',
+                lower: [code],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'code',
+                lower: [],
+                upper: [code],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
 }
 
 extension LanguageQueryFilter
     on QueryBuilder<Language, Language, QFilterCondition> {
+  QueryBuilder<Language, Language, QAfterFilterCondition> codeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'code'),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition> codeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'code'),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition> codeEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'code',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition> codeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'code',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition> codeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'code',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition> codeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'code',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition> codeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'code',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition> codeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'code',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition> codeContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'code',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition> codeMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'code',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition> codeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'code', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition> codeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'code', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<Language, Language, QAfterFilterCondition> idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1005,6 +1318,18 @@ extension LanguageQueryLinks
     on QueryBuilder<Language, Language, QFilterCondition> {}
 
 extension LanguageQuerySortBy on QueryBuilder<Language, Language, QSortBy> {
+  QueryBuilder<Language, Language, QAfterSortBy> sortByCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'code', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterSortBy> sortByCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'code', Sort.desc);
+    });
+  }
+
   QueryBuilder<Language, Language, QAfterSortBy> sortByIsSupported() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isSupported', Sort.asc);
@@ -1044,6 +1369,18 @@ extension LanguageQuerySortBy on QueryBuilder<Language, Language, QSortBy> {
 
 extension LanguageQuerySortThenBy
     on QueryBuilder<Language, Language, QSortThenBy> {
+  QueryBuilder<Language, Language, QAfterSortBy> thenByCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'code', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterSortBy> thenByCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'code', Sort.desc);
+    });
+  }
+
   QueryBuilder<Language, Language, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -1095,6 +1432,14 @@ extension LanguageQuerySortThenBy
 
 extension LanguageQueryWhereDistinct
     on QueryBuilder<Language, Language, QDistinct> {
+  QueryBuilder<Language, Language, QDistinct> distinctByCode({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'code', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Language, Language, QDistinct> distinctByIsSupported() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isSupported');
@@ -1133,6 +1478,12 @@ extension LanguageQueryProperty
   QueryBuilder<Language, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<Language, String?, QQueryOperations> codeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'code');
     });
   }
 

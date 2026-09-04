@@ -279,6 +279,12 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
                           : _jimakuSource.buildEntryCard(entry as dynamic, isSelected, () {
                               ref.read(selectedEntryProvider(_jimakuSource.key).notifier).state = entry;
                               _jimakuSource.getFiles(entry as JimakuDataDTO, {}, ref);
+                              
+                              // Automatically load AniList metadata if anilistId is present
+                              final data = entry;
+                              if (data.anilistId != null) {
+                                ref.read(aniListProvider.notifier).load(data.anilistId!, downloadImages: true);
+                              }
                             }),
                     );
                   },

@@ -8,6 +8,7 @@ import '../../backend/services/depacker_subtitles/season_episode_info.dart';
 import '../services/database_services_providers.dart';
 import '../services/subtitle_depacker_providers.dart';
 import '../videoComponentsProvider.dart';
+import 'package:eiga/backend/database/dto/jimaku_dto.dart';
 import 'dto_providers.dart';
 import 'search_provider.dart';
 
@@ -114,8 +115,9 @@ class UploadNotifier extends Notifier<UploadState> {
     ref.read(searchResultsProvider(SearchSourceKeys.anilist).notifier).state = [];
     ref.read(jimakuSearchFullResultsProvider.notifier).state = [];
     ref.read(aniListProvider.notifier).clear();
-    ref.read(languageProvider.notifier).setOriginal(null);
-    ref.read(languageProvider.notifier).setTarget(null);
+    
+    // Explicitly reset languages
+    ref.invalidate(languageProvider);
   }
 
   Future<void> pickVideo() async {
@@ -183,7 +185,35 @@ class UploadNotifier extends Notifier<UploadState> {
         languages.target == null) return false;
 
     state = state.copyWith(isSaving: true);
+    
+    // 1. Identify the Anilist ID from any source
+    int? targetAnilistId;
+    
+    // From direct selection
     final anilistData = ref.read(aniListProvider).value;
+    if (anilistData != null) {
+      targetAnilistId = anilistData.id;
+    }
+    
+    // Or from selected Jimaku entry
+    if (targetAnilistId == null) {
+      final dynamic jimakuEntry = ref.read(selectedEntryProvider(SearchSourceKeys.jimaku));
+      if (jimakuEntry != null && jimakuEntry is JimakuDataDTO) {
+        targetAnilistId = jimakuEntry.anilistId;
+      }
+    }
+
+    // 2. Ensure AniList images are downloaded locally
+    String? finalCoverPath;
+    if (targetAnilistId != null) {
+       // Force reload with image download
+       await ref.read(aniListProvider.notifier).load(targetAnilistId, downloadImages: true);
+       final updatedData = ref.read(aniListProvider).value;
+       // Prefer local path, fallback to URL
+       finalCoverPath = updatedData?.coverImagePath ?? updatedData?.coverImageUrl;
+    }
+    
+    final latestAnilistData = ref.read(aniListProvider).value;
 
     final video = Video()
       ..videoPath = state.videoPath
@@ -195,13 +225,13 @@ class UploadNotifier extends Notifier<UploadState> {
       ..translatedLanguage = languages.target ?? 'Ukrainian'
       ..createdAt = DateTime.now();
 
-    if (anilistData != null) {
-      video.anilistId = anilistData.id;
-      video.coverImagePath = anilistData.coverImagePath;
-      video.description = anilistData.description;
-      video.genres = anilistData.genres;
-      video.englishName = anilistData.englishTitle;
-      video.colorThemeValue = anilistData.colorThemeValue;
+    if (latestAnilistData != null && latestAnilistData.id == targetAnilistId) {
+      video.anilistId = latestAnilistData.id;
+      video.coverImagePath = finalCoverPath;
+      video.description = latestAnilistData.description;
+      video.genres = latestAnilistData.genres;
+      video.englishName = latestAnilistData.englishTitle;
+      video.colorThemeValue = latestAnilistData.colorThemeValue;
     }
 
     try {

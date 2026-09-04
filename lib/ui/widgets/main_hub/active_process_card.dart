@@ -29,15 +29,15 @@ class ActiveProcessCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05),
+          color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05),
         ),
         boxShadow: [
           if (!isDark)
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -67,7 +67,7 @@ class ActiveProcessCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                      color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -100,7 +100,7 @@ class ActiveProcessCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white38 : Colors.black45,
+                  color: isDark ? Colors.white60 : Colors.black54,
                   letterSpacing: 0.5,
                 ),
                 maxLines: 1,
@@ -113,9 +113,10 @@ class ActiveProcessCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     stepName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
                 ],
@@ -143,7 +144,7 @@ class ActiveProcessCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 6,
-              backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+              backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
               valueColor: AlwaysStoppedAnimation<Color>(accentColor),
             ),
           ),

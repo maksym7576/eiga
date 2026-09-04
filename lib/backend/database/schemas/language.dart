@@ -9,6 +9,9 @@ class Language {
   @Index(unique: true)
   String? name;
   
+  @Index(unique: true)
+  String? code;
+  
   bool isSupported = false;
 
   // From DepackerLanguageConfig
@@ -20,6 +23,7 @@ class Language {
 
   Language({
     this.name,
+    this.code,
     this.isSupported = false,
     this.removeAllSpaces = false,
     this.readingOptions = const [],

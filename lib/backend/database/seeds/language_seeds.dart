@@ -4,6 +4,7 @@ Future<List<Language>> standardLanguages() async {
   return [
     Language(
       name: 'Japanese',
+      code: 'ja',
       isSupported: true,
       removeAllSpaces: true,
       readingOptions: ['original', 'kana', 'romaji'],
@@ -11,6 +12,7 @@ Future<List<Language>> standardLanguages() async {
     ),
     Language(
       name: 'English',
+      code: 'en',
       isSupported: false,
       removeAllSpaces: false,
       readingOptions: ['original'],
@@ -18,6 +20,7 @@ Future<List<Language>> standardLanguages() async {
     ),
     Language(
       name: 'Spanish',
+      code: 'es',
       isSupported: false,
       removeAllSpaces: false,
       readingOptions: ['original'],
@@ -25,6 +28,7 @@ Future<List<Language>> standardLanguages() async {
     ),
     Language(
       name: 'Ukrainian',
+      code: 'uk',
       isSupported: false,
       removeAllSpaces: false,
       readingOptions: ['original'],
@@ -32,6 +36,7 @@ Future<List<Language>> standardLanguages() async {
     ),
     Language(
       name: 'Russian',
+      code: 'ru',
       isSupported: false,
       removeAllSpaces: false,
       readingOptions: ['original'],
@@ -39,6 +44,7 @@ Future<List<Language>> standardLanguages() async {
     ),
     Language(
       name: 'German',
+      code: 'de',
       isSupported: false,
       removeAllSpaces: false,
       readingOptions: ['original'],
@@ -46,6 +52,7 @@ Future<List<Language>> standardLanguages() async {
     ),
     Language(
       name: 'French',
+      code: 'fr',
       isSupported: false,
       removeAllSpaces: false,
       readingOptions: ['original'],
@@ -53,6 +60,7 @@ Future<List<Language>> standardLanguages() async {
     ),
     Language(
       name: 'Italian',
+      code: 'it',
       isSupported: false,
       removeAllSpaces: false,
       readingOptions: ['original'],
@@ -60,6 +68,7 @@ Future<List<Language>> standardLanguages() async {
     ),
     Language(
       name: 'Chinese',
+      code: 'zh',
       isSupported: false,
       removeAllSpaces: true,
       readingOptions: ['original'],
@@ -67,6 +76,7 @@ Future<List<Language>> standardLanguages() async {
     ),
     Language(
       name: 'Korean',
+      code: 'ko',
       isSupported: false,
       removeAllSpaces: true,
       readingOptions: ['original'],
