@@ -28,58 +28,23 @@ class JimakuEntryCard extends ConsumerWidget {
     final summary = ref.watch(jimakuSummaryProvider(entry.id));
 
     final episodeCount = aniListData?.episodes ?? summary?.episodeCount;
-    final season = summary?.season;
 
     final List<Widget> badges = [
-      if (season != null)
-        MediaEntryCard.buildBadge(context, MediaEntryCard.formatSeason(season), Colors.blueGrey),
-      
       if (episodeCount != null)
-        GestureDetector(
-          onTap: () => JimakuSubtitleSource().autoSelectSubtitle(entry, ref),
-          child: MediaEntryCard.buildBadge(
-            context, 
-            '$episodeCount Eps', 
-            Theme.of(context).colorScheme.primary,
-            isClickable: true,
-          ),
+        MediaEntryCard.buildBadge(
+          context, 
+          '$episodeCount Eps', 
+          const Color(0xFF3B66F5),
         ),
     ];
 
-    final typeBadge = _buildTypeBadge(context, entry);
-
     return MediaEntryCard(
       title: entry.displayTitle,
-      subtitle: entry.japaneseName ?? '',
       imageUrl: aniListData?.coverImageUrl,
       isActive: isActive,
       onTap: onTap,
       infoBadges: badges,
-      typeBadge: typeBadge,
       isLoadingImage: entry.anilistId != null && aniListData == null,
-    );
-  }
-
-  Widget _buildTypeBadge(BuildContext context, JimakuDataDTO entry) {
-    final isMovie = entry.isMovie;
-    final color = isMovie ? Colors.orange : Theme.of(context).colorScheme.primary;
-    final label = isMovie ? 'MOVIE' : 'ANIME';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 9,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.5,
-        ),
-      ),
     );
   }
 }

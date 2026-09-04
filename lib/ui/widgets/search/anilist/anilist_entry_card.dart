@@ -19,24 +19,16 @@ class AniListEntryCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final episodes = entry.episodes;
-    final season = entry.season;
-    final format = entry.format;
 
     final List<Widget> badges = [
-      if (season != null)
-        MediaEntryCard.buildBadge(context, MediaEntryCard.formatSeason(season), Colors.blueGrey),
-      
-      if (format == 'MOVIE')
-        MediaEntryCard.buildBadge(context, 'Movie', Colors.orange)
-      else if (episodes != null && episodes > 1)
-        MediaEntryCard.buildBadge(context, '$episodes Eps', Theme.of(context).colorScheme.primary)
+      if (episodes != null && episodes > 1)
+        MediaEntryCard.buildBadge(context, '$episodes Eps', const Color(0xFF3B66F5))
       else if (episodes == 1)
-        MediaEntryCard.buildBadge(context, 'Single', Theme.of(context).colorScheme.primary),
+        MediaEntryCard.buildBadge(context, 'Single', const Color(0xFF3B66F5)),
     ];
 
     return MediaEntryCard(
       title: entry.romajiTitle ?? entry.englishTitle ?? 'Unknown',
-      subtitle: entry.genres?.isNotEmpty == true ? entry.genres!.join(', ') : 'No genres',
       imageUrl: entry.coverImageUrl,
       isActive: isActive,
       onTap: onTap,

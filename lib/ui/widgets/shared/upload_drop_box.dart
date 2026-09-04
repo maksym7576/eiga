@@ -27,70 +27,61 @@ class UploadDropBox extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: CustomPaint(
-        painter: hasPath ? null : DashedBorderPainter(
-          color: theme.cardBorder.withOpacity(0.8),
-          strokeWidth: 2.0,
-          gap: 5,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.all(16),
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: theme.cardBackground,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: hasPath ? theme.primaryAccent.withValues(alpha: 0.4) : theme.cardBorder, 
+            width: hasPath ? 2.0 : 1.5
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            )
+          ],
         ),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          height: 120,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: hasPath 
-                ? theme.primaryAccent.withOpacity(0.08) 
-                : theme.backgroundColor,
-            borderRadius: BorderRadius.circular(16),
-            border: hasPath 
-                ? Border.all(color: theme.primaryAccent, width: 2.0) 
-                : null,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: theme.primaryAccent.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  size: 24,
-                  color: theme.primaryAccent,
-                ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: theme.brandBlue50,
+                borderRadius: BorderRadius.circular(16),
               ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: [
-                    Text(
-                      hasPath ? p.basename(filePath!) : title,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: theme.normalText,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (!hasPath && subtitle != null)
-                      Text(
-                        subtitle!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: theme.subtitleColor,
-                        ),
-                      ),
-                  ],
-                ),
+              child: Icon(
+                icon,
+                size: 20,
+                color: theme.primaryAccent,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              hasPath ? p.basename(filePath!) : title,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: theme.normalText,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              hasPath ? 'Local video file ready for translation' : (subtitle ?? 'Select a file to begin'),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: theme.mutedText,
+              ),
+            ),
+          ],
         ),
       ),
     );

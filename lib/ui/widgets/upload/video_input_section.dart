@@ -16,7 +16,7 @@ class VideoInputSection extends ConsumerWidget {
     return UploadDropBox(
       onTap: isFile ? notifier.pickVideo : () {},
       title: 'Upload Video File',
-      subtitle: 'MP4, MKV, AVI (Max 2GB)',
+      subtitle: 'Tap to add the video',
       filePath: state.videoPath,
       icon: state.videoSource == VideoSource.file 
           ? Icons.movie_outlined 

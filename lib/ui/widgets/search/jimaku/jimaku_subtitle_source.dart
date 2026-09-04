@@ -217,7 +217,7 @@ class JimakuSubtitleSource
     // Default selection: select the first found episode if none is selected
     if (episodes.isNotEmpty && ref.read(uploadProvider).episode == null) {
       Future.microtask(() {
-        ref.read(uploadProvider.notifier).setEpisode(episodes.first.toString());
+        selectEpisodeSubtitle(entry, episodes.first, ref);
       });
     }
   }

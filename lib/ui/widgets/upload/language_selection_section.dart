@@ -19,15 +19,29 @@ class LanguageSelectionSection extends ConsumerWidget {
       onTap: () => _showLanguagePicker(context),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        padding: const EdgeInsets.all(16),
         width: double.infinity,
         decoration: BoxDecoration(
-          color: theme.primaryAccent.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: theme.primaryAccent,
-            width: 1.5,
+          gradient: LinearGradient(
+            colors: [
+              theme.brandBlue50.withValues(alpha: 0.6),
+              const Color(0xFFEEF2FF).withValues(alpha: 0.6), // Indigo 50
+            ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFFBFDBFE).withValues(alpha: 0.7), // Blue 200
+            width: 1.0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            )
+          ],
         ),
         child: Row(
           children: [
@@ -37,36 +51,51 @@ class LanguageSelectionSection extends ConsumerWidget {
                   Text(
                     'ORIGINAL',
                     style: TextStyle(
-                      fontSize: 9,
+                      fontSize: 10,
                       fontWeight: FontWeight.w800,
-                      color: theme.primaryAccent,
-                      letterSpacing: 1.2,
+                      color: theme.mutedText,
+                      letterSpacing: 1.0,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     languageState.original ?? 'Not Selected',
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
                       color: hasOriginal 
                           ? theme.normalText 
                           : theme.mutedText,
+                    ),
+                  ),
+                  Text(
+                    'Audio / OCR',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: theme.mutedText,
                     ),
                   ),
                 ],
               ),
             ),
             Container(
-              width: 36,
-              height: 36,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
                 color: theme.primaryAccent,
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.primaryAccent.withValues(alpha: 0.2),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  )
+                ],
               ),
               child: const Icon(
                 Icons.arrow_forward_rounded,
-                size: 18,
+                size: 14,
                 color: Colors.white,
               ),
             ),
@@ -76,21 +105,29 @@ class LanguageSelectionSection extends ConsumerWidget {
                   Text(
                     'TARGET',
                     style: TextStyle(
-                      fontSize: 9,
+                      fontSize: 10,
                       fontWeight: FontWeight.w800,
                       color: theme.primaryAccent,
-                      letterSpacing: 1.2,
+                      letterSpacing: 1.0,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     languageState.target ?? 'Not Selected',
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
                       color: hasTarget 
                           ? theme.normalText 
                           : theme.mutedText,
+                    ),
+                  ),
+                  Text(
+                    'Smart AI Translation',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: theme.primaryAccent,
                     ),
                   ),
                 ],

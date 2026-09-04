@@ -35,64 +35,58 @@ class MediaEntryCard extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Flexible(
-            child: AspectRatio(
-              aspectRatio: 2 / 3,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isActive ? theme.selectedCardBorder : theme.cardBorder,
-                    width: isActive ? 2.5 : 1,
-                  ),
-                  color: theme.cardBackground,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isActive ? 0.12 : 0.03),
-                      blurRadius: isActive ? 14 : 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isActive ? theme.primaryAccent : theme.cardBorder,
+                  width: isActive ? 2.0 : 1.0,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isActive ? 0.08 : 0.02),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: AspectRatio(
+                aspectRatio: 140 / 200, // Matching the design cards aspect
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(isActive ? 9.5 : 11),
+                  borderRadius: BorderRadius.circular(16),
                   child: Stack(
                     children: [
                       Positioned.fill(
                         child: _buildCover(theme),
                       ),
-                      if (isActive)
-                        Positioned.fill(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: theme.selectionAccentColor.withValues(alpha: 0.2),
-                            ),
-                          ),
-                        ),
-                      if (isActive)
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: theme.selectionAccentColor,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.3),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            padding: const EdgeInsets.all(4),
-                            child: const Icon(Icons.check, color: Colors.white, size: 16),
-                          ),
-                        ),
                       if (typeBadge != null)
                         Positioned(
                           top: 6,
                           left: 6,
                           child: typeBadge!,
+                        ),
+                      if (isActive)
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: theme.primaryAccent,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.check, color: Colors.white, size: 12),
+                          ),
                         ),
                     ],
                   ),
@@ -101,37 +95,46 @@ class MediaEntryCard extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: isActive ? FontWeight.w800 : FontWeight.w700,
-              color: theme.normalText,
-              height: 1.2,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: theme.normalText,
+                    height: 1.1,
+                  ),
+                ),
+                if (subtitle != null && subtitle!.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: theme.mutedText,
+                    ),
+                  ),
+                ],
+                if (infoBadges.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: infoBadges,
+                  ),
+                ],
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          if (infoBadges.isNotEmpty)
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: infoBadges,
-            ),
-          const SizedBox(height: 3),
-          if (subtitle != null)
-            Text(
-              subtitle!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                color: theme.mutedText,
-              ),
-            ),
         ],
       ),
     );
@@ -164,11 +167,10 @@ class MediaEntryCard extends ConsumerWidget {
   
   static Widget buildBadge(BuildContext context, String text, Color color, {bool isClickable = false}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(4),
-        border: isClickable ? Border.all(color: color.withValues(alpha: 0.3), width: 0.5) : null,
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         text,
@@ -176,19 +178,9 @@ class MediaEntryCard extends ConsumerWidget {
           color: color,
           fontSize: 9,
           fontWeight: FontWeight.w800,
-          letterSpacing: 0.1,
+          letterSpacing: 0.2,
         ),
       ),
     );
-  }
-  
-  static String formatSeason(String season) {
-    switch (season.toUpperCase()) {
-      case 'SUMMER': return 'Sum';
-      case 'FALL': return 'Fal';
-      case 'SPRING': return 'Spr';
-      case 'WINTER': return 'Win';
-      default: return season.length > 3 ? season.substring(0, 3) : season;
-    }
   }
 }

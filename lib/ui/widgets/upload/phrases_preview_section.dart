@@ -21,31 +21,79 @@ class PhrasesPreviewSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            SectionTitle(title: 'Phrases Preview'),
-            if (state.previewPhrases.isNotEmpty)
-              TextButton(
-                onPressed: () => _showAllPhrases(context, state, theme),
-                style: TextButton.styleFrom(
-                  foregroundColor: theme.primaryAccent,
-                  textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                ),
-                child: const Text('See all'),
-              ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        if (state.previewPhrases.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              '${state.previewPhrases.length} lines detected',
-              style: TextStyle(fontSize: 12, color: theme.mutedText)
-            ),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: theme.cardBorder),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              )
+            ],
           ),
-        _buildPhrasesList(theme, state),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  border: Border(bottom: BorderSide(color: theme.dividerColor)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.checklist_rounded, size: 14, color: theme.primaryAccent),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Phrases Preview',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: theme.normalText),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '(${state.previewPhrases.length} lines)',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: theme.mutedText),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFECFDF5),
+                        borderRadius: BorderRadius.circular(99),
+                        border: Border.all(color: const Color(0xFFD1FAE5)),
+                      ),
+                      child: const Text(
+                        'Sync OK',
+                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFF059669)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _buildPhrasesList(theme, state),
+              if (state.previewPhrases.length > 5)
+                GestureDetector(
+                  onTap: () => _showAllPhrases(context, state, theme),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    color: Colors.white,
+                    alignment: Alignment.center,
+                    child: Text(
+                      'See all phrases',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: theme.primaryAccent),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -63,32 +111,41 @@ class PhrasesPreviewSection extends ConsumerWidget {
       return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardBackground,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.cardBorder),
-      ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: state.previewPhrases.length > 5 ? 5 : state.previewPhrases.length,
-        separatorBuilder: (context, index) => Divider(height: 1, color: theme.dividerColor),
-        itemBuilder: (context, index) {
-          final phrase = state.previewPhrases[index];
-          return ListTile(
-            dense: true,
-            leading: Text(
-              _formatTime(phrase.startTime), 
-              style: TextStyle(fontFamily: 'monospace', fontSize: 11, color: theme.mutedText)
-            ),
-            title: Text(
-              phrase.originalPhrase ?? '', 
-              style: TextStyle(fontSize: 13, color: theme.normalText)
-            ),
-          );
-        },
-      ),
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: state.previewPhrases.length > 5 ? 5 : state.previewPhrases.length,
+      separatorBuilder: (context, index) => Divider(height: 1, color: theme.dividerColor),
+      itemBuilder: (context, index) {
+        final phrase = state.previewPhrases[index];
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 60,
+                child: Text(
+                  _formatTime(phrase.startTime), 
+                  style: TextStyle(fontFamily: 'monospace', fontSize: 11, fontWeight: FontWeight.w500, color: theme.mutedText)
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  phrase.originalPhrase ?? '', 
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.normalText)
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (phrase.translatedPhrase != null)
+                Text(
+                  phrase.translatedPhrase!,
+                  style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: theme.mutedText),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 

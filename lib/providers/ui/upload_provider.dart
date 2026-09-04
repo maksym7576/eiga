@@ -9,6 +9,7 @@ import '../services/database_services_providers.dart';
 import '../services/subtitle_depacker_providers.dart';
 import '../videoComponentsProvider.dart';
 import 'dto_providers.dart';
+import 'search_provider.dart';
 
 import '../services/token_provider.dart';
 import '../../config/secure_storage.dart';
@@ -95,6 +96,28 @@ class UploadNotifier extends Notifier<UploadState> {
     state = state.copyWith(season: season);
   }
 
+  void reset() {
+    // Reset local state
+    state = UploadState(
+      subtitleSource: (ref.read(tokenProvider(ApiTokenType.jimaku)).value ?? '').isNotEmpty 
+          ? SubtitleSource.jimaku 
+          : SubtitleSource.local
+    );
+    
+    // Clear global providers
+    ref.invalidate(videoPathProvider);
+    ref.read(selectedEntryProvider(SearchSourceKeys.jimaku).notifier).state = null;
+    ref.read(selectedEntryProvider(SearchSourceKeys.anilist).notifier).state = null;
+    ref.read(selectedResultProvider(SearchSourceKeys.jimaku).notifier).state = null;
+    ref.read(selectedResultProvider(SearchSourceKeys.anilist).notifier).state = null;
+    ref.read(searchResultsProvider(SearchSourceKeys.jimaku).notifier).state = [];
+    ref.read(searchResultsProvider(SearchSourceKeys.anilist).notifier).state = [];
+    ref.read(jimakuSearchFullResultsProvider.notifier).state = [];
+    ref.read(aniListProvider.notifier).clear();
+    ref.read(languageProvider.notifier).setOriginal(null);
+    ref.read(languageProvider.notifier).setTarget(null);
+  }
+
   Future<void> pickVideo() async {
     // Використовуємо FileType.any, щоб Android відкривав провідник файлів, а не Google Photos
     final result = await FilePicker.pickFiles(type: FileType.any, allowMultiple: false);
@@ -153,11 +176,14 @@ class UploadNotifier extends Notifier<UploadState> {
   }
 
   Future<bool> saveVideo() async {
-    if (state.videoPath == null || state.subtitlePath == null) return false;
+    final languages = ref.read(languageProvider);
+    if (state.videoPath == null || 
+        state.subtitlePath == null || 
+        languages.original == null || 
+        languages.target == null) return false;
 
     state = state.copyWith(isSaving: true);
     final anilistData = ref.read(aniListProvider).value;
-    final languages = ref.read(languageProvider);
 
     final video = Video()
       ..videoPath = state.videoPath
