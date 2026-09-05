@@ -9,6 +9,8 @@ import '../widgets/video/video_player_widget.dart';
 import '../widgets/video/video_player_controls.dart';
 import '../widgets/video/video_screen_header.dart';
 import '../widgets/video/resizable_player_container.dart';
+import '../widgets/video/phrase_list_widget.dart';
+import '../widgets/video/video_bottom_dock.dart';
 
 class VideoScreen extends HookConsumerWidget {
   const VideoScreen({super.key});
@@ -77,24 +79,31 @@ class VideoScreen extends HookConsumerWidget {
                 return playerContent;
               }
 
-              return Column(
+              return Stack(
                 children: [
-                  // Header
-                  const VideoScreenHeader(),
+                  Column(
+                    children: [
+                      // Header
+                      const VideoScreenHeader(),
 
-                  // Resizable Player Area
-                  ResizablePlayerContainer(
-                    child: playerContent,
+                      // Resizable Player Area
+                      ResizablePlayerContainer(
+                        child: playerContent,
+                      ),
+
+                      // Content Area
+                      const Expanded(
+                        child: PhraseListWidget(),
+                      ),
+                    ],
                   ),
 
-                  // Content Area (Future Phrases)
-                  const Expanded(
-                    child: Center(
-                      child: Text(
-                        'Phrases will appear here',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ),
+                  // Bottom Dock
+                  const Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: VideoBottomDock(),
                   ),
                 ],
               );
