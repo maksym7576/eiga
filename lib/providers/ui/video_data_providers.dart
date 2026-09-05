@@ -12,6 +12,10 @@ final playerTimeProvider = StateProvider<Duration>((ref) {
   return Duration.zero;
 });
 
+final isPlayingProvider = StateProvider<bool>((ref) {
+  return false;
+});
+
 final seasonEpisodeProvider = StateProvider<SeasonEpisodeInfo?>((ref) {
   return null;
 });
