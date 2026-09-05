@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../providers/ui/upload_provider.dart';
 import '../../styles/additional_window_theme.dart';
+import '../../styles/app_colors.dart';
 import '../dialogs/app_bottom_sheet.dart';
 import '../shared/app_section_card.dart';
 import '../shared/app_text_button.dart';
@@ -25,7 +26,7 @@ class PhrasesPreviewSection extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: theme.isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.slate50,
               border: Border(bottom: BorderSide(color: theme.dividerColor)),
             ),
             child: Row(

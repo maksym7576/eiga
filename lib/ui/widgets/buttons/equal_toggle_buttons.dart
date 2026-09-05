@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../styles/app_colors.dart';
 
 class EqualToggleButtons<T> extends StatelessWidget {
   final List<T> items;
@@ -24,7 +25,7 @@ class EqualToggleButtons<T> extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9), // Slate 100
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.slate100,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -39,11 +40,11 @@ class EqualToggleButtons<T> extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
                   color: isActive 
-                      ? (isDark ? const Color(0xFF2C2C2E) : Colors.white) 
+                      ? (isDark ? AppColors.cardDark : Colors.white) 
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isActive ? (isDark ? Colors.white10 : const Color(0xFFE2E8F0)) : Colors.transparent,
+                    color: isActive ? (isDark ? Colors.white10 : AppColors.slate200) : Colors.transparent,
                     width: 1,
                   ),
                   boxShadow: isActive ? [
@@ -62,8 +63,8 @@ class EqualToggleButtons<T> extends StatelessWidget {
                         iconBuilder!(item),
                         size: 14,
                         color: isActive 
-                            ? (item.toString().contains('youtube') ? Colors.red : const Color(0xFF3B66F5))
-                            : const Color(0xFF64748B),
+                            ? (item.toString().contains('youtube') ? Colors.red : AppColors.brandBlue)
+                            : AppColors.slate500,
                       ),
                       const SizedBox(width: 6),
                     ],
@@ -74,8 +75,8 @@ class EqualToggleButtons<T> extends StatelessWidget {
                         fontSize: 13,
                         fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                         color: isActive 
-                            ? (isDark ? Colors.white : const Color(0xFF3B66F5))
-                            : const Color(0xFF64748B),
+                            ? (isDark ? Colors.white : AppColors.brandBlue)
+                            : AppColors.slate500,
                       ),
                     ),
                   ],

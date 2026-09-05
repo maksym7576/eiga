@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../providers/ui/upload_provider.dart';
 import '../../styles/additional_window_theme.dart';
+import '../../styles/app_colors.dart';
 import '../shared/app_action_button.dart';
 
 import '../../../providers/videoComponentsProvider.dart';
@@ -50,7 +51,7 @@ class UploadActionButtons extends ConsumerWidget {
                   onPressed: canAdd ? () => _onSave(context, notifier) : null,
                   text: 'Add Video',
                   isLoading: state.isSaving,
-                  icon: const Icon(Icons.play_arrow_rounded, size: 16, color: Color(0xFF3B66F5)),
+                  icon: const Icon(Icons.play_arrow_rounded, size: 16, color: AppColors.brandBlue),
                 ),
               ),
             ],
@@ -61,7 +62,7 @@ class UploadActionButtons extends ConsumerWidget {
             width: 120,
             height: 4,
             decoration: BoxDecoration(
-              color: const Color(0xFFE2E8F0),
+              color: AppColors.slate200,
               borderRadius: BorderRadius.circular(99),
             ),
           ),

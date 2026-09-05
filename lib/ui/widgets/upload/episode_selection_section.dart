@@ -6,6 +6,7 @@ import '../../../providers/ui/dto_providers.dart';
 import 'package:eiga/backend/database/dto/jimaku_dto.dart';
 import 'package:eiga/backend/database/dto/anilist_dto.dart';
 import '../../styles/additional_window_theme.dart';
+import '../../styles/app_colors.dart';
 import '../dialogs/app_bottom_sheet.dart';
 import '../search/jimaku/jimaku_subtitle_source.dart';
 import '../shared/app_section_card.dart';
@@ -135,7 +136,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
         duration: const Duration(milliseconds: 180),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? theme.primaryAccent : const Color(0xFFF1F5F9),
+          color: isSelected ? theme.primaryAccent : AppColors.slate100,
           borderRadius: BorderRadius.circular(8),
           boxShadow: isSelected ? [
             BoxShadow(
@@ -149,7 +150,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
           child: Text(
             'Ep $episode',
             style: TextStyle(
-              color: isSelected ? Colors.white : const Color(0xFF334155),
+              color: isSelected ? Colors.white : AppColors.slate700,
               fontSize: 11,
               fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
             ),
@@ -215,13 +216,13 @@ class EpisodeSelectionSection extends ConsumerWidget {
                         duration: const Duration(milliseconds: 180),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: isSelected ? theme.primaryAccent : const Color(0xFFF1F5F9),
+                          color: isSelected ? theme.primaryAccent : AppColors.slate100,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           'Ep $episode',
                           style: TextStyle(
-                            color: isSelected ? Colors.white : const Color(0xFF334155),
+                            color: isSelected ? Colors.white : AppColors.slate700,
                             fontSize: 13,
                             fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
                           ),

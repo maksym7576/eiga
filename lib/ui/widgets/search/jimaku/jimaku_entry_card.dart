@@ -6,6 +6,7 @@ import 'package:eiga/backend/database/dto/anilist_dto.dart';
 import 'package:eiga/providers/ui/search_provider.dart';
 import 'package:eiga/ui/widgets/search/shared/media_entry_card.dart';
 import 'package:eiga/ui/widgets/search/jimaku/jimaku_subtitle_source.dart';
+import 'package:eiga/ui/styles/app_colors.dart';
 
 class JimakuEntryCard extends ConsumerWidget {
   final JimakuDataDTO entry;
@@ -30,12 +31,11 @@ class JimakuEntryCard extends ConsumerWidget {
     final episodeCount = aniListData?.episodes ?? summary?.episodeCount;
 
     final List<Widget> badges = [
-      if (episodeCount != null)
-        MediaEntryCard.buildBadge(
-          context, 
-          '$episodeCount Eps', 
-          const Color(0xFF3B66F5),
-        ),
+      MediaEntryCard.buildBadge(
+        context, 
+        episodeCount != null ? '$episodeCount Eps' : '? Eps', 
+        AppColors.brandBlue,
+      ),
     ];
 
     return MediaEntryCard(

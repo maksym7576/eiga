@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../providers/videoComponentsProvider.dart';
 import '../../styles/additional_window_theme.dart';
+import '../../styles/app_colors.dart';
 import 'languagePreviewWidget.dart';
 
 class LanguageSelectionSection extends ConsumerWidget {
@@ -25,14 +26,14 @@ class LanguageSelectionSection extends ConsumerWidget {
           gradient: LinearGradient(
             colors: [
               theme.brandBlue50.withValues(alpha: 0.6),
-              const Color(0xFFEEF2FF).withValues(alpha: 0.6), // Indigo 50
+              AppColors.brandBlue50.withValues(alpha: 0.8),
             ],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: const Color(0xFFBFDBFE).withValues(alpha: 0.7), // Blue 200
+            color: AppColors.brandBlue200.withValues(alpha: 0.7),
             width: 1.0,
           ),
           boxShadow: [

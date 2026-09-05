@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_colors.dart';
 
 class AppAppBarTheme {
   final Color backgroundColor;
@@ -43,7 +44,7 @@ class AppAppBarTheme {
     final isDark = theme.brightness == Brightness.dark;
 
     return AppAppBarTheme(
-      backgroundColor: isDark ? const Color(0xFF191C1E) : const Color(0xFFF7F9FB),
+      backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       iconColor: isDark ? Colors.white70 : Colors.black87,
       logoStyle: TextStyle(
         fontSize: 22,

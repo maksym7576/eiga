@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../styles/additional_window_theme.dart';
+import '../../styles/app_colors.dart';
 
 enum AppStatusType {
   success,
@@ -29,9 +30,9 @@ class AppStatusBadge extends StatelessWidget {
 
     switch (type) {
       case AppStatusType.success:
-        bgColor = const Color(0xFFECFDF5);
-        borderColor = const Color(0xFFD1FAE5);
-        textColor = const Color(0xFF059669);
+        bgColor = AppColors.successBg;
+        borderColor = AppColors.successBorder;
+        textColor = AppColors.successText;
         break;
       case AppStatusType.info:
         bgColor = theme.brandBlue50;
@@ -39,9 +40,9 @@ class AppStatusBadge extends StatelessWidget {
         textColor = theme.primaryAccent;
         break;
       case AppStatusType.warning:
-        bgColor = const Color(0xFFFFF7ED);
-        borderColor = const Color(0xFFFFEDD5);
-        textColor = const Color(0xFFD97706);
+        bgColor = AppColors.warningBg;
+        borderColor = AppColors.warningBorder;
+        textColor = AppColors.warningText;
         break;
     }
 

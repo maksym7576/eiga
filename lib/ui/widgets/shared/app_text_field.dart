@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../styles/additional_window_theme.dart';
+import '../../styles/app_colors.dart';
 
 class AppTextField extends StatelessWidget {
   final TextEditingController? controller;
@@ -45,7 +46,7 @@ class AppTextField extends StatelessWidget {
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
         filled: true,
-        fillColor: const Color(0xFFF8FAFC),
+        fillColor: theme.isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.slate50,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

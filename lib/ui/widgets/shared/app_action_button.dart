@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../styles/app_colors.dart';
 
 enum AppActionButtonType {
   primary,
@@ -73,7 +74,7 @@ class AppActionButton extends StatelessWidget {
     switch (type) {
       case AppActionButtonType.primary:
         return ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF0F172A),
+          backgroundColor: AppColors.slate900,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -82,8 +83,8 @@ class AppActionButton extends StatelessWidget {
         );
       case AppActionButtonType.secondary:
         return ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFF1F5F9),
-          foregroundColor: const Color(0xFF334155),
+          backgroundColor: AppColors.slate100,
+          foregroundColor: AppColors.slate700,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           elevation: 0,
@@ -93,8 +94,8 @@ class AppActionButton extends StatelessWidget {
         return OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          side: const BorderSide(color: Color(0xFFE2E8F0)),
-          foregroundColor: const Color(0xFF334155),
+          side: const BorderSide(color: AppColors.slate200),
+          foregroundColor: AppColors.slate700,
           textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
         );
     }

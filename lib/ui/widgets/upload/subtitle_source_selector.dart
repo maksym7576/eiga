@@ -6,6 +6,7 @@ import '../../../providers/ui/redirect_providers.dart';
 import '../../../providers/services/token_provider.dart';
 import '../../../config/secure_storage.dart';
 import '../../styles/additional_window_theme.dart';
+import '../../styles/app_colors.dart';
 
 class SubtitleSourceSelector extends ConsumerWidget {
   const SubtitleSourceSelector({super.key});
@@ -50,7 +51,7 @@ class SubtitleSourceSelector extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9), // Slate 100
+                  color: AppColors.slate100,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
@@ -75,21 +76,21 @@ class SubtitleSourceSelector extends ConsumerWidget {
                         margin: const EdgeInsets.only(left: 4),
                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7), // Yellow 100
+                          color: AppColors.warningAmberBg,
                           borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: const Color(0xFFFDE68A)), // Yellow 200
+                          border: Border.all(color: AppColors.warningAmberBorder),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.warning_amber_rounded, size: 8, color: Color(0xFF92400E)), // Amber 800
+                            Icon(Icons.warning_amber_rounded, size: 8, color: AppColors.warningAmberText),
                             SizedBox(width: 1),
                             Text(
                               'NO TOKEN',
                               style: TextStyle(
                                 fontSize: 7,
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFF92400E),
+                                color: AppColors.warningAmberText,
                                 letterSpacing: 0.2,
                               ),
                             ),
@@ -173,7 +174,7 @@ class SubtitleSourceSelector extends ConsumerWidget {
               Icon(
                 icon,
                 size: 13,
-                color: isActive ? const Color(0xFF3B66F5) : const Color(0xFF64748B),
+                color: isActive ? AppColors.brandBlue : AppColors.slate500,
               ),
               const SizedBox(width: 4),
               Text(
@@ -181,7 +182,7 @@ class SubtitleSourceSelector extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: isActive ? const Color(0xFF3B66F5) : const Color(0xFF64748B),
+                  color: isActive ? AppColors.brandBlue : AppColors.slate500,
                 ),
               ),
               if (trailing != null) trailing,

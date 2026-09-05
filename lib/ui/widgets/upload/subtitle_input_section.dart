@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 import '../../../providers/ui/upload_provider.dart';
 import '../../../providers/ui/search_provider.dart';
 import '../../styles/additional_window_theme.dart';
+import '../../styles/app_colors.dart';
 import '../dialogs/app_bottom_sheet.dart';
 import '../shared/upload_drop_box.dart';
 import 'package:eiga/ui/widgets/shared/app_section_card.dart';
@@ -94,9 +95,9 @@ class SubtitleInputSection extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
+                    color: theme.isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.slate50,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE2E8F0).withValues(alpha: 0.5)),
+                    border: Border.all(color: AppColors.slate200.withValues(alpha: 0.5)),
                   ),
                   child: Row(
                     children: [
@@ -117,13 +118,13 @@ class SubtitleInputSection extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: theme.isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          border: Border.all(color: AppColors.slate200),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Change',
-                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: Color(0xFF475569)),
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: theme.isDark ? Colors.white70 : AppColors.slate600),
                         ),
                       ),
                     ],
