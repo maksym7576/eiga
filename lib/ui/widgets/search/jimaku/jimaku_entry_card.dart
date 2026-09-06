@@ -31,11 +31,15 @@ class JimakuEntryCard extends ConsumerWidget {
     final episodeCount = aniListData?.episodes ?? summary?.episodeCount;
 
     final List<Widget> badges = [
-      MediaEntryCard.buildBadge(
-        context, 
-        episodeCount != null ? '$episodeCount Eps' : '? Eps', 
-        AppColors.brandBlue,
-      ),
+      if (episodeCount != null)
+        MediaEntryCard.buildBadge(
+          context, 
+          '$episodeCount Eps', 
+          AppColors.brandBlue,
+        ),
+      // If we don't have episode count yet, we don't show "Loading..." here 
+      // because the source now awaits primary metadata, and background file analysis 
+      // will update the card when ready.
     ];
 
     return MediaEntryCard(

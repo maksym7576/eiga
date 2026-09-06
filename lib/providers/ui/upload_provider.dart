@@ -9,6 +9,7 @@ import '../services/database_services_providers.dart';
 import '../services/subtitle_depacker_providers.dart';
 import '../videoComponentsProvider.dart';
 import 'package:eiga/backend/database/dto/jimaku_dto.dart';
+import 'package:eiga/backend/database/dto/anilist_dto.dart';
 import 'dto_providers.dart';
 import 'search_provider.dart';
 
@@ -31,6 +32,7 @@ class UploadState {
   final List<Phrase> previewPhrases;
   final bool isParsing;
   final bool isSaving;
+  final bool isInitialized;
 
   UploadState({
     this.videoSource = VideoSource.file,
@@ -43,6 +45,7 @@ class UploadState {
     this.previewPhrases = const [],
     this.isParsing = false,
     this.isSaving = false,
+    this.isInitialized = false,
   });
 
   UploadState copyWith({
@@ -56,6 +59,7 @@ class UploadState {
     List<Phrase>? previewPhrases,
     bool? isParsing,
     bool? isSaving,
+    bool? isInitialized,
   }) {
     return UploadState(
       videoSource: videoSource ?? this.videoSource,
@@ -68,6 +72,7 @@ class UploadState {
       previewPhrases: previewPhrases ?? this.previewPhrases,
       isParsing: isParsing ?? this.isParsing,
       isSaving: isSaving ?? this.isSaving,
+      isInitialized: isInitialized ?? this.isInitialized,
     );
   }
 }
@@ -75,10 +80,20 @@ class UploadState {
 class UploadNotifier extends Notifier<UploadState> {
   @override
   UploadState build() {
-    final jimakuToken = ref.watch(tokenProvider(ApiTokenType.jimaku)).value ?? '';
+    final tokenAsync = ref.watch(tokenProvider(ApiTokenType.jimaku));
+    
+    // We only consider it initialized once the token is loaded or failed
+    if (tokenAsync.isLoading) {
+      return UploadState(isInitialized: false);
+    }
+
+    final jimakuToken = tokenAsync.value ?? '';
     final defaultSource = jimakuToken.isNotEmpty ? SubtitleSource.jimaku : SubtitleSource.local;
     
-    return UploadState(subtitleSource: defaultSource);
+    return UploadState(
+      subtitleSource: defaultSource,
+      isInitialized: true,
+    );
   }
 
   void setVideoSource(VideoSource source) {
@@ -115,6 +130,10 @@ class UploadNotifier extends Notifier<UploadState> {
     ref.read(searchResultsProvider(SearchSourceKeys.anilist).notifier).state = [];
     ref.read(jimakuSearchFullResultsProvider.notifier).state = [];
     ref.read(aniListProvider.notifier).clear();
+    
+    // Explicitly reset search metadata
+    ref.invalidate(searchMetadataProvider(SearchSourceKeys.jimaku));
+    ref.invalidate(searchMetadataProvider(SearchSourceKeys.anilist));
     
     // Explicitly reset languages
     ref.invalidate(languageProvider);
@@ -189,10 +208,18 @@ class UploadNotifier extends Notifier<UploadState> {
     // 1. Identify the Anilist ID from any source
     int? targetAnilistId;
     
-    // From direct selection
+    // From direct selection (AniList search)
     final anilistData = ref.read(aniListProvider).value;
     if (anilistData != null) {
       targetAnilistId = anilistData.id;
+    }
+    
+    // Fallback: search for selected entry in AniList source if provider value is null
+    if (targetAnilistId == null) {
+      final dynamic anilistEntry = ref.read(selectedEntryProvider(SearchSourceKeys.anilist));
+      if (anilistEntry != null && anilistEntry is AniListDataDTO) {
+        targetAnilistId = anilistEntry.id;
+      }
     }
     
     // Or from selected Jimaku entry

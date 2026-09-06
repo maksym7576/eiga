@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:eiga/providers/anilist_status_provider.dart';
 
 class MediaEntryCard extends ConsumerWidget {
   final String title;
@@ -27,6 +29,7 @@ class MediaEntryCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = AdditionalWindowTheme.of(context);
+    final status = ref.watch(aniListStatusProvider);
 
     return GestureDetector(
       onTap: onTap,
@@ -46,7 +49,7 @@ class MediaEntryCard extends ConsumerWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: isActive ? 0.08 : 0.02),
+                    color: Colors.black.withOpacity(isActive ? 0.08 : 0.02),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -59,7 +62,7 @@ class MediaEntryCard extends ConsumerWidget {
                   child: Stack(
                     children: [
                       Positioned.fill(
-                        child: _buildCover(theme),
+                        child: _buildCover(theme, status),
                       ),
                       if (typeBadge != null)
                         Positioned(
@@ -79,7 +82,7 @@ class MediaEntryCard extends ConsumerWidget {
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.2),
+                                  color: Colors.black.withOpacity(0.2),
                                   blurRadius: 4,
                                   offset: const Offset(0, 1),
                                 ),
@@ -140,19 +143,67 @@ class MediaEntryCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildCover(AdditionalWindowTheme theme) {
+  Widget _buildCover(AdditionalWindowTheme theme, AniListStatus status) {
+    if (status == AniListStatus.maintenance || status == AniListStatus.error) {
+      final isMaintenance = status == AniListStatus.maintenance;
+      return Container(
+        color: theme.cardBackground,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isMaintenance ? Icons.cloud_off_rounded : Icons.error_outline_rounded, 
+              color: theme.mutedText.withValues(alpha: 0.5), 
+              size: 28
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isMaintenance ? 'API Offline' : 'Load Error',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.w700,
+                color: theme.mutedText.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (isLoadingImage) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+      return _buildLoadingOverlay(theme);
     }
     
-    if (imageUrl != null) {
-      return Image.network(
-        imageUrl!,
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: imageUrl!,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(theme),
+        fadeInDuration: const Duration(milliseconds: 300),
+        placeholder: (context, url) => _buildLoadingOverlay(theme),
+        errorWidget: (context, url, error) {
+          debugPrint('Error loading image: $url - $error');
+          return _buildPlaceholder(theme);
+        },
       );
     }
     return _buildPlaceholder(theme);
+  }
+
+  Widget _buildLoadingOverlay(AdditionalWindowTheme theme) {
+    return Container(
+      color: theme.cardBackground,
+      child: Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            color: theme.primaryAccent.withOpacity(0.5),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildPlaceholder(AdditionalWindowTheme theme) {
@@ -169,7 +220,7 @@ class MediaEntryCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
+        color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

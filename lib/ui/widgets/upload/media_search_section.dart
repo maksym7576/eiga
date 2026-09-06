@@ -4,6 +4,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
 import 'package:eiga/providers/ui/search_provider.dart';
 import 'package:eiga/providers/ui/dto_providers.dart';
+import 'package:eiga/providers/anilist_status_provider.dart';
+import 'package:eiga/backend/services/anilist_service.dart';
+import 'package:eiga/backend/database/dto/anilist_dto.dart';
 import 'package:eiga/backend/database/dto/jimaku_dto.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
 import 'package:eiga/ui/widgets/search/search_source_abstract.dart';
@@ -29,6 +32,7 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
   final _aniListSource = AniListSearchSource();
   final _jimakuSource = JimakuSubtitleSource();
   String? _lastAutoSearchQuery;
+  bool _isInitialSearchDone = false;
 
   @override
   void dispose() {
@@ -46,14 +50,46 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
     });
   }
 
+  String _cleanQuery(String query) {
+    if (query.isEmpty) return query;
+
+    // 1. Remove bracketed content like [SubsPlease], (1080p), (TV), [2024], [720p], [HEVC], [10bit]
+    String cleaned = query.replaceAll(RegExp(r'\[.*?\]|\(.*?\)', caseSensitive: false), ' ');
+
+    // 2. Remove common file extensions
+    cleaned = cleaned.replaceAll(RegExp(r'\.(mp4|mkv|avi|srt|ass|zip|rar|7z|ts|flv|wmv)$', caseSensitive: false), ' ');
+
+    // 3. Remove episode markers: " - 01", " Ep 01", " Episode 1", "_01_", ".01.", " 1v2 "
+    // We look for numbers surrounded by separators or episode keywords
+    cleaned = cleaned.replaceAll(RegExp(r'[\s\-_.]+(episode|ep|e)?[\s\-_.]*\d+([\s\-_.]|$)', caseSensitive: false), ' ');
+
+    // 4. Remove common technical terms and tags
+    cleaned = cleaned.replaceAll(RegExp(r'(1080p|720p|480p|2160p|4k|x264|x265|hevc|h264|h265|bluray|bdrip|webrip|web-dl|dual-audio|multi-sub|subbed|dubbed|uncensored|eng sub|ua sub)', caseSensitive: false), ' ');
+
+    // 5. Remove release group patterns if they aren't in brackets (some groups just use a dash or space)
+    // This is risky, but we can try removing common ones or just generic "noise"
+    
+    // 6. Replace underscores/dots/dashes with spaces
+    cleaned = cleaned.replaceAll(RegExp(r'[_.\-]'), ' ');
+
+    // 7. Clean up whitespace and special characters
+    cleaned = cleaned.trim().replaceAll(RegExp(r'\s+'), ' ');
+    
+    // If we stripped everything, fallback to original query
+    return cleaned.length < 2 ? query : cleaned;
+  }
+
   Future<void> _performSearch(String query, SubtitleSource source) async {
+    final cleanedQuery = source == SubtitleSource.local ? _cleanQuery(query) : query;
     final key = source == SubtitleSource.local ? _aniListSource.key : _jimakuSource.key;
     final SearchSource<dynamic, dynamic> searchSource = source == SubtitleSource.local ? _aniListSource : _jimakuSource;
 
     ref.read(isSearchingProvider(key).notifier).state = true;
     try {
       final filters = ref.read(searchFiltersProvider(key));
-      final results = await searchSource.search(query, filters, ref);
+      debugPrint('Performing search for $key. Original: "$query", Cleaned: "$cleanedQuery"');
+      
+      final results = await searchSource.search(cleanedQuery, filters, ref);
       ref.read(searchResultsProvider(key).notifier).state = results;
       
       // Auto-select the first result if none is selected and results are found
@@ -61,13 +97,36 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
         final firstEntry = results.first;
         ref.read(selectedEntryProvider(key).notifier).state = firstEntry;
         
-        if (source == SubtitleSource.local) {
+        if (source == SubtitleSource.local && firstEntry is AniListDataDTO) {
+          ref.read(aniListProvider.notifier).updateData(firstEntry);
           _aniListSource.resolve(firstEntry, ref);
         } else {
-          _jimakuSource.getFiles(firstEntry as JimakuDataDTO, {}, ref);
+          final data = firstEntry as JimakuDataDTO;
+          if (data.anilistId != null) {
+             final metadata = ref.read(searchMetadataProvider(_jimakuSource.key));
+             final cached = metadata[data.anilistId];
+             if (cached != null && cached is AniListDataDTO) {
+               ref.read(aniListProvider.notifier).updateData(cached);
+             }
+          }
+          _jimakuSource.getFiles(data, {}, ref);
         }
+      } else {
+        debugPrint('No results found for $key with query "$cleanedQuery"');
       }
-    } catch (e) {
+      
+      // If we got here, AniList is working
+      if (source == SubtitleSource.local) {
+        ref.read(aniListStatusProvider.notifier).state = AniListStatus.online;
+      }
+    } catch (e, st) {
+      debugPrint('Search failed for $key: $e');
+      if (e is AniListDisabledException) {
+        ref.read(aniListStatusProvider.notifier).state = AniListStatus.maintenance;
+      } else if (e is Exception) {
+        debugPrint('Exception details: ${e.runtimeType}');
+      }
+      debugPrint(st.toString());
       ref.read(searchResultsProvider(key).notifier).state = [];
     } finally {
       ref.read(isSearchingProvider(key).notifier).state = false;
@@ -99,7 +158,6 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
   Widget build(BuildContext context) {
     final theme = AdditionalWindowTheme.of(context);
     final subtitleSource = ref.watch(uploadProvider.select((s) => s.subtitleSource));
-    final videoName = ref.watch(uploadProvider.select((s) => s.videoName));
 
     final sourceKey = subtitleSource == SubtitleSource.local ? _aniListSource.key : _jimakuSource.key;
 
@@ -118,6 +176,34 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
       }
     });
 
+    // Auto-search when videoName changes
+    ref.listen(uploadProvider.select((s) => s.videoName), (previous, next) {
+      if (next != null && next.length >= 3 && next != _lastAutoSearchQuery) {
+        _lastAutoSearchQuery = next;
+        _performSearch(next, subtitleSource);
+      }
+    });
+
+    // Auto-search when switching sources
+    ref.listen(uploadProvider.select((s) => s.subtitleSource), (previous, next) {
+      final query = _controller.text.trim();
+      if (query.length >= 3) {
+        _performSearch(query, next);
+      }
+    });
+
+    // Initial search if videoName is already set
+    if (!_isInitialSearchDone) {
+      _isInitialSearchDone = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final currentVideoName = ref.read(uploadProvider).videoName;
+        if (currentVideoName != null && currentVideoName.length >= 3) {
+          _lastAutoSearchQuery = currentVideoName;
+          _performSearch(currentVideoName, subtitleSource);
+        }
+      });
+    }
+
     // Auto-scroll to start when selection changes
     ref.listen(selectedEntryProvider(sourceKey), (previous, next) {
       if (next != null && _scrollController.hasClients) {
@@ -128,19 +214,6 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
         );
       }
     });
-    
-    // Auto-trigger Jimaku search if needed
-    if (subtitleSource == SubtitleSource.jimaku && videoName != null && videoName.length >= 3) {
-      if (_lastAutoSearchQuery != videoName) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final currentResults = ref.read(searchResultsProvider(_jimakuSource.key));
-          if (currentResults.isEmpty && !ref.read(isSearchingProvider(_jimakuSource.key))) {
-            _lastAutoSearchQuery = videoName;
-            _performSearch(videoName, SubtitleSource.jimaku);
-          }
-        });
-      }
-    }
 
     final isSearching = ref.watch(isSearchingProvider(
       subtitleSource == SubtitleSource.local ? _aniListSource.key : _jimakuSource.key,
@@ -157,6 +230,8 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
     // Limit visible results in the horizontal list to improve performance and prevent clutter
     final results = rawResults.length > 12 ? rawResults.take(12).toList() : [...rawResults];
     
+    final status = ref.watch(aniListStatusProvider);
+
     if (selectedEntry != null) {
       final index = results.indexWhere((e) => 
           (subtitleSource == SubtitleSource.local 
@@ -176,6 +251,34 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (status == AniListStatus.maintenance)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.amber[700], size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'AniList API is down. Subtitles will work, but images and extra data might be missing.',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.amber[900],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         const SizedBox(height: 8),
         AppTextField(
           controller: _controller,
@@ -283,6 +386,11 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
                               // Automatically load AniList metadata if anilistId is present
                               final data = entry;
                               if (data.anilistId != null) {
+                                final metadata = ref.read(searchMetadataProvider(_jimakuSource.key));
+                                final cached = metadata[data.anilistId];
+                                if (cached != null && cached is AniListDataDTO) {
+                                  ref.read(aniListProvider.notifier).updateData(cached);
+                                }
                                 ref.read(aniListProvider.notifier).load(data.anilistId!, downloadImages: true);
                               }
                             }),

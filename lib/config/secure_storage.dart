@@ -2,6 +2,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 enum ApiTokenType {
   gemini('gemini_api_key'),
+  openai('openai_api_key'),
+  anthropic('anthropic_api_key'),
   jimaku('jimaku_api_key');
 
   final String key;

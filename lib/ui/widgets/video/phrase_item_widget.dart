@@ -1,24 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../backend/database/schemas/phrase.dart';
-import '../../../backend/database/schemas/block.dart';
-import '../../../backend/database/schemas/word.dart';
-import '../../../backend/database/schemas/language.dart';
 import '../../../providers/ui/video_data_providers.dart';
 import '../../../providers/ui/player_provider.dart';
+import '../../../providers/services/reading_type_provider.dart';
 import 'ruby_text.dart';
 import 'shimmer_text.dart';
+import 'subtitle_text_content.dart';
 
 class PhraseItemWidget extends HookConsumerWidget {
   final Phrase phrase;
   final bool isActive;
-  final Language? language;
 
   const PhraseItemWidget({
     super.key,
     required this.phrase,
     this.isActive = false,
-    this.language,
   });
 
   @override
@@ -61,6 +58,9 @@ class PhraseItemWidget extends HookConsumerWidget {
           ref.read(playerProvider.notifier).seekTo(position);
           ref.read(isAutoScrollEnabledProvider.notifier).state = true;
         }
+        // Clear word selection when tapping background
+        ref.read(selectedBlockIdProvider.notifier).state = null;
+        ref.read(clickedWordIdProvider.notifier).state = null;
       },
       child: Container(
         width: double.infinity,
@@ -224,89 +224,18 @@ class PhraseItemWidget extends HookConsumerWidget {
   }
 
   Widget _buildTranslatedContent(BuildContext context, WidgetRef ref) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _PhraseOriginalContent(phraseId: phrase.id, language: language, fallbackText: phrase.originalPhrase),
-        if (phrase.translatedPhrase != null) ...[
-          const SizedBox(height: 6),
-          Text(
-            phrase.translatedPhrase!,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF0F172A),
-              fontWeight: FontWeight.normal,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
+    final readingState = ref.watch(readingTypeNotifierProvider).value;
+    final mainOpt = readingState?.mainOption ?? 'original';
+    final addOpt = readingState?.additionalOption;
+    final showTranslation = readingState?.showTranslation ?? true;
 
-class _PhraseOriginalContent extends HookConsumerWidget {
-  final int phraseId;
-  final Language? language;
-  final String? fallbackText;
-
-  const _PhraseOriginalContent({required this.phraseId, this.language, this.fallbackText});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final blocksAsync = ref.watch(phraseBlocksProvider(phraseId));
-
-    return blocksAsync.when(
-      data: (blocks) {
-        if (blocks.isEmpty) return Text(fallbackText ?? '', style: const TextStyle(fontSize: 17.5));
-        return Wrap(
-          crossAxisAlignment: WrapCrossAlignment.end,
-          spacing: 0, // Words should be close
-          runSpacing: 4,
-          children: blocks.map((block) => _BlockWords(block: block, language: language)).toList(),
-        );
-      },
-      loading: () => Text(fallbackText ?? '', style: const TextStyle(fontSize: 17.5)),
-      error: (_, __) => Text(fallbackText ?? '', style: const TextStyle(color: Colors.red)),
-    );
-  }
-}
-
-class _BlockWords extends HookConsumerWidget {
-  final Block block;
-  final Language? language;
-
-  const _BlockWords({required this.block, this.language});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final wordsAsync = ref.watch(blockWordsProvider(block.id));
-
-    return wordsAsync.when(
-      data: (words) => Wrap(
-        crossAxisAlignment: WrapCrossAlignment.end,
-        children: words
-            .map((word) => RubyText(
-                  word: word,
-                  language: language,
-                  baseStyle: const TextStyle(
-                    fontFamily: 'Noto Serif JP',
-                    fontSize: 17.5,
-                    color: Color(0xFF0F172A),
-                    height: 1.8,
-                  ),
-                  annotationStyle: const TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 9.5,
-                    color: Color(0xFF94A3B8),
-                    fontWeight: FontWeight.normal,
-                    height: 1.0,
-                  ),
-                ))
-            .toList(),
-      ),
-      loading: () => const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1)),
-      error: (_, __) => const Icon(Icons.error, size: 12),
+    return SubtitleTextContent(
+      phrase: phrase,
+      mainOption: mainOpt,
+      additionalOption: addOpt,
+      showTranslation: showTranslation,
+      baseFontSize: 17.5,
+      textColor: const Color(0xFF0F172A),
     );
   }
 }

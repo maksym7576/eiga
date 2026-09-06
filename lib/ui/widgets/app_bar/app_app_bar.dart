@@ -25,9 +25,8 @@ class AppAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final queueState = ref.watch(translationQueueProvider);
-    final isTranslating = queueState.currentlyProcessingVideoId != null && 
-                          queueState.status == TranslationQueueStatus.running;
+    final queueState = ref.watch(translationQueueStatusProvider);
+    final isTranslating = queueState.isProcessing;
     
     return _AppAppBarInternal(
       step: step, 

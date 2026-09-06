@@ -1,247 +1,245 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../../../providers/ui/video_data_providers.dart';
-import '../../styles/app_colors.dart';
+import 'package:eiga/backend/database/schemas/video.dart';
+import 'package:eiga/backend/database/schemas/translation_job.dart';
+import 'package:eiga/backend/services/background/translation_background_manager.dart';
+import 'package:eiga/providers/ui/video_data_providers.dart';
+import 'package:eiga/ui/styles/app_colors.dart';
+import 'widgets/translation_job_card.dart';
+import 'widgets/queued_batch_card.dart';
 
 class TranslationProgressSheet extends HookConsumerWidget {
   const TranslationProgressSheet({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final batches = ref.watch(translationBatchesProvider);
+    final videoAsync = ref.watch(currentVideoStreamProvider);
+    final queue = ref.watch(translationQueueProvider);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+    return videoAsync.when(
+      data: (video) {
+        if (video == null) return const SizedBox.shrink();
+        
+        final jobsAsync = ref.watch(translationJobsStreamProvider(video.id));
+        
+        return jobsAsync.when(
+          data: (List<TranslationJob> jobs) {
+            final activeJobs = jobs.where((j) => j.status == 'active').toList();
+            final completedJobs = jobs.where((j) => j.status != 'active').toList();
+
+            final totalTranslatedPhrases = completedJobs.fold(0, (sum, j) => sum + (j.processedPhrases ?? 0));
+            final totalPhrasesCount = jobs.length + queue.length;
+
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.slate100,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(34)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _PulsingDot(color: AppColors.brandBlue, size: 8),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Translation Progress',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.slate900,
+                  // Drag Handle
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.slate300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
+
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Row(
+                      children: [
+                        const _LiveDot(),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Translation Progress',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                            color: AppColors.slate900,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (activeJobs.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0F5FF),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFFE0EAFF)),
+                            ),
+                            child: Text(
+                              '${activeJobs.length} active',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2563EB),
+                              ),
+                            ),
+                          ),
+                        const Spacer(),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close, size: 20, color: AppColors.slate400),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: AppColors.slate200),
+
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      children: [
+                        // Active Pipelines
+                        if (activeJobs.isNotEmpty || queue.isNotEmpty) ...[
+                          ...activeJobs.asMap().entries.map((entry) => TranslationJobCard(
+                            job: entry.value, 
+                            index: entry.key + 1,
+                            total: totalPhrasesCount,
+                          )),
+                          ...queue.asMap().entries.map((entry) => QueuedBatchCard(
+                            task: entry.value,
+                            index: activeJobs.length + entry.key + 1,
+                            total: totalPhrasesCount,
+                          )),
+                          const SizedBox(height: 12),
+                        ],
+
+                        // History
+                        if (completedJobs.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12, left: 4),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.history, size: 14, color: Color(0xFF64748B)),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'HISTORY',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.5,
+                                      color: AppColors.slate600,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFECFDF5),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: const Color(0xFFD1FAE5)),
+                                  ),
+                                  child: Text(
+                                    'Total: $totalTranslatedPhrases phrases done',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF059669),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ...completedJobs.reversed.toList().asMap().entries.map((entry) => TranslationJobCard(
+                            job: entry.value,
+                            index: completedJobs.length - entry.key,
+                            total: totalPhrasesCount,
+                          )),
+                        ],
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                  
+                  SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
                 ],
               ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close, size: 20, color: AppColors.slate400),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Batch List
-          Flexible(
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: batches.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                final batch = batches[index];
-                return _BatchCard(batch: batch);
-              },
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Footer
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                '~8.4 phrases / sec',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  color: AppColors.slate500,
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.slate900,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Collapse',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-        ],
-      ),
+            );
+          },
+          loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
+          error: (e, _) => SizedBox(height: 100, child: Center(child: Text('Error: $e'))),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }
 
-class _BatchCard extends StatelessWidget {
-  final TranslationBatch batch;
-
-  const _BatchCard({required this.batch});
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
 
   @override
   Widget build(BuildContext context) {
-    final isDone = batch.isDone;
-    final bgColor = isDone ? AppColors.slate50 : const Color(0xFFEFF6FF); // blue-50
-    final borderColor = isDone ? AppColors.slate100 : const Color(0xFFDBEAFE); // blue-100
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  if (!isDone) ...[
-                    _PulsingDot(color: AppColors.brandBlue, size: 6),
-                    const SizedBox(width: 6),
-                  ],
-                  Text(
-                    'Phrases ${batch.startOrder}–${batch.endOrder}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: isDone ? AppColors.slate800 : AppColors.brandBlue,
-                    ),
-                  ),
-                ],
-              ),
-              if (isDone)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.successBg,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.successBorder),
-                  ),
-                  child: const Text(
-                    'Ready',
-                    style: TextStyle(
-                      color: AppColors.successText,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFBFDBFE)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.02),
-                        blurRadius: 2,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    '${batch.translatedCount} / ${batch.totalCount}',
-                    style: const TextStyle(
-                      color: AppColors.brandBlue,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: batch.progress,
-              backgroundColor: isDone ? AppColors.slate200 : const Color(0xFFDBEAFE),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isDone ? const Color(0xFF10B981) : AppColors.brandBlue,
-              ),
-              minHeight: 6,
-            ),
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.0,
+          color: AppColors.slate500,
+        ),
       ),
     );
   }
 }
 
-class _PulsingDot extends StatefulWidget {
-  final Color color;
-  final double size;
-
-  const _PulsingDot({required this.color, required this.size});
-
+class _LiveDot extends StatefulWidget {
+  const _LiveDot();
   @override
-  State<_PulsingDot> createState() => _PulsingDotState();
+  State<_LiveDot> createState() => _LiveDotState();
 }
 
-class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderStateMixin {
+class _LiveDotState extends State<_LiveDot> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    )..repeat(reverse: true);
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
   }
-
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+  void dispose() { _controller.dispose(); super.dispose(); }
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        return Container(
-          width: widget.size,
-          height: widget.size,
-          decoration: BoxDecoration(
-            color: widget.color.withOpacity(0.4 + (_controller.value * 0.6)),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: widget.color.withOpacity(0.3 * _controller.value),
-                blurRadius: 4,
-                spreadRadius: 2,
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 10, height: 10,
+              decoration: const BoxDecoration(color: Color(0xFF2563EB), shape: BoxShape.circle),
+            ),
+            Container(
+              width: 18, height: 18,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF60A5FA).withValues(alpha: 0.5 * (1 - _controller.value)), width: 2),
               ),
-            ],
-          ),
+              transform: Matrix4.identity()..scale(1.0 + _controller.value * 0.5),
+            ),
+          ],
         );
       },
     );

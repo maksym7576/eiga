@@ -20,6 +20,8 @@ class Block {
 
   String? colorHex;
 
+  int? specificWordStyleId;
+
   Block({
     this.phraseId,
     this.blockPositionIndex,
@@ -27,5 +29,6 @@ class Block {
     this.blockTranslation,
     this.contentSignature,
     this.colorHex,
+    this.specificWordStyleId,
   });
 }

@@ -7,6 +7,7 @@ import '../schemas/specific_word_style.dart';
 import '../schemas/video.dart';
 import '../schemas/word.dart';
 import '../schemas/ai_model.dart';
+import '../schemas/translation_job.dart';
 import '../schemas/translation_pipeline_step.dart';
 import '../seeds/language_seeds.dart';
 import '../seeds/ai_model_seeds.dart';
@@ -38,6 +39,7 @@ class IsarService {
         VideoSchema,
         WordSchema,
         AiModelSchema,
+        TranslationJobSchema,
       ],
       directory: dir.path,
       inspector: true,
@@ -99,7 +101,7 @@ class IsarService {
 
     // Seed Word Styles if empty
     if (await isar.specificWordStyles.count() == 0) {
-      final styles = await standardWordStyles();
+      final styles = standardWordStyles();
       await isar.writeTxn(() async {
         await isar.specificWordStyles.putAll(styles);
       });

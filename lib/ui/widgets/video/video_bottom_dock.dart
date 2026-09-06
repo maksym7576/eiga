@@ -6,6 +6,7 @@ import '../../styles/app_colors.dart';
 import '../shared/progress_ring.dart';
 import '../dialogs/app_bottom_sheet.dart';
 import 'translation_progress_sheet.dart';
+import 'video_settings_sheet.dart';
 
 class VideoBottomDock extends HookConsumerWidget {
   const VideoBottomDock({super.key});
@@ -112,7 +113,11 @@ class VideoBottomDock extends HookConsumerWidget {
                     // Settings Button
                     GestureDetector(
                       onTap: () {
-                        // TODO: Open settings
+                        AppBottomSheet.show(
+                          context: context,
+                          backgroundColor: const Color(0xFFF8FAFC),
+                          child: const VideoSettingsSheet(),
+                        );
                       },
                       child: Container(
                         height: 44,

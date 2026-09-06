@@ -24,13 +24,24 @@ class AniListNotifier extends AsyncNotifier<AniListDataDTO?> {
     final service = ref.read(aniListServiceProvider);
 
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
+    final result = await AsyncValue.guard(
       () => service.getById(anilistId, downloadImages: downloadImages),
     );
+    
+    if (result.hasError) {
+      // ignore: avoid_print
+      print('AniListNotifier: Error loading ID $anilistId: ${result.error}');
+    }
+    
+    state = result;
   }
 
   Future<void> refresh(int anilistId) async {
     await load(anilistId, downloadImages: true);
+  }
+
+  void updateData(AniListDataDTO data) {
+    state = AsyncData(data);
   }
 
   void clear() {

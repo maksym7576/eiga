@@ -1,13 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:go_router/go_router.dart';
 import '../../../providers/ui/player_provider.dart';
 import '../../../providers/ui/video_data_providers.dart';
 import '../../styles/app_colors.dart';
 
-class VideoPlayerControls extends HookConsumerWidget {
+class VideoPlayerControls extends ConsumerWidget {
   const VideoPlayerControls({super.key});
 
   @override
@@ -19,16 +17,20 @@ class VideoPlayerControls extends HookConsumerWidget {
     
     return Stack(
       children: [
-        // 1. Base Interaction Layer (Toggles UI visibility)
+        // 1. Base Interaction Layer
         Positioned.fill(
           child: GestureDetector(
-            onTap: () => ref.read(playerProvider.notifier).toggleControls(),
+            onTap: () {
+              ref.read(playerProvider.notifier).toggleControls();
+              ref.read(selectedBlockIdProvider.notifier).state = null;
+              ref.read(clickedWordIdProvider.notifier).state = null;
+            },
             behavior: HitTestBehavior.opaque,
             child: const SizedBox.expand(),
           ),
         ),
 
-        // 2. Persistent Center Button (Only when controls are visible)
+        // 2. Persistent Center Button
         if (!isLocked)
           Center(
             child: AnimatedOpacity(
@@ -59,7 +61,7 @@ class VideoPlayerControls extends HookConsumerWidget {
             ),
           ),
 
-        // 4. Bottom Controls
+        // 3. Bottom Controls
         AnimatedPositioned(
           duration: const Duration(milliseconds: 250),
           bottom: areVisible && !isLocked ? 0 : -100,
@@ -72,7 +74,7 @@ class VideoPlayerControls extends HookConsumerWidget {
           ),
         ),
         
-        // 5. Top Overlay (Lock button)
+        // 4. Top Overlay
         AnimatedPositioned(
           duration: const Duration(milliseconds: 250),
           top: areVisible ? 12 : -60,
@@ -101,7 +103,7 @@ class _TopOverlay extends ConsumerWidget {
         ref.read(playerProvider.notifier).resetHideTimer();
       },
       child: Container(
-        padding: const EdgeInsets.all(10), // Reduced size
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.45),
           shape: BoxShape.circle,
@@ -110,7 +112,7 @@ class _TopOverlay extends ConsumerWidget {
         child: Icon(
           isLocked ? Icons.lock : Icons.lock_open,
           color: Colors.white,
-          size: 16, // Smaller icon
+          size: 16,
         ),
       ),
     );
@@ -152,7 +154,7 @@ class _BottomBar extends ConsumerWidget {
     final position = ref.watch(playerTimeProvider);
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4), // Further reduced padding
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
@@ -178,12 +180,12 @@ class _BottomBar extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _FrostedPill(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), // Increased from 8, 2
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 child: Text(
                   '${_formatDuration(position)} / ${_formatDuration(duration)}',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 11, // Increased from 10
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                     fontFamily: 'monospace',
                   ),
@@ -192,22 +194,22 @@ class _BottomBar extends ConsumerWidget {
               Row(
                 children: [
                   _FrostedPill(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), // Increased from 8, 2
-                    child: Text(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    child: const Text(
                       '1.0x',
-                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ),
-                  const SizedBox(width: 8), // Increased from 6
+                  const SizedBox(width: 8),
                   _FrostedPill(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), // Increased from 6, 2
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: GestureDetector(
                       onTap: () {
                         ref.read(playerProvider.notifier).toggleFullscreen();
                         ref.read(playerProvider.notifier).resetHideTimer();
                       },
                       behavior: HitTestBehavior.opaque,
-                      child: const Icon(Icons.fullscreen, color: Colors.white, size: 20), // Increased from 18
+                      child: const Icon(Icons.fullscreen, color: Colors.white, size: 20),
                     ),
                   ),
                 ],
@@ -249,8 +251,8 @@ class _ProgressBar extends StatelessWidget {
 
     return SliderTheme(
       data: SliderTheme.of(context).copyWith(
-        trackHeight: 2, // Thinner track
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4, elevation: 2), // Smaller thumb
+        trackHeight: 2,
+        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4, elevation: 2),
         overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
         activeTrackColor: AppColors.brandBlue,
         inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
@@ -258,7 +260,7 @@ class _ProgressBar extends StatelessWidget {
         trackShape: const RectangularSliderTrackShape(),
       ),
       child: Container(
-        height: 20, // Much smaller vertical footprint
+        height: 20,
         alignment: Alignment.center,
         child: Slider(
           value: value.clamp(0.0, 1.0),

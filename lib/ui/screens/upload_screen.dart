@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
+import '../widgets/shared/loading_splash.dart';
 
 import '../widgets/shared/section_title.dart';
 import '../widgets/upload/video_source_selector.dart';
@@ -20,6 +21,7 @@ class UploadScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = AdditionalWindowTheme.of(context);
+    final isInitialized = ref.watch(uploadProvider.select((s) => s.isInitialized));
 
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
@@ -27,8 +29,26 @@ class UploadScreen extends ConsumerWidget {
           ref.read(uploadProvider.notifier).reset();
         }
       },
-      child: Scaffold(
-        backgroundColor: theme.backgroundColor,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 600),
+        switchInCurve: Curves.easeIn,
+        switchOutCurve: Curves.easeOut,
+        child: !isInitialized 
+          ? const LoadingSplash(key: ValueKey('splash'))
+          : _UploadContent(key: const ValueKey('content'), theme: theme),
+      ),
+    );
+  }
+}
+
+class _UploadContent extends ConsumerWidget {
+  final AdditionalWindowTheme theme;
+  const _UploadContent({super.key, required this.theme});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      backgroundColor: theme.backgroundColor,
       appBar: AppBar(
         title: const Text('Create Video', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         backgroundColor: Colors.white.withValues(alpha: 0.9),
@@ -105,7 +125,7 @@ class UploadScreen extends ConsumerWidget {
         ),
       ),
       bottomNavigationBar: const UploadActionButtons(),
-    ));
+    );
   }
 }
 

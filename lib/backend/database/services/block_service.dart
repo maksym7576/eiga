@@ -17,6 +17,13 @@ class BlockService {
         .findAll();
   }
 
+  Stream<List<Block>> watchBlocksForPhrase(int phraseId) {
+    return db.blocks
+        .filter()
+        .phraseIdEqualTo(phraseId)
+        .watch(fireImmediately: true);
+  }
+
   Future<void> updateColorDirectly({
     required String contentSignature,
     required String newColorHex,
@@ -42,5 +49,19 @@ class BlockService {
         .filter()
         .contentSignatureEqualTo(contentSignature)
         .findFirst();
+  }
+
+  Future<void> updateBlockStyle(int blockId, int? styleId) async {
+    print('DB: Updating Block $blockId with Style $styleId');
+    await db.writeTxn(() async {
+      final block = await db.blocks.get(blockId);
+      if (block != null) {
+        block.specificWordStyleId = styleId;
+        await db.blocks.put(block);
+        print('DB: Update successful for Block $blockId');
+      } else {
+        print('DB ERROR: Block $blockId not found');
+      }
+    });
   }
 }

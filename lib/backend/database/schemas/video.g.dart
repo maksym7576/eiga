@@ -17,121 +17,114 @@ const VideoSchema = CollectionSchema(
   name: r'Video',
   id: 113594071489080673,
   properties: {
-    r'aiHistory': PropertySchema(
-      id: 0,
-      name: r'aiHistory',
-      type: IsarType.objectList,
-
-      target: r'AiRequestEntry',
-    ),
     r'anilistId': PropertySchema(
-      id: 1,
+      id: 0,
       name: r'anilistId',
       type: IsarType.long,
     ),
     r'bannerImage': PropertySchema(
-      id: 2,
+      id: 1,
       name: r'bannerImage',
       type: IsarType.string,
     ),
     r'colorThemeValue': PropertySchema(
-      id: 3,
+      id: 2,
       name: r'colorThemeValue',
       type: IsarType.long,
     ),
     r'coverImagePath': PropertySchema(
-      id: 4,
+      id: 3,
       name: r'coverImagePath',
       type: IsarType.string,
     ),
     r'createdAt': PropertySchema(
-      id: 5,
+      id: 4,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'description': PropertySchema(
-      id: 6,
+      id: 5,
       name: r'description',
       type: IsarType.string,
     ),
     r'englishName': PropertySchema(
-      id: 7,
+      id: 6,
       name: r'englishName',
       type: IsarType.string,
     ),
-    r'episode': PropertySchema(id: 8, name: r'episode', type: IsarType.string),
+    r'episode': PropertySchema(id: 7, name: r'episode', type: IsarType.string),
     r'genres': PropertySchema(
-      id: 9,
+      id: 8,
       name: r'genres',
       type: IsarType.stringList,
     ),
-    r'isAdult': PropertySchema(id: 10, name: r'isAdult', type: IsarType.bool),
-    r'isAnime': PropertySchema(id: 11, name: r'isAnime', type: IsarType.bool),
-    r'isMovie': PropertySchema(id: 12, name: r'isMovie', type: IsarType.bool),
+    r'isAdult': PropertySchema(id: 9, name: r'isAdult', type: IsarType.bool),
+    r'isAnime': PropertySchema(id: 10, name: r'isAnime', type: IsarType.bool),
+    r'isMovie': PropertySchema(id: 11, name: r'isMovie', type: IsarType.bool),
     r'isResearchDone': PropertySchema(
-      id: 13,
+      id: 12,
       name: r'isResearchDone',
       type: IsarType.bool,
     ),
     r'isUnverified': PropertySchema(
-      id: 14,
+      id: 13,
       name: r'isUnverified',
       type: IsarType.bool,
     ),
     r'japaneseName': PropertySchema(
-      id: 15,
+      id: 14,
       name: r'japaneseName',
       type: IsarType.string,
     ),
     r'nameFileJumaku': PropertySchema(
-      id: 16,
+      id: 15,
       name: r'nameFileJumaku',
       type: IsarType.string,
     ),
     r'nameJumaku': PropertySchema(
-      id: 17,
+      id: 16,
       name: r'nameJumaku',
       type: IsarType.string,
     ),
     r'originalLanguage': PropertySchema(
-      id: 18,
+      id: 17,
       name: r'originalLanguage',
       type: IsarType.string,
     ),
     r'pathSubtitle': PropertySchema(
-      id: 19,
+      id: 18,
       name: r'pathSubtitle',
       type: IsarType.string,
     ),
     r'pipelineIndetificator': PropertySchema(
-      id: 20,
+      id: 19,
       name: r'pipelineIndetificator',
       type: IsarType.string,
     ),
     r'researchInformation': PropertySchema(
-      id: 21,
+      id: 20,
       name: r'researchInformation',
       type: IsarType.string,
     ),
-    r'season': PropertySchema(id: 22, name: r'season', type: IsarType.string),
+    r'season': PropertySchema(id: 21, name: r'season', type: IsarType.string),
     r'textFormat': PropertySchema(
-      id: 23,
+      id: 22,
       name: r'textFormat',
       type: IsarType.string,
     ),
-    r'tmdbId': PropertySchema(id: 24, name: r'tmdbId', type: IsarType.string),
+    r'tmdbId': PropertySchema(id: 23, name: r'tmdbId', type: IsarType.string),
     r'translatedLanguage': PropertySchema(
-      id: 25,
+      id: 24,
       name: r'translatedLanguage',
       type: IsarType.string,
     ),
     r'videoName': PropertySchema(
-      id: 26,
+      id: 25,
       name: r'videoName',
       type: IsarType.string,
     ),
     r'videoPath': PropertySchema(
-      id: 27,
+      id: 26,
       name: r'videoPath',
       type: IsarType.string,
     ),
@@ -144,7 +137,7 @@ const VideoSchema = CollectionSchema(
   idName: r'id',
   indexes: {},
   links: {},
-  embeddedSchemas: {r'AiRequestEntry': AiRequestEntrySchema},
+  embeddedSchemas: {},
 
   getId: _videoGetId,
   getLinks: _videoGetLinks,
@@ -158,23 +151,6 @@ int _videoEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
-  {
-    final list = object.aiHistory;
-    if (list != null) {
-      bytesCount += 3 + list.length * 3;
-      {
-        final offsets = allOffsets[AiRequestEntry]!;
-        for (var i = 0; i < list.length; i++) {
-          final value = list[i];
-          bytesCount += AiRequestEntrySchema.estimateSize(
-            value,
-            offsets,
-            allOffsets,
-          );
-        }
-      }
-    }
-  }
   {
     final value = object.bannerImage;
     if (value != null) {
@@ -304,39 +280,33 @@ void _videoSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeObjectList<AiRequestEntry>(
-    offsets[0],
-    allOffsets,
-    AiRequestEntrySchema.serialize,
-    object.aiHistory,
-  );
-  writer.writeLong(offsets[1], object.anilistId);
-  writer.writeString(offsets[2], object.bannerImage);
-  writer.writeLong(offsets[3], object.colorThemeValue);
-  writer.writeString(offsets[4], object.coverImagePath);
-  writer.writeDateTime(offsets[5], object.createdAt);
-  writer.writeString(offsets[6], object.description);
-  writer.writeString(offsets[7], object.englishName);
-  writer.writeString(offsets[8], object.episode);
-  writer.writeStringList(offsets[9], object.genres);
-  writer.writeBool(offsets[10], object.isAdult);
-  writer.writeBool(offsets[11], object.isAnime);
-  writer.writeBool(offsets[12], object.isMovie);
-  writer.writeBool(offsets[13], object.isResearchDone);
-  writer.writeBool(offsets[14], object.isUnverified);
-  writer.writeString(offsets[15], object.japaneseName);
-  writer.writeString(offsets[16], object.nameFileJumaku);
-  writer.writeString(offsets[17], object.nameJumaku);
-  writer.writeString(offsets[18], object.originalLanguage);
-  writer.writeString(offsets[19], object.pathSubtitle);
-  writer.writeString(offsets[20], object.pipelineIndetificator);
-  writer.writeString(offsets[21], object.researchInformation);
-  writer.writeString(offsets[22], object.season);
-  writer.writeString(offsets[23], object.textFormat);
-  writer.writeString(offsets[24], object.tmdbId);
-  writer.writeString(offsets[25], object.translatedLanguage);
-  writer.writeString(offsets[26], object.videoName);
-  writer.writeString(offsets[27], object.videoPath);
+  writer.writeLong(offsets[0], object.anilistId);
+  writer.writeString(offsets[1], object.bannerImage);
+  writer.writeLong(offsets[2], object.colorThemeValue);
+  writer.writeString(offsets[3], object.coverImagePath);
+  writer.writeDateTime(offsets[4], object.createdAt);
+  writer.writeString(offsets[5], object.description);
+  writer.writeString(offsets[6], object.englishName);
+  writer.writeString(offsets[7], object.episode);
+  writer.writeStringList(offsets[8], object.genres);
+  writer.writeBool(offsets[9], object.isAdult);
+  writer.writeBool(offsets[10], object.isAnime);
+  writer.writeBool(offsets[11], object.isMovie);
+  writer.writeBool(offsets[12], object.isResearchDone);
+  writer.writeBool(offsets[13], object.isUnverified);
+  writer.writeString(offsets[14], object.japaneseName);
+  writer.writeString(offsets[15], object.nameFileJumaku);
+  writer.writeString(offsets[16], object.nameJumaku);
+  writer.writeString(offsets[17], object.originalLanguage);
+  writer.writeString(offsets[18], object.pathSubtitle);
+  writer.writeString(offsets[19], object.pipelineIndetificator);
+  writer.writeString(offsets[20], object.researchInformation);
+  writer.writeString(offsets[21], object.season);
+  writer.writeString(offsets[22], object.textFormat);
+  writer.writeString(offsets[23], object.tmdbId);
+  writer.writeString(offsets[24], object.translatedLanguage);
+  writer.writeString(offsets[25], object.videoName);
+  writer.writeString(offsets[26], object.videoPath);
 }
 
 Video _videoDeserialize(
@@ -346,40 +316,34 @@ Video _videoDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Video();
-  object.aiHistory = reader.readObjectList<AiRequestEntry>(
-    offsets[0],
-    AiRequestEntrySchema.deserialize,
-    allOffsets,
-    AiRequestEntry(),
-  );
-  object.anilistId = reader.readLongOrNull(offsets[1]);
-  object.bannerImage = reader.readStringOrNull(offsets[2]);
-  object.colorThemeValue = reader.readLongOrNull(offsets[3]);
-  object.coverImagePath = reader.readStringOrNull(offsets[4]);
-  object.createdAt = reader.readDateTimeOrNull(offsets[5]);
-  object.description = reader.readStringOrNull(offsets[6]);
-  object.englishName = reader.readStringOrNull(offsets[7]);
-  object.episode = reader.readStringOrNull(offsets[8]);
-  object.genres = reader.readStringList(offsets[9]);
+  object.anilistId = reader.readLongOrNull(offsets[0]);
+  object.bannerImage = reader.readStringOrNull(offsets[1]);
+  object.colorThemeValue = reader.readLongOrNull(offsets[2]);
+  object.coverImagePath = reader.readStringOrNull(offsets[3]);
+  object.createdAt = reader.readDateTimeOrNull(offsets[4]);
+  object.description = reader.readStringOrNull(offsets[5]);
+  object.englishName = reader.readStringOrNull(offsets[6]);
+  object.episode = reader.readStringOrNull(offsets[7]);
+  object.genres = reader.readStringList(offsets[8]);
   object.id = id;
-  object.isAdult = reader.readBoolOrNull(offsets[10]);
-  object.isAnime = reader.readBoolOrNull(offsets[11]);
-  object.isMovie = reader.readBoolOrNull(offsets[12]);
-  object.isResearchDone = reader.readBoolOrNull(offsets[13]);
-  object.isUnverified = reader.readBoolOrNull(offsets[14]);
-  object.japaneseName = reader.readStringOrNull(offsets[15]);
-  object.nameFileJumaku = reader.readStringOrNull(offsets[16]);
-  object.nameJumaku = reader.readStringOrNull(offsets[17]);
-  object.originalLanguage = reader.readStringOrNull(offsets[18]);
-  object.pathSubtitle = reader.readStringOrNull(offsets[19]);
-  object.pipelineIndetificator = reader.readStringOrNull(offsets[20]);
-  object.researchInformation = reader.readStringOrNull(offsets[21]);
-  object.season = reader.readStringOrNull(offsets[22]);
-  object.textFormat = reader.readStringOrNull(offsets[23]);
-  object.tmdbId = reader.readStringOrNull(offsets[24]);
-  object.translatedLanguage = reader.readStringOrNull(offsets[25]);
-  object.videoName = reader.readStringOrNull(offsets[26]);
-  object.videoPath = reader.readStringOrNull(offsets[27]);
+  object.isAdult = reader.readBoolOrNull(offsets[9]);
+  object.isAnime = reader.readBoolOrNull(offsets[10]);
+  object.isMovie = reader.readBoolOrNull(offsets[11]);
+  object.isResearchDone = reader.readBoolOrNull(offsets[12]);
+  object.isUnverified = reader.readBoolOrNull(offsets[13]);
+  object.japaneseName = reader.readStringOrNull(offsets[14]);
+  object.nameFileJumaku = reader.readStringOrNull(offsets[15]);
+  object.nameJumaku = reader.readStringOrNull(offsets[16]);
+  object.originalLanguage = reader.readStringOrNull(offsets[17]);
+  object.pathSubtitle = reader.readStringOrNull(offsets[18]);
+  object.pipelineIndetificator = reader.readStringOrNull(offsets[19]);
+  object.researchInformation = reader.readStringOrNull(offsets[20]);
+  object.season = reader.readStringOrNull(offsets[21]);
+  object.textFormat = reader.readStringOrNull(offsets[22]);
+  object.tmdbId = reader.readStringOrNull(offsets[23]);
+  object.translatedLanguage = reader.readStringOrNull(offsets[24]);
+  object.videoName = reader.readStringOrNull(offsets[25]);
+  object.videoPath = reader.readStringOrNull(offsets[26]);
   return object;
 }
 
@@ -391,31 +355,25 @@ P _videoDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readObjectList<AiRequestEntry>(
-            offset,
-            AiRequestEntrySchema.deserialize,
-            allOffsets,
-            AiRequestEntry(),
-          ))
-          as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 1:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readStringOrNull(offset)) as P;
-    case 3:
       return (reader.readLongOrNull(offset)) as P;
-    case 4:
+    case 3:
       return (reader.readStringOrNull(offset)) as P;
-    case 5:
+    case 4:
       return (reader.readDateTimeOrNull(offset)) as P;
+    case 5:
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
       return (reader.readStringOrNull(offset)) as P;
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
-    case 9:
       return (reader.readStringList(offset)) as P;
+    case 9:
+      return (reader.readBoolOrNull(offset)) as P;
     case 10:
       return (reader.readBoolOrNull(offset)) as P;
     case 11:
@@ -425,7 +383,7 @@ P _videoDeserializeProp<P>(
     case 13:
       return (reader.readBoolOrNull(offset)) as P;
     case 14:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 15:
       return (reader.readStringOrNull(offset)) as P;
     case 16:
@@ -449,8 +407,6 @@ P _videoDeserializeProp<P>(
     case 25:
       return (reader.readStringOrNull(offset)) as P;
     case 26:
-      return (reader.readStringOrNull(offset)) as P;
-    case 27:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -548,77 +504,6 @@ extension VideoQueryWhere on QueryBuilder<Video, Video, QWhereClause> {
 }
 
 extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
-  QueryBuilder<Video, Video, QAfterFilterCondition> aiHistoryIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'aiHistory'),
-      );
-    });
-  }
-
-  QueryBuilder<Video, Video, QAfterFilterCondition> aiHistoryIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'aiHistory'),
-      );
-    });
-  }
-
-  QueryBuilder<Video, Video, QAfterFilterCondition> aiHistoryLengthEqualTo(
-    int length,
-  ) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'aiHistory', length, true, length, true);
-    });
-  }
-
-  QueryBuilder<Video, Video, QAfterFilterCondition> aiHistoryIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'aiHistory', 0, true, 0, true);
-    });
-  }
-
-  QueryBuilder<Video, Video, QAfterFilterCondition> aiHistoryIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'aiHistory', 0, false, 999999, true);
-    });
-  }
-
-  QueryBuilder<Video, Video, QAfterFilterCondition> aiHistoryLengthLessThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'aiHistory', 0, true, length, include);
-    });
-  }
-
-  QueryBuilder<Video, Video, QAfterFilterCondition> aiHistoryLengthGreaterThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'aiHistory', length, include, 999999, true);
-    });
-  }
-
-  QueryBuilder<Video, Video, QAfterFilterCondition> aiHistoryLengthBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'aiHistory',
-        lower,
-        includeLower,
-        upper,
-        includeUpper,
-      );
-    });
-  }
-
   QueryBuilder<Video, Video, QAfterFilterCondition> anilistIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -4175,15 +4060,7 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
   }
 }
 
-extension VideoQueryObject on QueryBuilder<Video, Video, QFilterCondition> {
-  QueryBuilder<Video, Video, QAfterFilterCondition> aiHistoryElement(
-    FilterQuery<AiRequestEntry> q,
-  ) {
-    return QueryBuilder.apply(this, (query) {
-      return query.object(q, r'aiHistory');
-    });
-  }
-}
+extension VideoQueryObject on QueryBuilder<Video, Video, QFilterCondition> {}
 
 extension VideoQueryLinks on QueryBuilder<Video, Video, QFilterCondition> {}
 
@@ -5052,13 +4929,6 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
     });
   }
 
-  QueryBuilder<Video, List<AiRequestEntry>?, QQueryOperations>
-  aiHistoryProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'aiHistory');
-    });
-  }
-
   QueryBuilder<Video, int?, QQueryOperations> anilistIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'anilistId');
@@ -5230,74 +5100,40 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
 
-const AiRequestEntrySchema = Schema(
-  name: r'AiRequestEntry',
-  id: 8084752233897319806,
+const AiStageHistorySchema = Schema(
+  name: r'AiStageHistory',
+  id: -2286225573989994230,
   properties: {
-    r'endTime': PropertySchema(
+    r'durationMs': PropertySchema(
       id: 0,
-      name: r'endTime',
-      type: IsarType.dateTime,
+      name: r'durationMs',
+      type: IsarType.long,
     ),
-    r'errorMessage': PropertySchema(
-      id: 1,
-      name: r'errorMessage',
-      type: IsarType.string,
-    ),
-    r'failedIds': PropertySchema(
-      id: 2,
-      name: r'failedIds',
-      type: IsarType.longList,
-    ),
-    r'id': PropertySchema(id: 3, name: r'id', type: IsarType.string),
     r'modelName': PropertySchema(
-      id: 4,
+      id: 1,
       name: r'modelName',
       type: IsarType.string,
     ),
-    r'phase': PropertySchema(id: 5, name: r'phase', type: IsarType.string),
-    r'requestType': PropertySchema(
-      id: 6,
-      name: r'requestType',
+    r'stageName': PropertySchema(
+      id: 2,
+      name: r'stageName',
       type: IsarType.string,
     ),
-    r'startTime': PropertySchema(
-      id: 7,
-      name: r'startTime',
-      type: IsarType.dateTime,
-    ),
+    r'status': PropertySchema(id: 3, name: r'status', type: IsarType.string),
   },
 
-  estimateSize: _aiRequestEntryEstimateSize,
-  serialize: _aiRequestEntrySerialize,
-  deserialize: _aiRequestEntryDeserialize,
-  deserializeProp: _aiRequestEntryDeserializeProp,
+  estimateSize: _aiStageHistoryEstimateSize,
+  serialize: _aiStageHistorySerialize,
+  deserialize: _aiStageHistoryDeserialize,
+  deserializeProp: _aiStageHistoryDeserializeProp,
 );
 
-int _aiRequestEntryEstimateSize(
-  AiRequestEntry object,
+int _aiStageHistoryEstimateSize(
+  AiStageHistory object,
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
-  {
-    final value = object.errorMessage;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
-  {
-    final value = object.failedIds;
-    if (value != null) {
-      bytesCount += 3 + value.length * 8;
-    }
-  }
-  {
-    final value = object.id;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
   {
     final value = object.modelName;
     if (value != null) {
@@ -5305,13 +5141,13 @@ int _aiRequestEntryEstimateSize(
     }
   }
   {
-    final value = object.phase;
+    final value = object.stageName;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
   }
   {
-    final value = object.requestType;
+    final value = object.status;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -5319,42 +5155,34 @@ int _aiRequestEntryEstimateSize(
   return bytesCount;
 }
 
-void _aiRequestEntrySerialize(
-  AiRequestEntry object,
+void _aiStageHistorySerialize(
+  AiStageHistory object,
   IsarWriter writer,
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDateTime(offsets[0], object.endTime);
-  writer.writeString(offsets[1], object.errorMessage);
-  writer.writeLongList(offsets[2], object.failedIds);
-  writer.writeString(offsets[3], object.id);
-  writer.writeString(offsets[4], object.modelName);
-  writer.writeString(offsets[5], object.phase);
-  writer.writeString(offsets[6], object.requestType);
-  writer.writeDateTime(offsets[7], object.startTime);
+  writer.writeLong(offsets[0], object.durationMs);
+  writer.writeString(offsets[1], object.modelName);
+  writer.writeString(offsets[2], object.stageName);
+  writer.writeString(offsets[3], object.status);
 }
 
-AiRequestEntry _aiRequestEntryDeserialize(
+AiStageHistory _aiStageHistoryDeserialize(
   Id id,
   IsarReader reader,
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  final object = AiRequestEntry(
-    endTime: reader.readDateTimeOrNull(offsets[0]),
-    errorMessage: reader.readStringOrNull(offsets[1]),
-    failedIds: reader.readLongList(offsets[2]),
-    id: reader.readStringOrNull(offsets[3]),
-    modelName: reader.readStringOrNull(offsets[4]),
-    phase: reader.readStringOrNull(offsets[5]),
-    requestType: reader.readStringOrNull(offsets[6]),
-    startTime: reader.readDateTimeOrNull(offsets[7]),
+  final object = AiStageHistory(
+    durationMs: reader.readLongOrNull(offsets[0]),
+    modelName: reader.readStringOrNull(offsets[1]),
+    stageName: reader.readStringOrNull(offsets[2]),
+    status: reader.readStringOrNull(offsets[3]),
   );
   return object;
 }
 
-P _aiRequestEntryDeserializeProp<P>(
+P _aiStageHistoryDeserializeProp<P>(
   IsarReader reader,
   int propertyId,
   int offset,
@@ -5362,92 +5190,84 @@ P _aiRequestEntryDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 1:
       return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readLongList(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 3:
       return (reader.readStringOrNull(offset)) as P;
-    case 4:
-      return (reader.readStringOrNull(offset)) as P;
-    case 5:
-      return (reader.readStringOrNull(offset)) as P;
-    case 6:
-      return (reader.readStringOrNull(offset)) as P;
-    case 7:
-      return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
 }
 
-extension AiRequestEntryQueryFilter
-    on QueryBuilder<AiRequestEntry, AiRequestEntry, QFilterCondition> {
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  endTimeIsNull() {
+extension AiStageHistoryQueryFilter
+    on QueryBuilder<AiStageHistory, AiStageHistory, QFilterCondition> {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  durationMsIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'endTime'),
+        const FilterCondition.isNull(property: r'durationMs'),
       );
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  endTimeIsNotNull() {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  durationMsIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'endTime'),
+        const FilterCondition.isNotNull(property: r'durationMs'),
       );
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  endTimeEqualTo(DateTime? value) {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  durationMsEqualTo(int? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'endTime', value: value),
+        FilterCondition.equalTo(property: r'durationMs', value: value),
       );
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  endTimeGreaterThan(DateTime? value, {bool include = false}) {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  durationMsGreaterThan(int? value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(
           include: include,
-          property: r'endTime',
+          property: r'durationMs',
           value: value,
         ),
       );
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  endTimeLessThan(DateTime? value, {bool include = false}) {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  durationMsLessThan(int? value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.lessThan(
           include: include,
-          property: r'endTime',
+          property: r'durationMs',
           value: value,
         ),
       );
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  endTimeBetween(
-    DateTime? lower,
-    DateTime? upper, {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  durationMsBetween(
+    int? lower,
+    int? upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.between(
-          property: r'endTime',
+          property: r'durationMs',
           lower: lower,
           includeLower: includeLower,
           upper: upper,
@@ -5457,450 +5277,7 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  errorMessageIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'errorMessage'),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  errorMessageIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'errorMessage'),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  errorMessageEqualTo(String? value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'errorMessage',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  errorMessageGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'errorMessage',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  errorMessageLessThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'errorMessage',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  errorMessageBetween(
-    String? lower,
-    String? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'errorMessage',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  errorMessageStartsWith(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'errorMessage',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  errorMessageEndsWith(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'errorMessage',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  errorMessageContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'errorMessage',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  errorMessageMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'errorMessage',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  errorMessageIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'errorMessage', value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  errorMessageIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'errorMessage', value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  failedIdsIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'failedIds'),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  failedIdsIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'failedIds'),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  failedIdsElementEqualTo(int value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'failedIds', value: value),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  failedIdsElementGreaterThan(int value, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'failedIds',
-          value: value,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  failedIdsElementLessThan(int value, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'failedIds',
-          value: value,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  failedIdsElementBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'failedIds',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  failedIdsLengthEqualTo(int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'failedIds', length, true, length, true);
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  failedIdsIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'failedIds', 0, true, 0, true);
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  failedIdsIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'failedIds', 0, false, 999999, true);
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  failedIdsLengthLessThan(int length, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'failedIds', 0, true, length, include);
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  failedIdsLengthGreaterThan(int length, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'failedIds', length, include, 999999, true);
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  failedIdsLengthBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'failedIds',
-        lower,
-        includeLower,
-        upper,
-        includeUpper,
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  idIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'id'),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  idIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'id'),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition> idEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'id',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  idGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'id',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  idLessThan(String? value, {bool include = false, bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'id',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition> idBetween(
-    String? lower,
-    String? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'id',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  idStartsWith(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'id',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  idEndsWith(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'id',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  idContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'id',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition> idMatches(
-    String pattern, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'id',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  idIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'id', value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  idIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'id', value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
   modelNameIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -5909,7 +5286,7 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
   modelNameIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -5918,7 +5295,7 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
   modelNameEqualTo(String? value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -5931,7 +5308,7 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
   modelNameGreaterThan(
     String? value, {
     bool include = false,
@@ -5949,7 +5326,7 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
   modelNameLessThan(
     String? value, {
     bool include = false,
@@ -5967,7 +5344,7 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
   modelNameBetween(
     String? lower,
     String? upper, {
@@ -5989,7 +5366,7 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
   modelNameStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -6002,7 +5379,7 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
   modelNameEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -6015,7 +5392,7 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
   modelNameContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -6028,7 +5405,7 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
   modelNameMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -6041,7 +5418,7 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
   modelNameIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -6050,7 +5427,7 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
   modelNameIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -6059,30 +5436,30 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  phaseIsNull() {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'phase'),
+        const FilterCondition.isNull(property: r'stageName'),
       );
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  phaseIsNotNull() {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'phase'),
+        const FilterCondition.isNotNull(property: r'stageName'),
       );
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  phaseEqualTo(String? value, {bool caseSensitive = true}) {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameEqualTo(String? value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(
-          property: r'phase',
+          property: r'stageName',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -6090,8 +5467,8 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  phaseGreaterThan(
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -6100,7 +5477,7 @@ extension AiRequestEntryQueryFilter
       return query.addFilterCondition(
         FilterCondition.greaterThan(
           include: include,
-          property: r'phase',
+          property: r'stageName',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -6108,8 +5485,8 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  phaseLessThan(
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameLessThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -6118,7 +5495,7 @@ extension AiRequestEntryQueryFilter
       return query.addFilterCondition(
         FilterCondition.lessThan(
           include: include,
-          property: r'phase',
+          property: r'stageName',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -6126,8 +5503,8 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  phaseBetween(
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -6137,7 +5514,7 @@ extension AiRequestEntryQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.between(
-          property: r'phase',
+          property: r'stageName',
           lower: lower,
           includeLower: includeLower,
           upper: upper,
@@ -6148,12 +5525,12 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  phaseStartsWith(String value, {bool caseSensitive = true}) {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.startsWith(
-          property: r'phase',
+          property: r'stageName',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -6161,12 +5538,12 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  phaseEndsWith(String value, {bool caseSensitive = true}) {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.endsWith(
-          property: r'phase',
+          property: r'stageName',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -6174,12 +5551,12 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  phaseContains(String value, {bool caseSensitive = true}) {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.contains(
-          property: r'phase',
+          property: r'stageName',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -6187,12 +5564,12 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  phaseMatches(String pattern, {bool caseSensitive = true}) {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.matches(
-          property: r'phase',
+          property: r'stageName',
           wildcard: pattern,
           caseSensitive: caseSensitive,
         ),
@@ -6200,48 +5577,48 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  phaseIsEmpty() {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'phase', value: ''),
+        FilterCondition.equalTo(property: r'stageName', value: ''),
       );
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  phaseIsNotEmpty() {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'phase', value: ''),
+        FilterCondition.greaterThan(property: r'stageName', value: ''),
       );
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  requestTypeIsNull() {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'requestType'),
+        const FilterCondition.isNull(property: r'status'),
       );
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  requestTypeIsNotNull() {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'requestType'),
+        const FilterCondition.isNotNull(property: r'status'),
       );
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  requestTypeEqualTo(String? value, {bool caseSensitive = true}) {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusEqualTo(String? value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(
-          property: r'requestType',
+          property: r'status',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -6249,8 +5626,8 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  requestTypeGreaterThan(
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -6259,7 +5636,7 @@ extension AiRequestEntryQueryFilter
       return query.addFilterCondition(
         FilterCondition.greaterThan(
           include: include,
-          property: r'requestType',
+          property: r'status',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -6267,8 +5644,8 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  requestTypeLessThan(
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusLessThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -6277,7 +5654,7 @@ extension AiRequestEntryQueryFilter
       return query.addFilterCondition(
         FilterCondition.lessThan(
           include: include,
-          property: r'requestType',
+          property: r'status',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -6285,8 +5662,8 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  requestTypeBetween(
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -6296,7 +5673,7 @@ extension AiRequestEntryQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.between(
-          property: r'requestType',
+          property: r'status',
           lower: lower,
           includeLower: includeLower,
           upper: upper,
@@ -6307,12 +5684,12 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  requestTypeStartsWith(String value, {bool caseSensitive = true}) {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.startsWith(
-          property: r'requestType',
+          property: r'status',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -6320,12 +5697,12 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  requestTypeEndsWith(String value, {bool caseSensitive = true}) {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.endsWith(
-          property: r'requestType',
+          property: r'status',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -6333,12 +5710,12 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  requestTypeContains(String value, {bool caseSensitive = true}) {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.contains(
-          property: r'requestType',
+          property: r'status',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -6346,12 +5723,12 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  requestTypeMatches(String pattern, {bool caseSensitive = true}) {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.matches(
-          property: r'requestType',
+          property: r'status',
           wildcard: pattern,
           caseSensitive: caseSensitive,
         ),
@@ -6359,97 +5736,24 @@ extension AiRequestEntryQueryFilter
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  requestTypeIsEmpty() {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'requestType', value: ''),
+        FilterCondition.equalTo(property: r'status', value: ''),
       );
     });
   }
 
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  requestTypeIsNotEmpty() {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'requestType', value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  startTimeIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'startTime'),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  startTimeIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'startTime'),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  startTimeEqualTo(DateTime? value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'startTime', value: value),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  startTimeGreaterThan(DateTime? value, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'startTime',
-          value: value,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  startTimeLessThan(DateTime? value, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'startTime',
-          value: value,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<AiRequestEntry, AiRequestEntry, QAfterFilterCondition>
-  startTimeBetween(
-    DateTime? lower,
-    DateTime? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'startTime',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
+        FilterCondition.greaterThan(property: r'status', value: ''),
       );
     });
   }
 }
 
-extension AiRequestEntryQueryObject
-    on QueryBuilder<AiRequestEntry, AiRequestEntry, QFilterCondition> {}
+extension AiStageHistoryQueryObject
+    on QueryBuilder<AiStageHistory, AiStageHistory, QFilterCondition> {}

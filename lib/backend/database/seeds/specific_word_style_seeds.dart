@@ -1,32 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:eiga/backend/database/schemas/specific_word_style.dart';
+import '../schemas/specific_word_style.dart';
 
-Future<List<SpecificWordStyle>> standardWordStyles() async {
+List<SpecificWordStyle> standardWordStyles() {
   return [
     SpecificWordStyle.create(
-      name: 'know',
-      color: Colors.green,
-      fontWeight: FontWeight.bold,
+      name: 'Known',
+      color: const Color(0xFF10B981), // Emerald
+      fontWeight: FontWeight.w600,
     ),
     SpecificWordStyle.create(
-      name: "don't know",
-      color: Colors.red,
-      fontWeight: FontWeight.bold,
+      name: 'Learning',
+      color: const Color(0xFF3B66F5), // Brand Blue
+      fontWeight: FontWeight.w600,
     ),
     SpecificWordStyle.create(
-      name: 'doubt',
-      color: Colors.orange,
-      fontWeight: FontWeight.w500,
-    ),
-    SpecificWordStyle.create(
-      name: 'standard',
-      color: Colors.white,
-      fontWeight: FontWeight.normal,
-    ),
-    SpecificWordStyle.create(
-      name: 'learn',
-      color: Colors.purple,
-      fontWeight: FontWeight.bold,
+      name: 'Unknown',
+      color: const Color(0xFFF43F5E), // Rose
+      fontWeight: FontWeight.w600,
     ),
   ];
 }

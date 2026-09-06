@@ -52,13 +52,13 @@ class AppAppBarTheme {
         color: theme.colorScheme.primary,
         letterSpacing: -0.5,
       ),
-      selectorBackground: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
-      selectorActiveBackground: theme.colorScheme.primary.withValues(alpha: isDark ? 0.15 : 0.08),
+      selectorBackground: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+      selectorActiveBackground: theme.colorScheme.primary.withOpacity(isDark ? 0.15 : 0.08),
       selectorBorder: isDark ? Colors.white12 : Colors.black12,
-      selectorActiveBorder: theme.colorScheme.primary.withValues(alpha: 0.5),
+      selectorActiveBorder: theme.colorScheme.primary.withOpacity(0.5),
       selectorActiveShadow: [
         BoxShadow(
-          color: theme.colorScheme.primary.withValues(alpha: 0.2),
+          color: theme.colorScheme.primary.withOpacity(0.2),
           blurRadius: 10,
           spreadRadius: 2,
         )
@@ -76,7 +76,7 @@ class AppAppBarTheme {
         fontWeight: FontWeight.w600,
         color: isDark ? Colors.white : Colors.black87,
       ),
-      badgeBackground: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+      badgeBackground: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
       badgeTextStyle: TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.w500,

@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import '../../../providers/ui/video_data_providers.dart';
+import '../../../providers/ui/player_provider.dart';
 import 'phrase_item_widget.dart';
 
 class PhraseListWidget extends HookConsumerWidget {
@@ -12,7 +13,7 @@ class PhraseListWidget extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final phrasesAsync = ref.watch(phrasesStreamProvider);
-    final activePhraseId = ref.watch(activePhraseIdProvider);
+    final activePhraseId = ref.watch(stickyActivePhraseIdProvider);
     final languageAsync = ref.watch(videoLanguageProvider);
     final isAutoScrollEnabled = ref.watch(isAutoScrollEnabledProvider);
     
@@ -25,11 +26,11 @@ class PhraseListWidget extends HookConsumerWidget {
         if (!isAutoScrollEnabled) return;
         
         final phrases = phrasesAsync.value ?? [];
-        final next = ref.read(activePhraseIdProvider);
+        final next = ref.read(stickyActivePhraseIdProvider);
         if (next == null) return;
         
         final index = phrases.indexWhere((p) => p.id == next);
-        if (index != -1) {
+        if (index != -1 && itemScrollController.isAttached) {
           itemScrollController.scrollTo(
             index: index,
             duration: const Duration(milliseconds: 300),
@@ -39,10 +40,10 @@ class PhraseListWidget extends HookConsumerWidget {
         }
       }
 
-      // Initial scroll and listener
-      scroll();
+      // Initial scroll - wait for the list to be attached
+      WidgetsBinding.instance.addPostFrameCallback((_) => scroll());
 
-      final activeSub = ref.listenManual(activePhraseIdProvider, (prev, next) => scroll());
+      final activeSub = ref.listenManual(stickyActivePhraseIdProvider, (prev, next) => scroll());
       final enabledSub = ref.listenManual(isAutoScrollEnabledProvider, (prev, next) {
         if (next == true) scroll();
       });
@@ -91,6 +92,16 @@ class PhraseListWidget extends HookConsumerWidget {
                       ref.read(isAutoScrollEnabledProvider.notifier).state = false;
                     });
                   }
+                  
+                  // Hide popover on scroll
+                  if (ref.read(selectedBlockIdProvider) != null) {
+                    Future.microtask(() {
+                      ref.read(selectedBlockIdProvider.notifier).state = null;
+                      ref.read(clickedWordIdProvider.notifier).state = null;
+                      ref.read(clickedWordPositionProvider.notifier).state = null;
+                      ref.read(playerProvider.notifier).setPlaying(true);
+                    });
+                  }
                 }
               }
               return false;
@@ -105,7 +116,6 @@ class PhraseListWidget extends HookConsumerWidget {
                 return PhraseItemWidget(
                   phrase: phrase,
                   isActive: phrase.id == activePhraseId,
-                  language: languageAsync.value,
                 );
               },
             ),

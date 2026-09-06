@@ -38,7 +38,7 @@ OUTPUT FORMAT:
 {
   "phraseId": <id>,
   "japaneseText": "<original>",
-  "{TARGET_LANGUAGE}Translation": "<sentence>",
+  "translation": "<sentence>",
   "blocks": [
     {
       "b_pos": 1,
@@ -59,7 +59,7 @@ OUTPUT:
 {
   "phraseId": 1,
   "japaneseText": "「好き」",
-  "{TARGET_LANGUAGE}Translation": "Like",
+  "translation": "Like",
   "blocks": [
     {"b_pos": 1, "word": [{"original": "「", "kana": "", "romaji": "", "w_pos": 1}], "tr": "", "tr_pos": [0,0]},
     {"b_pos": 2, "word": [{"original": "好き", "kana": "すき", "romaji": "suki", "w_pos": 2}], "tr": "Like", "tr_pos": [1,1]},

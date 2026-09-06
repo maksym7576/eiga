@@ -38,12 +38,15 @@ class PhraseService {
     });
   }
 
-  Future<void> markAsTranslatedAndMarkNotTranslating(int phraseId) async {
+  Future<void> markAsTranslatedAndMarkNotTranslating(int phraseId, {String? translation}) async {
     await db.writeTxn(() async {
       final phrase = await db.phrases.get(phraseId);
       if (phrase != null) {
         phrase.isTranslated = true;
         phrase.isTranslating = false;
+        if (translation != null) {
+          phrase.translatedPhrase = translation;
+        }
         await db.phrases.put(phrase);
       }
     });

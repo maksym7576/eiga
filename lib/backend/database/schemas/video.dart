@@ -7,8 +7,6 @@ part 'video.g.dart';
 class Video {
   Id id = Isar.autoIncrement;
 
-  List<AiRequestEntry>? aiHistory;
-
   String? originalLanguage;
   String? translatedLanguage;
   String? textFormat;
@@ -56,7 +54,7 @@ class Video {
 
   @ignore
   set colorTheme(Color? color) {
-    colorThemeValue = color?.toARGB32();
+    colorThemeValue = color?.value;
   }
 
   Video copyWith({
@@ -88,7 +86,6 @@ class Video {
     String? pipelineIndetificator,
     bool? isResearchDone,
     String? researchInformation,
-    List<AiRequestEntry>? aiHistory,
   }) {
     return Video()
       ..id = id ?? this.id
@@ -118,30 +115,21 @@ class Video {
       ..colorThemeValue = colorThemeValue ?? this.colorThemeValue
       ..pipelineIndetificator = pipelineIndetificator ?? this.pipelineIndetificator
       ..isResearchDone = isResearchDone ?? this.isResearchDone
-      ..researchInformation = researchInformation ?? this.researchInformation
-      ..aiHistory = aiHistory ?? this.aiHistory;
+      ..researchInformation = researchInformation ?? this.researchInformation;
   }
 }
 
 @embedded
-class AiRequestEntry {
-  String? id; // Unique ID for tracking active requests
+class AiStageHistory {
+  String? stageName;
+  int? durationMs;
+  String? status; // 'success', 'error'
   String? modelName;
-  String? phase; // mapping to AiRequestPhase
-  DateTime? startTime;
-  DateTime? endTime;
-  String? requestType;
-  String? errorMessage;
-  List<int>? failedIds;
 
-  AiRequestEntry({
-    this.id,
+  AiStageHistory({
+    this.stageName,
+    this.durationMs,
+    this.status,
     this.modelName,
-    this.phase,
-    this.startTime,
-    this.endTime,
-    this.requestType,
-    this.errorMessage,
-    this.failedIds,
   });
 }

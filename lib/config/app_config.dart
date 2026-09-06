@@ -14,12 +14,13 @@ class AppConfig {
   // --- Default Values ---
   static const int defaultPhrasesPerRequest = 40;
   static const int defaultSecondsAhead = 100;
+  static const int defaultMaxConcurrentProcesses = 2;
   
   static const Map<TranslationPipelineStep, String> defaultModels = {
-    TranslationPipelineStep.research: 'gemini-2.5-flash-lite',
-    TranslationPipelineStep.translate: 'gemini-3.5-flash',
-    TranslationPipelineStep.morphemes: 'gemini-2.5-flash',
-    TranslationPipelineStep.fullTranslate: 'gemini-3.5-flash',
+    TranslationPipelineStep.research: 'gemini-3.5-flash-lite',
+    TranslationPipelineStep.translate: 'gemini-3.8-flash',
+    TranslationPipelineStep.morphemes: 'gemini-3.5-flash',
+    TranslationPipelineStep.fullTranslate: 'gemini-3.8-flash',
   };
 
   // --- Storage Keys ---
@@ -27,6 +28,7 @@ class AppConfig {
   static const _keyNumberOfPhrases = 'number_of_phrases';
   static const _keyIsThreeStepMethod = 'is_three_step_method';
   static const _keyLastResetDate = 'last_reset_date_utc';
+  static const _keyMaxConcurrentProcesses = 'max_concurrent_processes';
   
   static String _modelKey(TranslationPipelineStep step) => 'active_model_${step.name}';
 
@@ -40,6 +42,10 @@ class AppConfig {
     await _prefs.setInt(_keyNumberOfPhrases, value);
   }
 
+  Future<void> setMaxConcurrentProcesses(int value) async {
+    await _prefs.setInt(_keyMaxConcurrentProcesses, value);
+  }
+
   Future<void> setIsThreeStepMethod(bool value) async {
     await _prefs.setBool(_keyIsThreeStepMethod, value);
   }
@@ -51,6 +57,8 @@ class AppConfig {
   int get getSecondsAhead => _prefs.getInt(_keySecondsAhead) ?? defaultSecondsAhead;
 
   int get getNumberOfPhrases => _prefs.getInt(_keyNumberOfPhrases) ?? defaultPhrasesPerRequest;
+
+  int get getMaxConcurrentProcesses => _prefs.getInt(_keyMaxConcurrentProcesses) ?? defaultMaxConcurrentProcesses;
 
   bool get getIsThreeStepMethod => _prefs.getBool(_keyIsThreeStepMethod) ?? true;
 

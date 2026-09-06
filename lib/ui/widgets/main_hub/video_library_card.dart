@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/backend/database/schemas/video.dart';
 import 'package:eiga/providers/videoComponentsProvider.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class VideoLibraryCard extends ConsumerWidget {
   final Video video;
@@ -34,20 +35,21 @@ class VideoLibraryCard extends ConsumerWidget {
     
     if (path != null && path.isNotEmpty) {
       if (path.startsWith('http')) {
-        coverImage = Image.network(
-          path,
+        coverImage = CachedNetworkImage(
+          imageUrl: path,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            debugPrint('Error loading network image: $path');
+          placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          errorWidget: (context, url, error) {
+            debugPrint('Error loading cached network image: $path, error: $error');
             return const Center(child: Icon(Icons.movie, size: 40, color: Colors.grey));
           },
         );
       } else {
         final file = File(path);
-        if (file.existsSync()) {
+        if (file.existsSync() && file.lengthSync() > 0) {
           coverImage = Image.file(file, fit: BoxFit.cover);
         } else {
-          debugPrint('Local file not found: $path');
+          debugPrint('Local file not found or empty: $path');
           coverImage = const Center(child: Icon(Icons.broken_image_outlined, size: 40, color: Colors.grey));
         }
       }
@@ -65,10 +67,10 @@ class VideoLibraryCard extends ConsumerWidget {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05),
+                    color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05),
                   ),
                 ),
                 clipBehavior: Clip.antiAlias,
@@ -86,7 +88,7 @@ class VideoLibraryCard extends ConsumerWidget {
                             end: Alignment.bottomCenter,
                             colors: [
                             Colors.transparent,
-                            Colors.black.withValues(alpha: 0.4),
+                            Colors.black.withOpacity(0.4),
                           ],
                           ),
                         ),
@@ -100,7 +102,7 @@ class VideoLibraryCard extends ConsumerWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                         child: Row(
@@ -128,7 +130,7 @@ class VideoLibraryCard extends ConsumerWidget {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: Colors.white.withOpacity(0.2),
                         shape: BoxShape.circle,
                       ),
                         child: const Icon(Icons.more_vert, size: 16, color: Colors.white),

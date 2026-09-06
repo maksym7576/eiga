@@ -23,7 +23,7 @@ OUTPUT FORMAT:
 {
   "phraseId": <id>,
   "sourceText": "<original>",
-  "{TARGET_LANGUAGE}Translation": "<sentence>",
+  "translation": "<sentence>",
   "blocks": [
     {
       "b_pos": 1,
@@ -34,13 +34,12 @@ OUTPUT FORMAT:
   ]
 }
 
-EXAMPLE:
 INPUT: {"phraseId": 1, "sourceText": "Je t'aime."}
 OUTPUT:
 {
   "phraseId": 1,
   "sourceText": "Je t'aime.",
-  "{TARGET_LANGUAGE}Translation": "I love you.",
+  "translation": "I love you.",
   "blocks": [
     {"b_pos": 1, "word": [{"original": "Je", "w_pos": 1}], "tr": "I", "tr_pos": [1,1]},
     {"b_pos": 2, "word": [{"original": "t'", "w_pos": 2}], "tr": "you", "tr_pos": [3,3]},

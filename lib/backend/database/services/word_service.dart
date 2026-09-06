@@ -18,4 +18,11 @@ class WordService {
         .anyOf(blockIds, (q, int id) => q.blockIdEqualTo(id))
         .findAll();
   }
+
+  Stream<List<Word>> watchWordsByBlockIds(List<int> blockIds) {
+    return db.words
+        .filter()
+        .anyOf(blockIds, (q, int id) => q.blockIdEqualTo(id))
+        .watch(fireImmediately: true);
+  }
 }

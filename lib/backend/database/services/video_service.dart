@@ -10,6 +10,10 @@ class VideoService {
     return await isar.videos.get(id);
   }
 
+  Stream<Video?> watchVideoById(Id id) {
+    return isar.videos.watchObject(id, fireImmediately: true);
+  }
+
   Future<List<Video>> getAllVideos() async {
     return await isar.videos.where().findAll();
   }

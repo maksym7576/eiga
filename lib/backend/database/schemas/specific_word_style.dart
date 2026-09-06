@@ -28,9 +28,9 @@ class SpecificWordStyle {
   }) {
     return SpecificWordStyle()
       ..name = name
-      ..colorValue = color.toARGB32()
+      ..colorValue = color.value
       ..fontWeightIndex = FontWeight.values.indexOf(fontWeight)
-      ..borderColorValue = borderColor?.toARGB32() ?? color.toARGB32()
+      ..borderColorValue = borderColor?.value ?? color.value
       ..borderSize = borderSize;
   }
   

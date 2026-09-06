@@ -19,11 +19,15 @@ class PhrasesPreviewSection extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return AppSectionCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        children: [
-          Container(
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      alignment: Alignment.topCenter,
+      child: AppSectionCard(
+        padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: theme.isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.slate50,
@@ -34,8 +38,6 @@ class PhrasesPreviewSection extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.checklist_rounded, size: 14, color: theme.primaryAccent),
-                    const SizedBox(width: 8),
                     Text(
                       'Phrases Preview',
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: theme.normalText),
@@ -59,6 +61,7 @@ class PhrasesPreviewSection extends ConsumerWidget {
           const SizedBox(height: 12),
         ],
       ),
+    ),
     );
   }
 

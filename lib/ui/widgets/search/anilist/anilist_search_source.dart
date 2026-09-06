@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:eiga/backend/database/dto/anilist_dto.dart';
+import 'package:eiga/backend/services/anilist_service.dart';
+import 'package:eiga/providers/anilist_status_provider.dart';
 import 'package:eiga/providers/ui/dto_providers.dart';
 import 'package:eiga/providers/ui/search_provider.dart';
 import 'package:eiga/ui/widgets/search/search_source_abstract.dart';
@@ -25,25 +27,43 @@ class AniListSearchSource implements SearchSource<AniListDataDTO, void> {
 
   @override
   Future<List<AniListDataDTO>> search(String query, Map<String, dynamic> filters, WidgetRef ref) async {
-    final service = ref.read(aniListServiceProvider);
-    return await service.getByName(query, page: 1, perPage: 15);
+    try {
+      final service = ref.read(aniListServiceProvider);
+      return await service.getByName(query, page: 1, perPage: 15);
+    } catch (e) {
+      if (e is AniListDisabledException) {
+        ref.read(aniListStatusProvider.notifier).state = AniListStatus.maintenance;
+      }
+      rethrow;
+    }
   }
 
   @override
   Future<List<dynamic>> fetchNextPage(String query, int page, Map<String, dynamic> filters, WidgetRef ref) async {
-    final service = ref.read(aniListServiceProvider);
-    return await service.getByName(query, page: page, perPage: 15);
+    try {
+      final service = ref.read(aniListServiceProvider);
+      return await service.getByName(query, page: page, perPage: 15);
+    } catch (e) {
+      if (e is AniListDisabledException) {
+        ref.read(aniListStatusProvider.notifier).state = AniListStatus.maintenance;
+      }
+      rethrow;
+    }
   }
 
   @override
   Future<String> resolve(dynamic selected, WidgetRef ref) async {
-    final entry = selected as AniListDataDTO;
+    if (selected is! AniListDataDTO) return '';
+    final entry = selected;
     if (entry.id != null) {
       final notifier = ref.read(aniListProvider.notifier);
+      // Immediately update with search result data (faster UI)
+      notifier.updateData(entry);
+      // Then trigger full refresh with images/description
       await notifier.refresh(entry.id!);
       
       final currentSelected = ref.read(selectedEntryProvider(key));
-      if (currentSelected != null && entryId(currentSelected as AniListDataDTO) == entry.id.toString()) {
+      if (currentSelected != null && currentSelected is AniListDataDTO && entryId(currentSelected) == entry.id.toString()) {
         final fullData = ref.read(aniListProvider).value;
         if (fullData != null) {
           ref.read(selectedEntryProvider(key).notifier).state = fullData;

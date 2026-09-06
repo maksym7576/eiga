@@ -38,8 +38,13 @@ const BlockSchema = CollectionSchema(
       type: IsarType.string,
     ),
     r'phraseId': PropertySchema(id: 4, name: r'phraseId', type: IsarType.long),
-    r'translatedPositionIndex': PropertySchema(
+    r'specificWordStyleId': PropertySchema(
       id: 5,
+      name: r'specificWordStyleId',
+      type: IsarType.long,
+    ),
+    r'translatedPositionIndex': PropertySchema(
+      id: 6,
       name: r'translatedPositionIndex',
       type: IsarType.longList,
     ),
@@ -126,7 +131,8 @@ void _blockSerialize(
   writer.writeString(offsets[2], object.colorHex);
   writer.writeString(offsets[3], object.contentSignature);
   writer.writeLong(offsets[4], object.phraseId);
-  writer.writeLongList(offsets[5], object.translatedPositionIndex);
+  writer.writeLong(offsets[5], object.specificWordStyleId);
+  writer.writeLongList(offsets[6], object.translatedPositionIndex);
 }
 
 Block _blockDeserialize(
@@ -141,7 +147,8 @@ Block _blockDeserialize(
     colorHex: reader.readStringOrNull(offsets[2]),
     contentSignature: reader.readStringOrNull(offsets[3]),
     phraseId: reader.readLongOrNull(offsets[4]),
-    translatedPositionIndex: reader.readLongList(offsets[5]) ?? const [],
+    specificWordStyleId: reader.readLongOrNull(offsets[5]),
+    translatedPositionIndex: reader.readLongList(offsets[6]) ?? const [],
   );
   object.id = id;
   return object;
@@ -165,6 +172,8 @@ P _blockDeserializeProp<P>(
     case 4:
       return (reader.readLongOrNull(offset)) as P;
     case 5:
+      return (reader.readLongOrNull(offset)) as P;
+    case 6:
       return (reader.readLongList(offset) ?? const []) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1169,6 +1178,81 @@ extension BlockQueryFilter on QueryBuilder<Block, Block, QFilterCondition> {
   }
 
   QueryBuilder<Block, Block, QAfterFilterCondition>
+  specificWordStyleIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'specificWordStyleId'),
+      );
+    });
+  }
+
+  QueryBuilder<Block, Block, QAfterFilterCondition>
+  specificWordStyleIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'specificWordStyleId'),
+      );
+    });
+  }
+
+  QueryBuilder<Block, Block, QAfterFilterCondition> specificWordStyleIdEqualTo(
+    int? value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'specificWordStyleId', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<Block, Block, QAfterFilterCondition>
+  specificWordStyleIdGreaterThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'specificWordStyleId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Block, Block, QAfterFilterCondition> specificWordStyleIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'specificWordStyleId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Block, Block, QAfterFilterCondition> specificWordStyleIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'specificWordStyleId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Block, Block, QAfterFilterCondition>
   translatedPositionIndexElementEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1368,6 +1452,18 @@ extension BlockQuerySortBy on QueryBuilder<Block, Block, QSortBy> {
       return query.addSortBy(r'phraseId', Sort.desc);
     });
   }
+
+  QueryBuilder<Block, Block, QAfterSortBy> sortBySpecificWordStyleId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'specificWordStyleId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Block, Block, QAfterSortBy> sortBySpecificWordStyleIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'specificWordStyleId', Sort.desc);
+    });
+  }
 }
 
 extension BlockQuerySortThenBy on QueryBuilder<Block, Block, QSortThenBy> {
@@ -1442,6 +1538,18 @@ extension BlockQuerySortThenBy on QueryBuilder<Block, Block, QSortThenBy> {
       return query.addSortBy(r'phraseId', Sort.desc);
     });
   }
+
+  QueryBuilder<Block, Block, QAfterSortBy> thenBySpecificWordStyleId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'specificWordStyleId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Block, Block, QAfterSortBy> thenBySpecificWordStyleIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'specificWordStyleId', Sort.desc);
+    });
+  }
 }
 
 extension BlockQueryWhereDistinct on QueryBuilder<Block, Block, QDistinct> {
@@ -1487,6 +1595,12 @@ extension BlockQueryWhereDistinct on QueryBuilder<Block, Block, QDistinct> {
     });
   }
 
+  QueryBuilder<Block, Block, QDistinct> distinctBySpecificWordStyleId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'specificWordStyleId');
+    });
+  }
+
   QueryBuilder<Block, Block, QDistinct> distinctByTranslatedPositionIndex() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'translatedPositionIndex');
@@ -1528,6 +1642,12 @@ extension BlockQueryProperty on QueryBuilder<Block, Block, QQueryProperty> {
   QueryBuilder<Block, int?, QQueryOperations> phraseIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'phraseId');
+    });
+  }
+
+  QueryBuilder<Block, int?, QQueryOperations> specificWordStyleIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'specificWordStyleId');
     });
   }
 

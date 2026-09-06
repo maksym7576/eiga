@@ -8,6 +8,8 @@ import 'package:eiga/providers/ui/dto_providers.dart';
 import 'package:eiga/providers/ui/search_provider.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
 import 'package:eiga/providers/ui/jimaku_files_provider.dart';
+import 'package:eiga/providers/anilist_status_provider.dart';
+import 'package:eiga/backend/services/anilist_service.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
 import 'package:eiga/ui/widgets/search/search_source_abstract.dart';
 import 'jimaku_entry_card.dart';
@@ -65,7 +67,12 @@ class JimakuSubtitleSource
     ref.read(jimakuSearchFullResultsProvider.notifier).state = filteredResults;
 
     final chunk = filteredResults.length > 15 ? filteredResults.sublist(0, 15) : filteredResults;
-    _fetchMetadataForRange(filteredResults, 0, 15, ref);
+    
+    // Await metadata (AniList info) so images and episode counts appear immediately
+    await _fetchMetadataForRange(filteredResults, 0, 15, ref);
+    
+    // Still trigger background summaries for the chunk (actual file analysis)
+    Future.microtask(() => _fetchSummariesForRange(chunk, ref));
 
     return chunk;
   }
@@ -81,9 +88,30 @@ class JimakuSubtitleSource
     final rangeEnd = end > allResults.length ? allResults.length : end;
     final chunk = allResults.sublist(start, rangeEnd);
     
+    // Await metadata for the next page
     await _fetchMetadataForRange(allResults, start, rangeEnd, ref);
     
+    // Trigger background summaries for the new chunk
+    Future.microtask(() => _fetchSummariesForRange(chunk, ref));
+    
     return chunk;
+  }
+
+  Future<void> _fetchSummariesForRange(List<JimakuDataDTO> range, WidgetRef ref) async {
+    // Process summaries sequentially with a small delay to avoid rate limiting
+    for (final entry in range) {
+      final summary = ref.read(jimakuSummaryProvider(entry.id));
+      if (summary == null) {
+        try {
+          // getFiles already calls _analyzeAndStoreSummary
+          await getFiles(entry, {}, ref);
+          // Small delay between requests
+          await Future.delayed(const Duration(milliseconds: 300));
+        } catch (e) {
+          // Silently fail for background tasks
+        }
+      }
+    }
   }
 
   Future<void> _fetchMetadataForRange(
@@ -102,13 +130,24 @@ class JimakuSubtitleSource
 
     if (missingIds.isNotEmpty) {
       final aniListService = ref.read(aniListServiceProvider);
-      final metadataList = await aniListService.getByIds(missingIds);
-      final newMetadata = {for (var m in metadataList) m.id!: m};
+      try {
+        final metadataList = await aniListService.getByIds(missingIds);
+        final newMetadata = {for (var m in metadataList) m.id!: m};
 
-      ref.read(searchMetadataProvider(key).notifier).state = {
-        ...currentMetadata,
-        ...newMetadata,
-      };
+        ref.read(searchMetadataProvider(key).notifier).state = {
+          ...currentMetadata,
+          ...newMetadata,
+        };
+        ref.read(aniListStatusProvider.notifier).state = AniListStatus.online;
+      } catch (e) {
+        if (e is AniListDisabledException) {
+          ref.read(aniListStatusProvider.notifier).state = AniListStatus.maintenance;
+        } else {
+          ref.read(aniListStatusProvider.notifier).state = AniListStatus.error;
+        }
+        debugPrint('Silent metadata fetch failure: $e');
+        // Do not rethrow - allows Jimaku search to proceed without covers
+      }
     }
   }
 

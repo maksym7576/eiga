@@ -4,12 +4,26 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import 'package:eiga/config/app_config.dart';
 import 'package:eiga/backend/database/dto/anilist_dto.dart';
+
+class AniListDisabledException implements Exception {
+  final String message;
+  AniListDisabledException(this.message);
+  @override
+  String toString() => message;
+}
 
 class AniListService {
   static const _endpoint = AppConfig.aniListEndpoint;
   static const _timeout = AppConfig.defaultTimeout;
+
+  static const _headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'User-Agent': 'EigaApp/1.0.0 (https://github.com/your-username/eiga)',
+  };
 
   static const _query = r'''
     query ($id: Int) {
@@ -94,13 +108,11 @@ class AniListService {
     int perPage = 10,
   }) async {
     try {
+      developer.log('AniList search: "$name" (page: $page)', name: 'AniListService');
       final response = await http
           .post(
             Uri.parse(_endpoint),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
+            headers: _headers,
             body: jsonEncode({
               'query': _searchQuery,
               'variables': {
@@ -112,23 +124,43 @@ class AniListService {
           )
           .timeout(_timeout);
 
+      if (response.statusCode == 429) {
+        final retryAfter = response.headers['retry-after'];
+        developer.log('AniList rate limit exceeded. Retry-After: $retryAfter', name: 'AniListService');
+        return [];
+      }
+
       if (response.statusCode != 200) {
         developer.log(
-          'AniList search failed: ${response.statusCode}',
+          'AniList search failed: ${response.statusCode}\nBody: ${response.body}',
           name: 'AniListService',
         );
+        if (response.body.contains('temporarily disabled')) {
+          throw AniListDisabledException('The AniList API has been temporarily disabled.');
+        }
         return [];
       }
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      
+      if (decoded.containsKey('errors')) {
+        final errors = decoded['errors'] as List<dynamic>;
+        if (errors.any((e) => e['message']?.toString().contains('temporarily disabled') ?? false)) {
+          throw AniListDisabledException('The AniList API has been temporarily disabled.');
+        }
+        developer.log('AniList returned GraphQL errors: $errors', name: 'AniListService');
+      }
+
       final mediaList = decoded['data']?['Page']?['media'] as List<dynamic>?;
 
       if (mediaList == null) return [];
 
       return mediaList
+          .where((m) => m != null)
           .map((m) => AniListDataDTO.fromJson(m as Map<String, dynamic>))
           .toList();
     } catch (e, st) {
+      if (e is AniListDisabledException) rethrow;
       developer.log(
         'AniList getByName failed',
         name: 'AniListService',
@@ -143,13 +175,11 @@ class AniListService {
     if (ids.isEmpty) return [];
 
     try {
+      developer.log('AniList getByIds: $ids', name: 'AniListService');
       final response = await http
           .post(
             Uri.parse(_endpoint),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
+            headers: _headers,
             body: jsonEncode({
               'query': _multipleIdsQuery,
               'variables': {
@@ -161,23 +191,43 @@ class AniListService {
           )
           .timeout(_timeout);
 
+      if (response.statusCode == 429) {
+        final retryAfter = response.headers['retry-after'];
+        developer.log('AniList rate limit exceeded. Retry-After: $retryAfter', name: 'AniListService');
+        return [];
+      }
+
       if (response.statusCode != 200) {
         developer.log(
-          'AniList getByIds failed: ${response.statusCode}',
+          'AniList getByIds failed: ${response.statusCode}\nBody: ${response.body}',
           name: 'AniListService',
         );
+        if (response.body.contains('temporarily disabled')) {
+          throw AniListDisabledException('The AniList API has been temporarily disabled.');
+        }
         return [];
       }
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      
+      if (decoded.containsKey('errors')) {
+        final errors = decoded['errors'] as List<dynamic>;
+        if (errors.any((e) => e['message']?.toString().contains('temporarily disabled') ?? false)) {
+          throw AniListDisabledException('The AniList API has been temporarily disabled.');
+        }
+        developer.log('AniList returned GraphQL errors: $errors', name: 'AniListService');
+      }
+
       final mediaList = decoded['data']?['Page']?['media'] as List<dynamic>?;
 
       if (mediaList == null) return [];
 
       return mediaList
+          .where((m) => m != null)
           .map((m) => AniListDataDTO.fromJson(m as Map<String, dynamic>))
           .toList();
     } catch (e, st) {
+      if (e is AniListDisabledException) rethrow;
       developer.log(
         'AniList getByIds failed',
         name: 'AniListService',
@@ -193,13 +243,11 @@ class AniListService {
         bool downloadImages = true,
       }) async {
     try {
+      developer.log('AniList getById: $anilistId', name: 'AniListService');
       final response = await http
           .post(
         Uri.parse(_endpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: _headers,
         body: jsonEncode({
           'query': _query,
           'variables': {'id': anilistId},
@@ -208,19 +256,32 @@ class AniListService {
           .timeout(_timeout);
 
       if (response.statusCode == 429) {
-        developer.log('AniList rate limit exceeded', name: 'AniListService');
+        final retryAfter = response.headers['retry-after'];
+        developer.log('AniList rate limit exceeded. Retry-After: $retryAfter', name: 'AniListService');
         return null;
       }
 
       if (response.statusCode != 200) {
         developer.log(
-          'AniList request failed: ${response.statusCode}',
+          'AniList request failed: ${response.statusCode}\nBody: ${response.body}',
           name: 'AniListService',
         );
+        if (response.body.contains('temporarily disabled')) {
+          throw AniListDisabledException('The AniList API has been temporarily disabled.');
+        }
         return null;
       }
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      
+      if (decoded.containsKey('errors')) {
+        final errors = decoded['errors'] as List<dynamic>;
+        if (errors.any((e) => e['message']?.toString().contains('temporarily disabled') ?? false)) {
+          throw AniListDisabledException('The AniList API has been temporarily disabled.');
+        }
+        developer.log('AniList returned GraphQL errors: $errors', name: 'AniListService');
+      }
+      
       final media = decoded['data']?['Media'] as Map<String, dynamic>?;
       if (media == null) return null;
 
@@ -249,6 +310,7 @@ class AniListService {
 
       return dto;
     } catch (e, st) {
+      if (e is AniListDisabledException) rethrow;
       developer.log(
         'AniList getById failed',
         name: 'AniListService',
@@ -267,19 +329,30 @@ class AniListService {
     try {
       final extension = _extractExtension(url);
       final dir = await getApplicationDocumentsDirectory();
-      final imagesDir = Directory('${dir.path}/anilist_images');
+      final imagesDir = Directory(p.join(dir.path, 'anilist_images'));
       if (!await imagesDir.exists()) {
         await imagesDir.create(recursive: true);
       }
 
-      final file = File('${imagesDir.path}/${anilistId}_$suffix.$extension');
+      final file = File(p.join(imagesDir.path, '${anilistId}_$suffix.$extension'));
 
       if (await file.exists()) {
-        return file.path;
+        final length = await file.length();
+        if (length > 0) {
+          return file.path;
+        }
       }
 
-      final response = await http.get(Uri.parse(url)).timeout(_timeout);
-      if (response.statusCode != 200) return null;
+      final response = await http.get(Uri.parse(url), headers: {
+        'User-Agent': _headers['User-Agent']!,
+      }).timeout(_timeout);
+      if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
+        developer.log(
+          'Failed to download image: $url (Status: ${response.statusCode})',
+          name: 'AniListService',
+        );
+        return null;
+      }
 
       await file.writeAsBytes(response.bodyBytes);
       return file.path;
