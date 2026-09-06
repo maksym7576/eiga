@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/ui/widgets/app_bar/app_app_bar.dart';
-import 'package:eiga/ui/widgets/main_hub/active_process_card.dart';
 import 'package:eiga/ui/widgets/main_hub/video_library_card.dart';
 import 'package:eiga/ui/widgets/main_hub/vocabulary_feed_item.dart';
+import 'package:eiga/ui/widgets/video/widgets/translation_job_card.dart';
 import 'package:eiga/providers/ui/main_hub_providers.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
+import 'package:eiga/ui/widgets/shared/app_action_button.dart';
+import 'package:eiga/ui/styles/additional_window_theme.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
@@ -21,102 +23,58 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final customTheme = AdditionalWindowTheme.of(context);
     final videosAsync = ref.watch(allVideosProvider);
+    final activeJobsAsync = ref.watch(activeJobsProvider);
+    final vocabularyAsync = ref.watch(styledVocabularyProvider);
 
     return Scaffold(
+      backgroundColor: customTheme.backgroundColor,
       appBar: const AppAppBar(),
       body: CustomScrollView(
         slivers: [
-          // 1. Active Processes Section
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            sliver: SliverToBoxAdapter(
-              child: SizedBox(
-                height: 170,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  clipBehavior: Clip.none,
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 280,
-                        child: ActiveProcessCard(
-                          modelName: 'Gemini 1.5 Pro',
-                          videoTitle: 'Tongari Boushi no Atelier',
-                          stepName: 'Morpheme Analysis',
-                          stepIcon: Icons.psychology,
-                          currentPhrases: 89,
-                          totalPhrases: 356,
-                          accentColor: theme.colorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        width: 280,
-                        child: ActiveProcessCard(
-                          modelName: 'GPT-4o',
-                          videoTitle: 'Witch Hat Atelier - Ep 2',
-                          stepName: 'Translation',
-                          stepIcon: Icons.translate,
-                          currentPhrases: 210,
-                          totalPhrases: 412,
-                          accentColor: Colors.deepPurple,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        width: 280,
-                        child: ActiveProcessCard(
-                          modelName: 'Claude 3.5 Sonnet',
-                          videoTitle: 'Witch Hat Atelier Episode 1',
-                          stepName: 'Validation',
-                          stepIcon: Icons.fact_check,
-                          currentPhrases: 305,
-                          totalPhrases: 359,
-                          accentColor: Colors.orangeAccent,
-                        ),
-                      ),
-                    ],
+          // 1. Active Processes Section (Dynamic Vertical List)
+          activeJobsAsync.when(
+            data: (jobs) {
+              if (jobs.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+              return SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final job = jobs[index];
+                      return TranslationJobCard(
+                        job: job,
+                        index: index + 1,
+                        total: jobs.length,
+                      );
+                    },
+                    childCount: jobs.length,
                   ),
                 ),
-              ),
-            ),
+              );
+            },
+            loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
+            error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
           ),
 
           // 2. Add Video Button
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             sliver: SliverToBoxAdapter(
-              child: InkWell(
-                onTap: () => context.push('/upload'),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+              child: AppActionButton(
+                onPressed: () => context.push('/upload'),
+                text: 'Add Video',
+                icon: Container(
+                  padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
                   ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_rounded, color: Colors.white),
-                      SizedBox(width: 8),
-                      Text(
-                        'Add Video',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
+                  child: const Icon(
+                    Icons.add_rounded, 
+                    size: 16, 
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -131,9 +89,13 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
+                  Text(
                     'Library',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                      fontSize: 20, 
+                      fontWeight: FontWeight.w800,
+                      color: customTheme.titleColor,
+                    ),
                   ),
                   TextButton(
                     onPressed: () => _showFullLibrary(context),
@@ -144,10 +106,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.primary,
+                            color: customTheme.primaryAccent,
                           ),
                         ),
-                        Icon(Icons.chevron_right, size: 16, color: theme.colorScheme.primary),
+                        Icon(Icons.chevron_right, size: 16, color: customTheme.primaryAccent),
                       ],
                     ),
                   ),
@@ -202,9 +164,13 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
+                  Text(
                     'Learning Feed',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                      fontSize: 20, 
+                      fontWeight: FontWeight.w800,
+                      color: customTheme.titleColor,
+                    ),
                   ),
                   TextButton(
                     onPressed: () {},
@@ -215,10 +181,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.primary,
+                            color: customTheme.primaryAccent,
                           ),
                         ),
-                        Icon(Icons.arrow_forward, size: 16, color: theme.colorScheme.primary),
+                        Icon(Icons.arrow_forward, size: 16, color: customTheme.primaryAccent),
                       ],
                     ),
                   ),
@@ -227,26 +193,46 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             ),
           ),
 
-          // 6. Vocabulary Feed (Stub Data)
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                const VocabularyFeedItem(
-                  word: '魔法',
-                  reading: 'Mahō',
-                  translation: 'Magic, witchcraft, sorcery',
-                  isKnown: true,
+          // 6. Vocabulary Feed (Real Data)
+          vocabularyAsync.when(
+            data: (items) {
+              if (items.isEmpty) {
+                return const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(
+                      child: Text(
+                        'Assign styles to words to see them here',
+                        style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final item = items[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: VocabularyFeedItem(
+                          word: item.word.mainText,
+                          reading: '', // We can extract reading if needed
+                          translation: item.block.blockTranslation ?? '',
+                          isKnown: false, // Could be linked to user progress later
+                          style: item.style,
+                        ),
+                      );
+                    },
+                    childCount: items.length,
+                  ),
                 ),
-                const SizedBox(height: 12),
-                const VocabularyFeedItem(
-                  word: '帽子',
-                  reading: 'Bōshi',
-                  translation: 'Hat, cap',
-                  isKnown: true,
-                ),
-              ]),
-            ),
+              );
+            },
+            loading: () => const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator())),
+            error: (err, stack) => SliverToBoxAdapter(child: Center(child: Text('Error: $err'))),
           ),
 
           // 7. Manual Section
@@ -255,9 +241,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             sliver: SliverToBoxAdapter(
               child: Container(
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                  color: customTheme.selectionBoxBackground,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.1)),
+                  border: Border.all(color: customTheme.selectionAccentColor.withValues(alpha: 0.1)),
                 ),
                 child: Column(
                   children: [
@@ -268,17 +254,20 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                         padding: const EdgeInsets.all(16),
                         child: Row(
                           children: [
-                            Icon(Icons.help_outline, color: theme.colorScheme.primary),
+                            Icon(Icons.help_outline, color: customTheme.primaryAccent),
                             const SizedBox(width: 12),
-                            const Expanded(
+                            Expanded(
                               child: Text(
                                 'Як користуватись',
-                                style: TextStyle(fontWeight: FontWeight.w700),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: customTheme.titleColor,
+                                ),
                               ),
                             ),
                             Icon(
                               _isManualExpanded ? Icons.expand_less : Icons.expand_more,
-                              color: theme.colorScheme.primary,
+                              color: customTheme.primaryAccent,
                             ),
                           ],
                         ),
@@ -415,15 +404,20 @@ class _ManualItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final customTheme = AdditionalWindowTheme.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+        Icon(icon, size: 18, color: customTheme.primaryAccent),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              fontSize: 13, 
+              fontWeight: FontWeight.w500,
+              color: customTheme.normalText,
+            ),
           ),
         ),
       ],

@@ -51,7 +51,7 @@ class UploadActionButtons extends ConsumerWidget {
                   onPressed: canAdd ? () => _onSave(context, notifier) : null,
                   text: 'Add Video',
                   isLoading: state.isSaving,
-                  icon: const Icon(Icons.play_arrow_rounded, size: 16, color: AppColors.brandBlue),
+                  icon: const Icon(Icons.play_arrow_rounded, size: 16, color: Colors.white),
                 ),
               ),
             ],

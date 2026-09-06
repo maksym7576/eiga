@@ -5,41 +5,86 @@ import '../../../config/secure_storage.dart';
 import '../../../providers/database/database_providers.dart';
 import '../../../providers/services/token_provider.dart';
 import '../../../providers/ui/redirect_providers.dart';
-import '../../styles/settings_theme.dart';
-import 'ai_models_settings_widget.dart';
-import 'app_configs_selector_widget.dart';
+import '../../../models/settings/guide_step.dart';
+import '../../styles/additional_window_theme.dart';
+import '../../screens/settings/api_key_config_screen.dart';
 
 class ControlButtonWidget extends ConsumerStatefulWidget {
   const ControlButtonWidget({super.key});
 
-  @override
-  ConsumerState<ControlButtonWidget> createState() =>
-      _ControlButtonWidgetState();
-}
-
-class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (ref.read(openJimakuDialogProvider)) {
-        ref.read(openJimakuDialogProvider.notifier).state = false;
-
-        _openSettingDialog(
-          context,
-          title: 'Jimaku key',
-          builder: (context) => _apiKeyView(context, ApiTokenType.jimaku),
-        );
-      }
-    });
+  static void openGeminiKeyDialog(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ApiKeyConfigScreen(
+          type: ApiTokenType.gemini,
+          title: 'Gemini API Key',
+          description: 'Real-time Japanese translation & insights',
+          iconGradient: [Color(0xFF2563EB), Color(0xFF4F46E5)],
+          icon: Icons.vpn_key_rounded,
+          steps: [
+            GuideStep(
+              title: 'Go to Google AI Studio',
+              link: 'https://ai.google.dev/aistudio',
+              linkLabel: 'Open Google AI Studio',
+            ),
+            GuideStep(
+              title: 'Sign in with your Google Account',
+              subtitle: 'Use your standard Gmail or Google account',
+            ),
+            GuideStep(
+              title: 'Click "Get API key" in the left menu',
+            ),
+            GuideStep(
+              title: 'Click "Create API key"',
+              subtitle: 'Choose or create a project, then copy the key',
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  void _openSettingDialog(
+  static void openJimakuKeyDialog(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ApiKeyConfigScreen(
+          type: ApiTokenType.jimaku,
+          title: 'Jimaku API Key',
+          description: 'Auto-search for subtitles & dictionaries',
+          iconGradient: [Color(0xFF4338CA), Color(0xFF9333EA)],
+          icon: Icons.chat_bubble_rounded,
+          steps: [
+            GuideStep(
+              title: 'Go to Jimaku Login',
+              link: 'https://jimaku.cc/login',
+              linkLabel: 'Open Jimaku',
+            ),
+            GuideStep(
+              title: 'Sign in to your account',
+              subtitle: 'Use your standard Username and Password',
+            ),
+            GuideStep(
+              title: 'Open "Account Settings"',
+              subtitle: 'Click your profile name, then go to Developer Access',
+            ),
+            GuideStep(
+              title: 'Click "Generate" API key',
+              subtitle: 'Generate and copy the key',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static void _openSettingDialogStatic(
     BuildContext context, {
     required String title,
     required WidgetBuilder builder,
   }) {
-    final theme = SettingsTheme.of(context);
+    final theme = AdditionalWindowTheme.of(context);
 
     showGeneralDialog(
       context: context,
@@ -60,9 +105,9 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
                   minWidth: MediaQuery.of(context).size.width * 0.9,
                 ),
                 decoration: BoxDecoration(
-                  color: theme.dialogBackground,
+                  color: theme.cardBackground,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: theme.dialogBorder),
+                  border: Border.all(color: theme.dividerColor),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.1),
@@ -90,149 +135,38 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
     );
   }
 
-  Widget _apiKeyView(BuildContext context, ApiTokenType type) {
-    final theme = SettingsTheme.of(context);
+  @override
+  ConsumerState<ControlButtonWidget> createState() =>
+      _ControlButtonWidgetState();
+}
 
-    return Consumer(
-      builder: (context, ref, child) {
-        final tokenAsync = ref.watch(tokenProvider(type));
-        final notifier = ref.read(tokenProvider(type).notifier);
-        return tokenAsync.when(
-          data: (String token) {
-            final bool hasToken = token.isNotEmpty;
-            final controller = TextEditingController(text: token);
-
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${type.name.toUpperCase()} API Key',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.normalText),
-                ),
-                const SizedBox(height: 16),
-
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: theme.cardBackground,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: theme.apiKeyCardBorder,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: theme.apiKeyInfoIconBackground,
-                        ),
-                        child: Center(
-                          child: Icon(
-                            Icons.info_outline,
-                            color: theme.apiKeyInfoIcon,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              hasToken ? 'Token' : 'There is no token',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: theme.apiKeyCardTitle,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              hasToken ? token : 'add api key',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: theme.apiKeyCardSubtitle,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: controller,
-                  style: TextStyle(color: theme.normalText),
-                  decoration: InputDecoration(
-                    hintText: 'input new key',
-                    hintStyle: TextStyle(color: theme.mutedText),
-                    border: const OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.dialogBorder)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final newKey = controller.text.trim();
-                          if (newKey.isNotEmpty) {
-                            await notifier.setToken(newKey);
-                            if (context.mounted) Navigator.of(context).pop();
-                          }
-                        },
-                        style: theme.primaryButtonStyle(),
-                        child: Text(hasToken ? 'Update' : 'Add Key'),
-                      ),
-                    ),
-                    if (hasToken) ...[
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            await notifier.deleteToken();
-                            if (context.mounted) Navigator.of(context).pop();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            elevation: 0,
-                          ),
-                          child: const Text('Delete'),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Error', style: TextStyle(color: theme.normalText))),
-        );
-      },
-    );
+class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ref.read(openJimakuDialogProvider)) {
+        ref.read(openJimakuDialogProvider.notifier).state = false;
+        ControlButtonWidget.openJimakuKeyDialog(context);
+      }
+    });
   }
 
   Widget _settingsButton(
     BuildContext context, {
     required String title,
-    required WidgetBuilder dialogBuilder,
+    required VoidCallback onPressed,
   }) {
-    final theme = SettingsTheme.of(context);
-
+    final theme = AdditionalWindowTheme.of(context);
     return ElevatedButton(
-      onPressed: () =>
-          _openSettingDialog(context, title: title, builder: dialogBuilder),
-      style: theme.primaryButtonStyle(),
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: theme.addButtonBackground,
+        foregroundColor: theme.addButtonText,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 0,
+      ),
       child: Text(
         title,
         textAlign: TextAlign.center,
@@ -247,8 +181,6 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SettingsTheme.of(context);
-
     return Column(
       children: [
         Row(
@@ -257,7 +189,7 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
               child: _settingsButton(
                 context,
                 title: 'Gemini key',
-                dialogBuilder: (context) => _apiKeyView(context, ApiTokenType.gemini),
+                onPressed: () => ControlButtonWidget.openGeminiKeyDialog(context),
               ),
             ),
             const SizedBox(width: 8),
@@ -265,7 +197,7 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
               child: _settingsButton(
                 context,
                 title: 'Jimaku key',
-                dialogBuilder: (context) => _apiKeyView(context, ApiTokenType.jimaku),
+                onPressed: () => ControlButtonWidget.openJimakuKeyDialog(context),
               ),
             ),
           ],
@@ -273,27 +205,19 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
         const SizedBox(height: 8),
         _settingsButton(
           context,
-          title: 'App Configuration',
-          dialogBuilder: (context) => const AppConfigsSelectorWidget(),
-        ),
-        const SizedBox(height: 8),
-        _settingsButton(
-          context,
-          title: 'AI Models',
-          dialogBuilder: (context) => const AiModelsSettingsWidget(),
-        ),
-        const SizedBox(height: 8),
-        _settingsButton(
-          context,
           title: 'Clear Database',
-          dialogBuilder: (context) => _clearDatabaseDialog(context),
+          onPressed: () => ControlButtonWidget._openSettingDialogStatic(
+            context,
+            title: 'Clear Database',
+            builder: (context) => _clearDatabaseDialog(context),
+          ),
         ),
       ],
     );
   }
 
   Widget _clearDatabaseDialog(BuildContext context) {
-    final theme = SettingsTheme.of(context);
+    final theme = AdditionalWindowTheme.of(context);
 
     return Consumer(
       builder: (context, ref, child) {
@@ -307,14 +231,14 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Clear All Data?',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.normalText),
+              'Delete All Data?',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.titleColor),
             ),
             const SizedBox(height: 12),
             Text(
-              'This action will permanently delete all videos, phrases, and progress. API keys will not be affected.',
+              'This will permanently delete all your videos, history, and progress. This action cannot be undone.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: theme.mutedText),
+              style: TextStyle(fontSize: 14, color: theme.normalText),
             ),
             const SizedBox(height: 24),
             Row(
@@ -322,8 +246,11 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    style: theme.secondaryButtonStyle().copyWith(
-                      side: WidgetStateProperty.all(const BorderSide(color: Colors.indigo)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.cancelButtonText,
+                      side: BorderSide(color: theme.dividerColor),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: const Text('Cancel'),
                   ),
@@ -352,7 +279,7 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
-                    child: const Text('Clear'),
+                    child: const Text('Delete'),
                   ),
                 ),
               ],

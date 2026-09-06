@@ -24,6 +24,13 @@ class BlockService {
         .watch(fireImmediately: true);
   }
 
+  Stream<List<Block>> watchBlocksWithStyles() {
+    return db.blocks
+        .filter()
+        .specificWordStyleIdIsNotNull()
+        .watch(fireImmediately: true);
+  }
+
   Future<void> updateColorDirectly({
     required String contentSignature,
     required String newColorHex,

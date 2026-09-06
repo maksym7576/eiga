@@ -39,8 +39,8 @@ class AdditionalWindowTheme {
   Color get cardBackground => isDark ? AppColors.cardDark : Colors.white;
   Color get cardBorder => isDark ? Colors.white10 : AppColors.slate200;
   Color get selectedCardBackground => isDark 
-      ? AppColors.brandBlue.withOpacity(0.1) 
-      : AppColors.brandBlue.withOpacity(0.05);
+      ? AppColors.brandBlue.withValues(alpha: 0.1) 
+      : AppColors.brandBlue.withValues(alpha: 0.05);
   Color get selectedCardBorder => AppColors.brandBlue;
   Color get selectedText => isDark ? Colors.white : AppColors.slate900;
   Color get normalText => isDark ? Colors.white : AppColors.slate800;
@@ -53,11 +53,11 @@ class AdditionalWindowTheme {
   Color get unselectedCircleBorder => isDark ? Colors.white24 : AppColors.slate200;
   Color get selectionAccentColor => AppColors.brandBlue;
   Color get selectionBoxBackground => isDark 
-      ? AppColors.brandBlue.withOpacity(0.08) 
-      : AppColors.brandBlue.withOpacity(0.04);
+      ? AppColors.brandBlue.withValues(alpha: 0.08) 
+      : AppColors.brandBlue.withValues(alpha: 0.04);
 
   // Action Buttons
   Color get cancelButtonText => isDark ? Colors.white : AppColors.slate700;
-  Color get addButtonBackground => isDark ? Colors.white : AppColors.slate900;
+  Color get addButtonBackground => isDark ? Colors.white : primaryAccent;
   Color get addButtonText => isDark ? Colors.black : Colors.white;
 }

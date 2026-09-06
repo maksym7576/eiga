@@ -5,6 +5,7 @@ import '../../../../backend/database/schemas/translation_job.dart';
 import '../../../../backend/database/schemas/video.dart';
 import '../../../../backend/services/background/translation_background_manager.dart';
 import '../../../styles/app_colors.dart';
+import '../../../styles/additional_window_theme.dart';
 
 class TranslationJobCard extends ConsumerWidget {
   final TranslationJob job;
@@ -20,6 +21,7 @@ class TranslationJobCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final customTheme = AdditionalWindowTheme.of(context);
     final status = job.status ?? 'active';
     final isActive = status == 'active';
     final isError = status == 'error';
@@ -52,7 +54,7 @@ class TranslationJobCard extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: customTheme.cardBackground,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: accentColor.withValues(alpha: 0.15)),
         boxShadow: [
@@ -86,7 +88,7 @@ class TranslationJobCard extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 12, 
                             fontWeight: FontWeight.bold, 
-                            color: isActive ? AppColors.slate700 : AppColors.slate600,
+                            color: isActive ? customTheme.normalText : customTheme.mutedText,
                           ),
                         ),
                       ],
@@ -96,17 +98,25 @@ class TranslationJobCard extends ConsumerWidget {
                         if (total > 1)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(color: AppColors.slate100, borderRadius: BorderRadius.circular(10)),
+                            decoration: BoxDecoration(color: customTheme.tabSwitcherBackground, borderRadius: BorderRadius.circular(10)),
                             child: Text(
                               '$index / $total',
-                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: AppColors.slate700),
+                              style: TextStyle(
+                                fontSize: 10, 
+                                fontWeight: FontWeight.bold, 
+                                fontFamily: 'monospace', 
+                                color: customTheme.normalText,
+                              ),
                             ),
                           ),
                         const SizedBox(width: 6),
                         if (isActive)
-                          _StopButton(onTap: () {
-                            ref.read(translationBackgroundManagerProvider).cancelTask(job.videoId);
-                          })
+                          _StopButton(
+                            onTap: () {
+                              ref.read(translationBackgroundManagerProvider).cancelTask(job.videoId);
+                            },
+                            customTheme: customTheme,
+                          )
                         else
                           Icon(isError ? Icons.error_outline : Icons.check_circle, size: 18, color: accentColor),
                       ],
@@ -123,7 +133,11 @@ class TranslationJobCard extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Text(
                       'Phrases 1–${job.totalPhrases}',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.slate900),
+                      style: TextStyle(
+                        fontSize: 13, 
+                        fontWeight: FontWeight.bold, 
+                        color: customTheme.titleColor,
+                      ),
                     ),
                     const Spacer(),
                     if (isActive)
@@ -157,23 +171,30 @@ class TranslationJobCard extends ConsumerWidget {
                 ],
 
                 if (isAnalytical) ...[
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: AppColors.slate100)),
-                  _PipelineStepper(job: job, accentColor: accentColor),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12), 
+                    child: Divider(height: 1, color: customTheme.dividerColor),
+                  ),
+                  _PipelineStepper(job: job, accentColor: accentColor, customTheme: customTheme),
                 ],
 
                 if (!isActive) ...[
-                  if (!isAnalytical) const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(height: 1, color: AppColors.slate100)),
+                  if (!isAnalytical) 
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8), 
+                      child: Divider(height: 1, color: customTheme.dividerColor),
+                    ),
                   const SizedBox(height: 4),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         '${isAnalytical ? '3-stage' : '1-stage'} processing • 100% accuracy',
-                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.slate500),
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: customTheme.mutedText),
                       ),
                       Text(
                         'Time: ${totalDuration.toStringAsFixed(1)}s',
-                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.slate600),
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: customTheme.normalText),
                       ),
                     ],
                   ),
@@ -190,7 +211,8 @@ class TranslationJobCard extends ConsumerWidget {
 class _PipelineStepper extends StatelessWidget {
   final TranslationJob job;
   final Color accentColor;
-  const _PipelineStepper({required this.job, required this.accentColor});
+  final AdditionalWindowTheme customTheme;
+  const _PipelineStepper({required this.job, required this.accentColor, required this.customTheme});
 
   @override
   Widget build(BuildContext context) {
@@ -221,7 +243,7 @@ class _PipelineStepper extends StatelessWidget {
                   Container(
                     width: 22, height: 22,
                     decoration: BoxDecoration(
-                      color: isCompleted ? const Color(0xFF10B981) : (isCurrent ? accentColor : (isFailed ? const Color(0xFFEF4444) : AppColors.slate100)),
+                      color: isCompleted ? const Color(0xFF10B981) : (isCurrent ? accentColor : (isFailed ? const Color(0xFFEF4444) : customTheme.tabSwitcherBackground)),
                       shape: BoxShape.circle,
                       boxShadow: (isCurrent && isActive) ? [BoxShadow(color: accentColor.withValues(alpha: 0.3), blurRadius: 4, spreadRadius: 1)] : null,
                     ),
@@ -232,18 +254,36 @@ class _PipelineStepper extends StatelessWidget {
                             ? const Icon(Icons.close, size: 12, color: Colors.white)
                             : (isCurrent && isActive
                                 ? const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                : Container(width: 4, height: 4, decoration: const BoxDecoration(color: AppColors.slate300, shape: BoxShape.circle)))),
+                                : Container(width: 4, height: 4, decoration: BoxDecoration(color: customTheme.mutedText.withValues(alpha: 0.5), shape: BoxShape.circle)))),
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(displayLabel, style: TextStyle(fontSize: 9, fontWeight: (isCurrent && isActive) ? FontWeight.bold : FontWeight.w600, color: (isCurrent && isActive) ? const Color(0xFF1E1B4B) : AppColors.slate500)),
-                  Text(duration, style: const TextStyle(fontSize: 8, fontFamily: 'monospace', color: AppColors.slate400)),
+                  Text(
+                    displayLabel, 
+                    style: TextStyle(
+                      fontSize: 9, 
+                      fontWeight: (isCurrent && isActive) ? FontWeight.bold : FontWeight.w600, 
+                      color: (isCurrent && isActive) ? customTheme.titleColor : customTheme.mutedText,
+                    ),
+                  ),
+                  Text(
+                    duration, 
+                    style: TextStyle(
+                      fontSize: 8, 
+                      fontFamily: 'monospace', 
+                      color: customTheme.mutedText.withValues(alpha: 0.7),
+                    ),
+                  ),
                   if (history?.modelName != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(
                         history!.modelName!,
-                        style: const TextStyle(fontSize: 7, color: AppColors.slate300, overflow: TextOverflow.ellipsis),
+                        style: TextStyle(
+                          fontSize: 7, 
+                          color: customTheme.mutedText.withValues(alpha: 0.5), 
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         textAlign: TextAlign.center,
                         maxLines: 1,
                       ),
@@ -256,10 +296,7 @@ class _PipelineStepper extends StatelessWidget {
                     height: 2,
                     margin: const EdgeInsets.only(bottom: 24, left: 4, right: 4),
                     decoration: BoxDecoration(
-                      color: isCompleted ? const Color(0xFF10B981) : AppColors.slate300.withValues(alpha: 0.3),
-                      gradient: (isCompleted && index < stages.length - 1) 
-                        ? const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF10B981)]) // Simplified for history
-                        : null,
+                      color: isCompleted ? const Color(0xFF10B981) : customTheme.dividerColor,
                     ),
                   ),
                 ),
@@ -289,7 +326,8 @@ class _Tag extends StatelessWidget {
 
 class _StopButton extends StatelessWidget {
   final VoidCallback onTap;
-  const _StopButton({required this.onTap});
+  final AdditionalWindowTheme customTheme;
+  const _StopButton({required this.onTap, required this.customTheme});
 
   @override
   Widget build(BuildContext context) {
@@ -297,8 +335,12 @@ class _StopButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: 22, height: 22,
-        decoration: BoxDecoration(color: AppColors.slate100, shape: BoxShape.circle, border: Border.all(color: AppColors.slate200)),
-        child: const Icon(Icons.close, size: 12, color: AppColors.slate400),
+        decoration: BoxDecoration(
+          color: customTheme.tabSwitcherBackground, 
+          shape: BoxShape.circle, 
+          border: Border.all(color: customTheme.dividerColor),
+        ),
+        child: Icon(Icons.close, size: 12, color: customTheme.mutedText),
       ),
     );
   }

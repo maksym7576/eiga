@@ -19,6 +19,7 @@ class Language {
 
   // From ReadingTypeLanguageConfig
   List<String> readingOptions = [];
+  List<String> readingLabels = []; // Specific labels like 'KANJI', 'KANA'
   List<String> spacingOptions = [];
 
   Language({
@@ -27,6 +28,7 @@ class Language {
     this.isSupported = false,
     this.removeAllSpaces = false,
     this.readingOptions = const [],
+    this.readingLabels = const [],
     this.spacingOptions = const [],
   });
 }

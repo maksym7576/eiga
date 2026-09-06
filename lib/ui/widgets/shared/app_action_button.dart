@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../styles/app_colors.dart';
+import '../../styles/additional_window_theme.dart';
 
 enum AppActionButtonType {
   primary,
@@ -27,13 +28,15 @@ class AppActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = AdditionalWindowTheme.of(context);
+    
     final child = isLoading
-        ? const SizedBox(
+        ? SizedBox(
             height: 20,
             width: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: Colors.white,
+              color: type == AppActionButtonType.primary ? theme.addButtonText : theme.primaryAccent,
             ),
           )
         : Row(
@@ -47,7 +50,7 @@ class AppActionButton extends StatelessWidget {
             ],
           );
 
-    final style = _getStyle();
+    final style = _getStyle(theme);
 
     Widget button;
     if (type == AppActionButtonType.outlined) {
@@ -70,12 +73,12 @@ class AppActionButton extends StatelessWidget {
     return button;
   }
 
-  ButtonStyle _getStyle() {
+  ButtonStyle _getStyle(AdditionalWindowTheme theme) {
     switch (type) {
       case AppActionButtonType.primary:
         return ElevatedButton.styleFrom(
-          backgroundColor: AppColors.slate900,
-          foregroundColor: Colors.white,
+          backgroundColor: theme.addButtonBackground,
+          foregroundColor: theme.addButtonText,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           elevation: 0,
@@ -83,8 +86,8 @@ class AppActionButton extends StatelessWidget {
         );
       case AppActionButtonType.secondary:
         return ElevatedButton.styleFrom(
-          backgroundColor: AppColors.slate100,
-          foregroundColor: AppColors.slate700,
+          backgroundColor: theme.tabSwitcherBackground,
+          foregroundColor: theme.normalText,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           elevation: 0,
@@ -94,8 +97,8 @@ class AppActionButton extends StatelessWidget {
         return OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          side: const BorderSide(color: AppColors.slate200),
-          foregroundColor: AppColors.slate700,
+          side: BorderSide(color: theme.dividerColor),
+          foregroundColor: theme.normalText,
           textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
         );
     }

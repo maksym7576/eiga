@@ -1,28 +1,230 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../providers/database/database_providers.dart';
 import '../../providers/services/app_configs_provider.dart';
-import '../../providers/ui/ai_models_state_provider.dart';
+import '../styles/additional_window_theme.dart';
 import '../widgets/settings/control_button_widget.dart';
+import 'settings/reader_preferences_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = AdditionalWindowTheme.of(context);
+
+    return Scaffold(
+      backgroundColor: theme.backgroundColor,
+      appBar: AppBar(
+        title: const Text('Settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        backgroundColor: theme.backgroundColor.withValues(alpha: 0.9),
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline, size: 20),
+            onPressed: () {},
+          ),
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: theme.dividerColor, height: 1),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionHeader(context, 'Services', showVersion: true),
+            const SizedBox(height: 8),
+            _buildServicesCard(context, ref),
+            const SizedBox(height: 28),
+            _buildSectionHeader(context, 'General'),
+            const SizedBox(height: 8),
+            _buildGeneralCard(context),
+            const SizedBox(height: 48),
+            const Center(
+              child: Text(
+                'EIGA',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.grey,
+                  letterSpacing: 2.0,
+                ),
+              ),
+            ),
+            const SizedBox(height: 48),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String title, {bool showVersion = false}) {
+    final theme = AdditionalWindowTheme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: theme.mutedText,
+              letterSpacing: 1.2,
+            ),
+          ),
+          if (showVersion)
+            FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snapshot) {
+                final version = snapshot.data?.version ?? '...';
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: theme.primaryAccent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: Text(
+                    'v$version',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: theme.primaryAccent,
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServicesCard(BuildContext context, WidgetRef ref) {
+    final theme = AdditionalWindowTheme.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardBackground,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: theme.dividerColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _SettingTile(
+            title: 'Gemini API Key',
+            subtitle: 'Real-time translation & insights',
+            icon: Icons.vpn_key_rounded,
+            iconColor: Colors.white,
+            iconBackground: const [Color(0xFF2563EB), Color(0xFF4F46E5)],
+            badgeText: 'Has key',
+            badgeColor: Colors.teal,
+            onTap: () => ControlButtonWidget.openGeminiKeyDialog(context),
+          ),
+          Divider(height: 1, color: theme.dividerColor, indent: 64),
+          _SettingTile(
+            title: 'Jimaku API Key',
+            subtitle: 'Auto-search for subtitles & dictionaries',
+            icon: Icons.vpn_key_rounded,
+            iconColor: Colors.white,
+            iconBackground: const [Color(0xFF4338CA), Color(0xFF9333EA)],
+            badgeText: 'Has key',
+            badgeColor: Colors.teal,
+            onTap: () => ControlButtonWidget.openJimakuKeyDialog(context),
+          ),
+          Divider(height: 1, color: theme.dividerColor, indent: 64),
+          _SettingTile(
+            title: 'Clear All Data',
+            subtitle: 'Permanently delete all videos, phrases, and progress.',
+            icon: Icons.delete_forever_rounded,
+            iconColor: Colors.redAccent,
+            iconBackground: [Colors.redAccent.withValues(alpha: 0.1), Colors.redAccent.withValues(alpha: 0.1)],
+            isDestructive: true,
+            actionLabel: 'Delete',
+            onTap: () => _handleFullReset(context, ref),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGeneralCard(BuildContext context) {
+    final theme = AdditionalWindowTheme.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardBackground,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: theme.dividerColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _SettingTile(
+            title: 'Reader Preferences',
+            subtitle: 'Choose subtitle text order and display',
+            icon: Icons.menu_book_rounded,
+            iconColor: Colors.amber.shade700,
+            iconBackground: [Colors.amber.shade50, Colors.amber.shade50],
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ReaderPreferencesScreen()),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleFullReset(BuildContext context, WidgetRef ref) async {
+    final theme = AdditionalWindowTheme.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Reset All Data?'),
-        content: const Text(
-          'This will clear all your videos, history, and reset AI model settings to defaults. This action cannot be undone.',
+        backgroundColor: theme.cardBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Reset All Data?', style: TextStyle(color: theme.titleColor, fontWeight: FontWeight.bold)),
+        content: Text(
+          'This will clear all your videos and history. This action cannot be undone.',
+          style: TextStyle(color: theme.normalText),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text('Cancel', style: TextStyle(color: theme.mutedText)),
           ),
           FilledButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Reset Everything'),
           ),
@@ -31,15 +233,8 @@ class SettingsScreen extends ConsumerWidget {
     );
 
     if (confirmed == true) {
-      // 1. Clear Database
       await ref.read(isarServiceProvider).clearAllData();
-      
-      // 2. Clear SharedPreferences
       await ref.read(appConfigsServiceProvider).resetToDefault();
-      
-      // 3. Reset Notifiers
-      ref.invalidate(aiModelsProvider);
-      ref.invalidate(allModelsProvider);
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -51,81 +246,126 @@ class SettingsScreen extends ConsumerWidget {
       }
     }
   }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-        centerTitle: true,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: const [
-          _SettingsSection(
-            title: 'Account & Services',
-            children: [
-              Padding(
-                padding: EdgeInsets.all(12),
-                child: ControlButtonWidget(),
-              ),
-            ],
-          ),
-          SizedBox(height: 24),
-          _SettingsSection(
-            title: 'General',
-            children: [
-              ListTile(
-                leading: Icon(Icons.language),
-                title: Text('App Language'),
-                subtitle: Text('System Default'),
-                trailing: Icon(Icons.chevron_right),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-class _SettingsSection extends StatelessWidget {
+class _SettingTile extends StatelessWidget {
   final String title;
-  final List<Widget> children;
-  final Color? titleColor;
+  final String subtitle;
+  final IconData icon;
+  final Color iconColor;
+  final List<Color> iconBackground;
+  final String? badgeText;
+  final Color? badgeColor;
+  final String? actionLabel;
+  final bool isDestructive;
+  final VoidCallback onTap;
 
-  const _SettingsSection({
+  const _SettingTile({
     required this.title,
-    required this.children,
-    this.titleColor,
+    required this.subtitle,
+    required this.icon,
+    required this.iconColor,
+    required this.iconBackground,
+    this.badgeText,
+    this.badgeColor,
+    this.actionLabel,
+    this.isDestructive = false,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            title.toUpperCase(),
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: titleColor ?? Colors.grey,
-              letterSpacing: 1.2,
-            ),
+    final theme = AdditionalWindowTheme.of(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(isDestructive ? 20 : 0),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: iconBackground.length > 1 
+                      ? LinearGradient(colors: iconBackground, begin: Alignment.bottomLeft, end: Alignment.topRight)
+                      : null,
+                  color: iconBackground.length == 1 ? iconBackground.first : null,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: iconColor, size: 22),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: isDestructive ? Colors.redAccent : theme.titleColor,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        if (badgeText != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: badgeColor?.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: badgeColor?.withValues(alpha: 0.2) ?? Colors.transparent),
+                            ),
+                            child: Text(
+                              badgeText!,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: badgeColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(fontSize: 12, color: theme.mutedText),
+                    ),
+                  ],
+                ),
+              ),
+              if (actionLabel != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2)),
+                  ),
+                  child: Text(
+                    actionLabel!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.redAccent,
+                    ),
+                  ),
+                )
+              else
+                Icon(Icons.chevron_right_rounded, color: theme.mutedText.withValues(alpha: 0.5)),
+            ],
           ),
         ),
-        Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.grey.withOpacity(0.2)),
-          ),
-          child: Column(children: children),
-        ),
-      ],
+      ),
     );
   }
 }

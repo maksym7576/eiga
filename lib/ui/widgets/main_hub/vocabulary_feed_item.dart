@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../../backend/database/schemas/specific_word_style.dart';
+import '../../styles/additional_window_theme.dart';
 
 class VocabularyFeedItem extends StatelessWidget {
   final String word;
   final String reading;
   final String translation;
   final bool isKnown;
+  final SpecificWordStyle? style;
 
   const VocabularyFeedItem({
     super.key,
@@ -12,21 +15,33 @@ class VocabularyFeedItem extends StatelessWidget {
     required this.reading,
     required this.translation,
     required this.isKnown,
+    this.style,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final customTheme = AdditionalWindowTheme.of(context);
+
+    final wordColor = style?.color ?? customTheme.normalText;
+    final wordWeight = style?.fontWeight ?? FontWeight.w700;
+    final borderColor = style?.borderColor;
+    final borderSize = style?.borderSize ?? 0;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+        color: customTheme.cardBackground,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05),
+          color: customTheme.cardBorder,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,27 +50,53 @@ class VocabularyFeedItem extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'WORD',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary.withOpacity(0.7),
-                      letterSpacing: 1.0,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'WORD',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: customTheme.primaryAccent.withValues(alpha: 0.7),
+                        letterSpacing: 1.0,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$word ($reading)',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
+                    const SizedBox(height: 4),
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Container(
+                          padding: borderSize > 0 ? const EdgeInsets.symmetric(horizontal: 4, vertical: 1) : EdgeInsets.zero,
+                          decoration: borderSize > 0 ? BoxDecoration(
+                            border: Border.all(color: borderColor ?? wordColor, width: borderSize.toDouble()),
+                            borderRadius: BorderRadius.circular(4),
+                          ) : null,
+                          child: Text(
+                            word,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: wordWeight,
+                              color: wordColor,
+                            ),
+                          ),
+                        ),
+                        if (reading.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            '($reading)',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: customTheme.mutedText,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -65,7 +106,7 @@ class VocabularyFeedItem extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white38 : Colors.black45,
+                      color: customTheme.mutedText,
                       letterSpacing: 1.0,
                     ),
                   ),
@@ -75,7 +116,7 @@ class VocabularyFeedItem extends StatelessWidget {
                       Icon(
                         isKnown ? Icons.check_circle : Icons.radio_button_unchecked,
                         size: 16,
-                        color: isKnown ? Colors.green : Colors.grey,
+                        color: isKnown ? Colors.green : customTheme.mutedText,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -83,7 +124,7 @@ class VocabularyFeedItem extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: isKnown ? Colors.green : Colors.grey,
+                          color: isKnown ? Colors.green : customTheme.mutedText,
                         ),
                       ),
                     ],
@@ -93,23 +134,24 @@ class VocabularyFeedItem extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Divider(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+          Divider(color: customTheme.dividerColor),
           const SizedBox(height: 8),
           Text(
             'TRANSLATION',
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white38 : Colors.black45,
+              color: customTheme.mutedText,
               letterSpacing: 1.0,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             translation,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w500,
+              color: customTheme.normalText,
             ),
           ),
         ],

@@ -23,6 +23,13 @@ class TranslationJobService {
         .watch(fireImmediately: true);
   }
 
+  Stream<List<TranslationJob>> watchAllActiveJobs() {
+    return isar.translationJobs
+        .filter()
+        .statusEqualTo('active')
+        .watch(fireImmediately: true);
+  }
+
   Future<void> updateJob(TranslationJob job) async {
     await isar.writeTxn(() async {
       await isar.translationJobs.put(job);

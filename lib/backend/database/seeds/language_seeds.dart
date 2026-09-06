@@ -8,6 +8,7 @@ Future<List<Language>> standardLanguages() async {
       isSupported: true,
       removeAllSpaces: true,
       readingOptions: ['original', 'kana', 'romaji'],
+      readingLabels: ['KANJI', 'KANA', 'ROMAJI'],
       spacingOptions: ['romaji'],
     ),
     Language(
@@ -16,6 +17,7 @@ Future<List<Language>> standardLanguages() async {
       isSupported: false,
       removeAllSpaces: false,
       readingOptions: ['original'],
+      readingLabels: ['ORIGINAL'],
       spacingOptions: ['original'],
     ),
     Language(
@@ -24,6 +26,7 @@ Future<List<Language>> standardLanguages() async {
       isSupported: false,
       removeAllSpaces: false,
       readingOptions: ['original'],
+      readingLabels: ['ORIGINAL'],
       spacingOptions: ['original'],
     ),
     Language(
@@ -32,6 +35,7 @@ Future<List<Language>> standardLanguages() async {
       isSupported: false,
       removeAllSpaces: false,
       readingOptions: ['original'],
+      readingLabels: ['ORIGINAL'],
       spacingOptions: ['original'],
     ),
     Language(
@@ -40,6 +44,7 @@ Future<List<Language>> standardLanguages() async {
       isSupported: false,
       removeAllSpaces: false,
       readingOptions: ['original'],
+      readingLabels: ['ORIGINAL'],
       spacingOptions: ['original'],
     ),
     Language(
@@ -48,6 +53,7 @@ Future<List<Language>> standardLanguages() async {
       isSupported: false,
       removeAllSpaces: false,
       readingOptions: ['original'],
+      readingLabels: ['ORIGINAL'],
       spacingOptions: ['original'],
     ),
     Language(
@@ -56,6 +62,7 @@ Future<List<Language>> standardLanguages() async {
       isSupported: false,
       removeAllSpaces: false,
       readingOptions: ['original'],
+      readingLabels: ['ORIGINAL'],
       spacingOptions: ['original'],
     ),
     Language(
@@ -64,6 +71,7 @@ Future<List<Language>> standardLanguages() async {
       isSupported: false,
       removeAllSpaces: false,
       readingOptions: ['original'],
+      readingLabels: ['ORIGINAL'],
       spacingOptions: ['original'],
     ),
     Language(
@@ -72,6 +80,7 @@ Future<List<Language>> standardLanguages() async {
       isSupported: false,
       removeAllSpaces: true,
       readingOptions: ['original'],
+      readingLabels: ['ORIGINAL'],
       spacingOptions: ['original'],
     ),
     Language(
@@ -80,6 +89,7 @@ Future<List<Language>> standardLanguages() async {
       isSupported: false,
       removeAllSpaces: true,
       readingOptions: ['original'],
+      readingLabels: ['ORIGINAL'],
       spacingOptions: ['original'],
     ),
   ];
