@@ -1,8 +1,72 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/legacy.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/app_configs_provider.dart';
+import '../anilist_status_provider.dart';
 
 import 'package:eiga/backend/database/dto/anilist_dto.dart';
 import 'package:eiga/backend/database/dto/jimaku_dto.dart';
+
+enum MetadataProviderType { anilist, jikan, tvmaze, manual }
+enum ServiceStatus { active, maintenance, down }
+
+class SelectedMetadataNotifier extends StateNotifier<MetadataProviderType> {
+  final Ref _ref;
+  static const _prefKey = 'selected_metadata_provider';
+
+  SelectedMetadataNotifier(this._ref) : super(MetadataProviderType.anilist) {
+    _load();
+  }
+
+  void _load() {
+    final prefs = _ref.read(sharedPreferencesProvider);
+    final saved = prefs.getString(_prefKey);
+    if (saved != null) {
+      state = MetadataProviderType.values.firstWhere(
+        (e) => e.name == saved,
+        orElse: () => MetadataProviderType.anilist,
+      );
+    }
+  }
+
+  void setProvider(MetadataProviderType provider) {
+    state = provider;
+    final prefs = _ref.read(sharedPreferencesProvider);
+    prefs.setString(_prefKey, provider.name);
+  }
+}
+
+final selectedMetadataProvider = StateNotifierProvider<SelectedMetadataNotifier, MetadataProviderType>((ref) {
+  return SelectedMetadataNotifier(ref);
+});
+
+final isMetadataSelectorExpandedProvider = StateProvider<bool>((ref) => false);
+
+final metadataStatusProvider = Provider.family<ServiceStatus, MetadataProviderType>((ref, provider) {
+  if (provider == MetadataProviderType.anilist) {
+    final status = ref.watch(aniListStatusProvider);
+    switch (status) {
+      case AniListStatus.online:
+        return ServiceStatus.active;
+      case AniListStatus.maintenance:
+        return ServiceStatus.maintenance;
+      case AniListStatus.error:
+        return ServiceStatus.down;
+    }
+  }
+
+  // Mock statuses for other providers
+  switch (provider) {
+    case MetadataProviderType.jikan:
+      return ServiceStatus.active;
+    case MetadataProviderType.tvmaze:
+      return ServiceStatus.active;
+    case MetadataProviderType.manual:
+      return ServiceStatus.active;
+    default:
+      return ServiceStatus.active;
+  }
+});
 
 class SearchSourceKeys {
   static const String jimaku = 'jimaku';

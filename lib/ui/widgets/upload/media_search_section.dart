@@ -17,6 +17,7 @@ import 'package:eiga/ui/widgets/shared/app_text_field.dart';
 import 'package:eiga/ui/widgets/shared/app_section_card.dart';
 import 'package:eiga/ui/widgets/shared/app_text_button.dart';
 import 'package:eiga/utils/debounce.dart';
+import 'metadata_provider_selector.dart';
 
 class MediaSearchSection extends ConsumerStatefulWidget {
   const MediaSearchSection({super.key});
@@ -161,8 +162,8 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
 
     final sourceKey = subtitleSource == SubtitleSource.local ? _aniListSource.key : _jimakuSource.key;
 
-    // Sync search field with videoName when it changes, but only if empty
-    ref.listen(uploadProvider.select((s) => s.videoName), (previous, next) {
+    // Sync search field with fileName when it changes, but only if empty
+    ref.listen(uploadProvider.select((s) => s.fileName), (previous, next) {
       if (next != null && next.isNotEmpty && _controller.text.isEmpty) {
         _controller.text = next;
       }
@@ -176,8 +177,8 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
       }
     });
 
-    // Auto-search when videoName changes
-    ref.listen(uploadProvider.select((s) => s.videoName), (previous, next) {
+    // Auto-search when fileName changes
+    ref.listen(uploadProvider.select((s) => s.fileName), (previous, next) {
       if (next != null && next.length >= 3 && next != _lastAutoSearchQuery) {
         _lastAutoSearchQuery = next;
         _performSearch(next, subtitleSource);
@@ -192,14 +193,14 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
       }
     });
 
-    // Initial search if videoName is already set
+    // Initial search if fileName is already set
     if (!_isInitialSearchDone) {
       _isInitialSearchDone = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        final currentVideoName = ref.read(uploadProvider).videoName;
-        if (currentVideoName != null && currentVideoName.length >= 3) {
-          _lastAutoSearchQuery = currentVideoName;
-          _performSearch(currentVideoName, subtitleSource);
+        final currentFileName = ref.read(uploadProvider).fileName;
+        if (currentFileName != null && currentFileName.length >= 3) {
+          _lastAutoSearchQuery = currentFileName;
+          _performSearch(currentFileName, subtitleSource);
         }
       });
     }
@@ -229,8 +230,6 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
 
     // Limit visible results in the horizontal list to improve performance and prevent clutter
     final results = rawResults.length > 12 ? rawResults.take(12).toList() : [...rawResults];
-    
-    final status = ref.watch(aniListStatusProvider);
 
     if (selectedEntry != null) {
       final index = results.indexWhere((e) => 
@@ -251,67 +250,60 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (status == AniListStatus.maintenance)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.amber[700], size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'AniList API is down. Subtitles will work, but images and extra data might be missing.',
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.amber[900],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: theme.cardBorder),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
+            ],
           ),
-        const SizedBox(height: 8),
-        AppTextField(
-          controller: _controller,
-          onChanged: (val) => _onSearchChanged(val, subtitleSource),
-          hintText: subtitleSource == SubtitleSource.local ? 'Search AniList...' : 'Search Jimaku...',
-          prefixIcon: Icon(Icons.auto_awesome, color: theme.mutedText, size: 16),
-          suffixIcon: Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (isSearching)
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3B66F5)),
-                  ),
-                TextButton(
-                  onPressed: () => _performSearch(_controller.text, subtitleSource),
-                  child: Text(
-                    'Search',
-                    style: TextStyle(
-                      color: theme.primaryAccent,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const MetadataProviderSelector(),
+              const SizedBox(height: 20),
+              AppTextField(
+                controller: _controller,
+                onChanged: (val) => _onSearchChanged(val, subtitleSource),
+                hintText: 'Search for metadata...',
+                prefixIcon: Icon(Icons.auto_awesome, color: theme.mutedText, size: 16),
+                suffixIcon: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isSearching)
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3B66F5)),
+                        ),
+                      TextButton(
+                        onPressed: () => _performSearch(_controller.text, subtitleSource),
+                        child: Text(
+                          'Search',
+                          style: TextStyle(
+                            color: theme.primaryAccent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [

@@ -2,7 +2,7 @@ class JimakuDataDTO {
   final int id;
   final String name;
   final String? englishName;
-  final String? japaneseName;
+  final String? originalName;
   final int? anilistId;
   final String? tmdbId;
   final DateTime lastModified;
@@ -15,7 +15,7 @@ class JimakuDataDTO {
     required this.id,
     required this.name,
     this.englishName,
-    this.japaneseName,
+    this.originalName,
     this.anilistId,
     this.tmdbId,
     required this.lastModified,
@@ -32,7 +32,7 @@ class JimakuDataDTO {
       id: json['id'] as int,
       name: json['name'] as String,
       englishName: json['english_name'] as String?,
-      japaneseName: json['japanese_name'] as String?,
+      originalName: json['japanese_name'] as String?,
       anilistId: json['anilist_id'] as int?,
       tmdbId: json['tmdb_id'] as String?,
       lastModified: DateTime.parse(json['last_modified'] as String),

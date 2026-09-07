@@ -1,7 +1,9 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
+import 'package:eiga/providers/anilist_status_provider.dart';
 import '../widgets/shared/loading_splash.dart';
 
 import '../widgets/shared/section_title.dart';
@@ -22,6 +24,10 @@ class UploadScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = AdditionalWindowTheme.of(context);
     final isInitialized = ref.watch(uploadProvider.select((s) => s.isInitialized));
+
+    // Trigger AniList health check on screen entry
+    developer.log('UploadScreen build: triggering AniList health check', name: 'UI');
+    ref.watch(checkAniListStatusProvider);
 
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {

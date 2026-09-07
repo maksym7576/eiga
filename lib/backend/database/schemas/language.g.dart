@@ -24,18 +24,23 @@ const LanguageSchema = CollectionSchema(
       type: IsarType.bool,
     ),
     r'name': PropertySchema(id: 2, name: r'name', type: IsarType.string),
-    r'readingOptions': PropertySchema(
+    r'readingLabels': PropertySchema(
       id: 3,
+      name: r'readingLabels',
+      type: IsarType.stringList,
+    ),
+    r'readingOptions': PropertySchema(
+      id: 4,
       name: r'readingOptions',
       type: IsarType.stringList,
     ),
     r'removeAllSpaces': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'removeAllSpaces',
       type: IsarType.bool,
     ),
     r'spacingOptions': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'spacingOptions',
       type: IsarType.stringList,
     ),
@@ -101,6 +106,13 @@ int _languageEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.readingLabels.length * 3;
+  {
+    for (var i = 0; i < object.readingLabels.length; i++) {
+      final value = object.readingLabels[i];
+      bytesCount += value.length * 3;
+    }
+  }
   bytesCount += 3 + object.readingOptions.length * 3;
   {
     for (var i = 0; i < object.readingOptions.length; i++) {
@@ -127,9 +139,10 @@ void _languageSerialize(
   writer.writeString(offsets[0], object.code);
   writer.writeBool(offsets[1], object.isSupported);
   writer.writeString(offsets[2], object.name);
-  writer.writeStringList(offsets[3], object.readingOptions);
-  writer.writeBool(offsets[4], object.removeAllSpaces);
-  writer.writeStringList(offsets[5], object.spacingOptions);
+  writer.writeStringList(offsets[3], object.readingLabels);
+  writer.writeStringList(offsets[4], object.readingOptions);
+  writer.writeBool(offsets[5], object.removeAllSpaces);
+  writer.writeStringList(offsets[6], object.spacingOptions);
 }
 
 Language _languageDeserialize(
@@ -142,9 +155,10 @@ Language _languageDeserialize(
     code: reader.readStringOrNull(offsets[0]),
     isSupported: reader.readBoolOrNull(offsets[1]) ?? false,
     name: reader.readStringOrNull(offsets[2]),
-    readingOptions: reader.readStringList(offsets[3]) ?? const [],
-    removeAllSpaces: reader.readBoolOrNull(offsets[4]) ?? false,
-    spacingOptions: reader.readStringList(offsets[5]) ?? const [],
+    readingLabels: reader.readStringList(offsets[3]) ?? const [],
+    readingOptions: reader.readStringList(offsets[4]) ?? const [],
+    removeAllSpaces: reader.readBoolOrNull(offsets[5]) ?? false,
+    spacingOptions: reader.readStringList(offsets[6]) ?? const [],
   );
   object.id = id;
   return object;
@@ -166,8 +180,10 @@ P _languageDeserializeProp<P>(
     case 3:
       return (reader.readStringList(offset) ?? const []) as P;
     case 4:
-      return (reader.readBoolOrNull(offset) ?? false) as P;
+      return (reader.readStringList(offset) ?? const []) as P;
     case 5:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
+    case 6:
       return (reader.readStringList(offset) ?? const []) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -914,6 +930,200 @@ extension LanguageQueryFilter
   }
 
   QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsElementEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'readingLabels',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'readingLabels',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'readingLabels',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'readingLabels',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsElementStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'readingLabels',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsElementEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'readingLabels',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'readingLabels',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'readingLabels',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'readingLabels', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'readingLabels', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'readingLabels', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'readingLabels', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'readingLabels', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'readingLabels', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'readingLabels', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
+  readingLabelsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'readingLabels',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterFilterCondition>
   readingOptionsElementEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1454,6 +1664,12 @@ extension LanguageQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Language, Language, QDistinct> distinctByReadingLabels() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'readingLabels');
+    });
+  }
+
   QueryBuilder<Language, Language, QDistinct> distinctByReadingOptions() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'readingOptions');
@@ -1496,6 +1712,13 @@ extension LanguageQueryProperty
   QueryBuilder<Language, String?, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
+    });
+  }
+
+  QueryBuilder<Language, List<String>, QQueryOperations>
+  readingLabelsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'readingLabels');
     });
   }
 

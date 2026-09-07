@@ -26,7 +26,8 @@ class UploadState {
   final SubtitleSource subtitleSource;
   final String? videoPath;
   final String? subtitlePath;
-  final String? videoName;
+  final String? fileName;
+  final String? subtitleFileName;
   final String? episode;
   final String? season;
   final List<Phrase> previewPhrases;
@@ -39,7 +40,8 @@ class UploadState {
     this.subtitleSource = SubtitleSource.local,
     this.videoPath,
     this.subtitlePath,
-    this.videoName,
+    this.fileName,
+    this.subtitleFileName,
     this.episode,
     this.season,
     this.previewPhrases = const [],
@@ -53,7 +55,8 @@ class UploadState {
     SubtitleSource? subtitleSource,
     String? videoPath,
     String? subtitlePath,
-    String? videoName,
+    String? fileName,
+    String? subtitleFileName,
     String? episode,
     String? season,
     List<Phrase>? previewPhrases,
@@ -66,7 +69,8 @@ class UploadState {
       subtitleSource: subtitleSource ?? this.subtitleSource,
       videoPath: videoPath ?? this.videoPath,
       subtitlePath: subtitlePath ?? this.subtitlePath,
-      videoName: videoName ?? this.videoName,
+      fileName: fileName ?? this.fileName,
+      subtitleFileName: subtitleFileName ?? this.subtitleFileName,
       episode: episode ?? this.episode,
       season: season ?? this.season,
       previewPhrases: previewPhrases ?? this.previewPhrases,
@@ -151,7 +155,7 @@ class UploadNotifier extends Notifier<UploadState> {
         final info = parseSeasonEpisode(p.basename(path));
         state = state.copyWith(
           videoPath: path,
-          videoName: p.basenameWithoutExtension(path),
+          fileName: p.basenameWithoutExtension(path),
           season: info.season,
           episode: info.episode,
         );
@@ -178,6 +182,7 @@ class UploadNotifier extends Notifier<UploadState> {
     
     state = state.copyWith(
       subtitlePath: path,
+      subtitleFileName: p.basename(path),
       isParsing: true,
       previewPhrases: [],
       episode: episode ?? state.episode ?? info.episode,
@@ -245,7 +250,8 @@ class UploadNotifier extends Notifier<UploadState> {
     final video = Video()
       ..videoPath = state.videoPath
       ..pathSubtitle = state.subtitlePath
-      ..videoName = state.videoName
+      ..fileName = state.fileName
+      ..subtitleFileName = state.subtitleFileName
       ..episode = state.episode
       ..season = state.season
       ..originalLanguage = languages.original ?? 'Japanese'
@@ -257,7 +263,8 @@ class UploadNotifier extends Notifier<UploadState> {
       video.coverImagePath = finalCoverPath;
       video.description = latestAnilistData.description;
       video.genres = latestAnilistData.genres;
-      video.englishName = latestAnilistData.englishTitle;
+      video.seriesName = latestAnilistData.englishTitle;
+      video.originalName = latestAnilistData.nativeTitle;
       video.colorThemeValue = latestAnilistData.colorThemeValue;
     }
 

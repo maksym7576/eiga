@@ -142,7 +142,7 @@ class VideoLibraryCard extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              video.videoName ?? 'Untitled Video',
+              video.seriesName ?? video.fileName ?? 'Untitled Video',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,

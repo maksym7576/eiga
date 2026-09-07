@@ -44,7 +44,7 @@ class VideoScreenHeader extends ConsumerWidget implements PreferredSizeWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        video?.videoName ?? '...',
+                        video?.seriesName ?? video?.fileName ?? '...',
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,

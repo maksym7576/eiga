@@ -18,7 +18,7 @@ class ContextTranslationPipeline extends PipelineAbstract {
   String promptFor(PipelineStepType type, Video video) {
     final sourceLanguage = video.originalLanguage ?? '';
     final targetLanguage = video.translatedLanguage ?? '';
-    final title = video.videoName ?? video.nameJumaku ?? '';
+    final title = video.seriesName ?? video.fileName ?? video.nameJumaku ?? '';
 
     switch (type) {
       case PipelineStepType.contextResearch:

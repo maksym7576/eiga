@@ -13,15 +13,15 @@ class Video {
   String? pathSubtitle;
   String? videoPath;
   DateTime? createdAt;
-  String? videoName;
+  String? fileName;
   String? episode;
   String? season;
 
-  // Jumaku data
+  // Metadata
   String? nameJumaku;
-  String? englishName;
-  String? japaneseName;
-  String? nameFileJumaku;
+  String? seriesName;
+  String? originalName;
+  String? subtitleFileName;
   int? anilistId;
   String? tmdbId;
   bool? isAnime;
@@ -29,7 +29,6 @@ class Video {
   bool? isAdult;
   bool? isUnverified;
 
-  // AnilistData
   String? coverImagePath;
   String? description;
   String? bannerImage;
@@ -65,13 +64,13 @@ class Video {
     String? pathSubtitle,
     String? videoPath,
     DateTime? createdAt,
-    String? videoName,
+    String? fileName,
     String? episode,
     String? season,
     String? nameJumaku,
-    String? englishName,
-    String? japaneseName,
-    String? nameFileJumaku,
+    String? seriesName,
+    String? originalName,
+    String? subtitleFileName,
     int? anilistId,
     String? tmdbId,
     bool? isAnime,
@@ -95,13 +94,13 @@ class Video {
       ..pathSubtitle = pathSubtitle ?? this.pathSubtitle
       ..videoPath = videoPath ?? this.videoPath
       ..createdAt = createdAt ?? this.createdAt
-      ..videoName = videoName ?? this.videoName
+      ..fileName = fileName ?? this.fileName
       ..episode = episode ?? this.episode
       ..season = season ?? this.season
       ..nameJumaku = nameJumaku ?? this.nameJumaku
-      ..englishName = englishName ?? this.englishName
-      ..japaneseName = japaneseName ?? this.japaneseName
-      ..nameFileJumaku = nameFileJumaku ?? this.nameFileJumaku
+      ..seriesName = seriesName ?? this.seriesName
+      ..originalName = originalName ?? this.originalName
+      ..subtitleFileName = subtitleFileName ?? this.subtitleFileName
       ..anilistId = anilistId ?? this.anilistId
       ..tmdbId = tmdbId ?? this.tmdbId
       ..isAnime = isAnime ?? this.isAnime

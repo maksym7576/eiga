@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
@@ -107,8 +108,9 @@ class AniListService {
     int page = 1,
     int perPage = 10,
   }) async {
+    final stopwatch = Stopwatch()..start();
     try {
-      developer.log('AniList search: "$name" (page: $page)', name: 'AniListService');
+      developer.log('AniList status check & search: "$name" (page: $page)', name: 'AniListService');
       final response = await http
           .post(
             Uri.parse(_endpoint),
@@ -124,6 +126,8 @@ class AniListService {
           )
           .timeout(_timeout);
 
+      developer.log('AniList response received in ${stopwatch.elapsedMilliseconds}ms', name: 'AniListService');
+
       if (response.statusCode == 429) {
         final retryAfter = response.headers['retry-after'];
         developer.log('AniList rate limit exceeded. Retry-After: $retryAfter', name: 'AniListService');
@@ -131,12 +135,13 @@ class AniListService {
       }
 
       if (response.statusCode != 200) {
+        final errorMessage = _tryExtractErrorMessage(response.body);
         developer.log(
           'AniList search failed: ${response.statusCode}\nBody: ${response.body}',
           name: 'AniListService',
         );
         if (response.body.contains('temporarily disabled')) {
-          throw AniListDisabledException('The AniList API has been temporarily disabled.');
+          throw AniListDisabledException(errorMessage ?? 'The AniList API has been temporarily disabled.');
         }
         return [];
       }
@@ -144,16 +149,21 @@ class AniListService {
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       
       if (decoded.containsKey('errors')) {
-        final errors = decoded['errors'] as List<dynamic>;
-        if (errors.any((e) => e['message']?.toString().contains('temporarily disabled') ?? false)) {
-          throw AniListDisabledException('The AniList API has been temporarily disabled.');
+        final errorMessage = _tryExtractErrorMessage(response.body);
+        if (errorMessage != null && errorMessage.contains('temporarily disabled')) {
+          throw AniListDisabledException(errorMessage);
         }
-        developer.log('AniList returned GraphQL errors: $errors', name: 'AniListService');
+        developer.log('AniList returned GraphQL errors: ${decoded['errors']}', name: 'AniListService');
       }
 
       final mediaList = decoded['data']?['Page']?['media'] as List<dynamic>?;
 
-      if (mediaList == null) return [];
+      if (mediaList == null) {
+        developer.log('AniList search returned 0 results', name: 'AniListService');
+        return [];
+      }
+
+      developer.log('AniList search returned ${mediaList.length} results', name: 'AniListService');
 
       return mediaList
           .where((m) => m != null)
@@ -161,14 +171,78 @@ class AniListService {
           .toList();
     } catch (e, st) {
       if (e is AniListDisabledException) rethrow;
-      developer.log(
-        'AniList getByName failed',
-        name: 'AniListService',
-        error: e,
-        stackTrace: st,
-      );
+      _handleError('getByName', e, st, query: name);
       return [];
     }
+  }
+
+  void _handleError(String methodName, dynamic error, StackTrace stackTrace, {String? query}) {
+    final isNetworkError = error is SocketException || 
+                           error is HttpException || 
+                           error is http.ClientException || 
+                           error is TimeoutException;
+    
+    if (isNetworkError) {
+      developer.log(
+        'AniList SERVER PROBLEM ($methodName): Connection failed or timed out. '
+        'This is likely an issue with AniList servers or your internet connection.',
+        name: 'AniListService',
+        error: error,
+        level: 1000, // Error level
+      );
+    } else if (error is FormatException || error is TypeError) {
+      developer.log(
+        'AniList CODE/APP PROBLEM ($methodName): Failed to parse response. '
+        'This means the code needs to be updated to match the API changes.',
+        name: 'AniListService',
+        error: error,
+        stackTrace: stackTrace,
+        level: 1200, // Fatal/Critical level
+      );
+    } else {
+      developer.log(
+        'AniList UNKNOWN PROBLEM ($methodName): ${query != null ? "Query: $query" : ""}',
+        name: 'AniListService',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<(bool, String?)> checkHealth() async {
+    developer.log('AniList health check started...', name: 'AniListService');
+    try {
+      final response = await http
+          .post(
+            Uri.parse(_endpoint),
+            headers: _headers,
+            body: jsonEncode({
+              'query': 'query { Page(perPage: 1) { media(type: ANIME) { id } } }',
+            }),
+          )
+          .timeout(const Duration(seconds: 5));
+      
+      if (response.statusCode == 200) return (true, null);
+
+      final message = _tryExtractErrorMessage(response.body);
+      return (false, message);
+    } catch (e) {
+      developer.log('AniList health check failed: $e', name: 'AniListService');
+      return (false, null);
+    }
+  }
+
+  String? _tryExtractErrorMessage(String body) {
+    try {
+      final decoded = jsonDecode(body) as Map<String, dynamic>;
+      if (decoded.containsKey('errors')) {
+        final errors = decoded['errors'] as List<dynamic>;
+        if (errors.isNotEmpty) {
+          return errors.first['message']?.toString();
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<List<AniListDataDTO>> getByIds(List<int> ids) async {
@@ -198,12 +272,13 @@ class AniListService {
       }
 
       if (response.statusCode != 200) {
+        final errorMessage = _tryExtractErrorMessage(response.body);
         developer.log(
           'AniList getByIds failed: ${response.statusCode}\nBody: ${response.body}',
           name: 'AniListService',
         );
         if (response.body.contains('temporarily disabled')) {
-          throw AniListDisabledException('The AniList API has been temporarily disabled.');
+          throw AniListDisabledException(errorMessage ?? 'The AniList API has been temporarily disabled.');
         }
         return [];
       }
@@ -211,16 +286,21 @@ class AniListService {
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       
       if (decoded.containsKey('errors')) {
-        final errors = decoded['errors'] as List<dynamic>;
-        if (errors.any((e) => e['message']?.toString().contains('temporarily disabled') ?? false)) {
-          throw AniListDisabledException('The AniList API has been temporarily disabled.');
+        final errorMessage = _tryExtractErrorMessage(response.body);
+        if (errorMessage != null && errorMessage.contains('temporarily disabled')) {
+          throw AniListDisabledException(errorMessage);
         }
-        developer.log('AniList returned GraphQL errors: $errors', name: 'AniListService');
+        developer.log('AniList returned GraphQL errors: ${decoded['errors']}', name: 'AniListService');
       }
 
       final mediaList = decoded['data']?['Page']?['media'] as List<dynamic>?;
 
-      if (mediaList == null) return [];
+      if (mediaList == null) {
+        developer.log('AniList search returned 0 results', name: 'AniListService');
+        return [];
+      }
+
+      developer.log('AniList search returned ${mediaList.length} results', name: 'AniListService');
 
       return mediaList
           .where((m) => m != null)
@@ -228,12 +308,7 @@ class AniListService {
           .toList();
     } catch (e, st) {
       if (e is AniListDisabledException) rethrow;
-      developer.log(
-        'AniList getByIds failed',
-        name: 'AniListService',
-        error: e,
-        stackTrace: st,
-      );
+      _handleError('getByIds', e, st);
       return [];
     }
   }
@@ -262,12 +337,13 @@ class AniListService {
       }
 
       if (response.statusCode != 200) {
+        final errorMessage = _tryExtractErrorMessage(response.body);
         developer.log(
           'AniList request failed: ${response.statusCode}\nBody: ${response.body}',
           name: 'AniListService',
         );
         if (response.body.contains('temporarily disabled')) {
-          throw AniListDisabledException('The AniList API has been temporarily disabled.');
+          throw AniListDisabledException(errorMessage ?? 'The AniList API has been temporarily disabled.');
         }
         return null;
       }
@@ -275,11 +351,11 @@ class AniListService {
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       
       if (decoded.containsKey('errors')) {
-        final errors = decoded['errors'] as List<dynamic>;
-        if (errors.any((e) => e['message']?.toString().contains('temporarily disabled') ?? false)) {
-          throw AniListDisabledException('The AniList API has been temporarily disabled.');
+        final errorMessage = _tryExtractErrorMessage(response.body);
+        if (errorMessage != null && errorMessage.contains('temporarily disabled')) {
+          throw AniListDisabledException(errorMessage);
         }
-        developer.log('AniList returned GraphQL errors: $errors', name: 'AniListService');
+        developer.log('AniList returned GraphQL errors: ${decoded['errors']}', name: 'AniListService');
       }
       
       final media = decoded['data']?['Media'] as Map<String, dynamic>?;
@@ -311,12 +387,7 @@ class AniListService {
       return dto;
     } catch (e, st) {
       if (e is AniListDisabledException) rethrow;
-      developer.log(
-        'AniList getById failed',
-        name: 'AniListService',
-        error: e,
-        stackTrace: st,
-      );
+      _handleError('getById', e, st, query: anilistId.toString());
       return null;
     }
   }

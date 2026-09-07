@@ -18,7 +18,7 @@ class TotalPipeline extends PipelineAbstract {
       type: PromptType.total,
       sourceLanguage: video.originalLanguage ?? '',
       targetLanguage: video.translatedLanguage ?? '',
-      title: video.videoName ?? video.nameJumaku ?? '',
+      title: video.seriesName ?? video.fileName ?? video.nameJumaku ?? '',
       season: video.season ?? '',
       episodeNumber: video.episode ?? '',
       contextBlock: video.researchInformation ?? '',
