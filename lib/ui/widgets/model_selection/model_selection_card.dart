@@ -175,9 +175,29 @@ class ModelSelectionCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text(
-                        model.name,
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.normalText),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            model.name,
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.normalText),
+                          ),
+                          if (model.errorCount > 0)
+                            Row(
+                              children: [
+                                Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 10),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Unstable (${model.errorCount} errors)',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.orangeAccent,
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
                       ),
                     ),
                     Padding(
@@ -195,7 +215,7 @@ class ModelSelectionCard extends StatelessWidget {
                 _labeledBar('Speed', _segmentBar(active: _speedSegmentsActive, total: 4, activeColor: Colors.blue, offColor: theme.segmentOffColor), theme),
                 const SizedBox(height: 8),
                 _labeledBar('Power', _segmentBar(active: _qualitySegmentsActive, total: 4, activeColor: theme.primaryAccent, offColor: theme.segmentOffColor), theme),
-                if (step == TranslationPipelineStep.morphemes || step == TranslationPipelineStep.fullTranslate) ...[
+                if (step == TranslationPipelineStep.morphemes) ...[
                   const SizedBox(height: 12),
                   Align(alignment: Alignment.bottomRight, child: _streamingToggle(theme)),
                 ],

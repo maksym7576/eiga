@@ -6,6 +6,7 @@ import '../../../../providers/services/database_services_providers.dart';
 import '../../../database/schemas/ai_model.dart';
 import '../../utils/ai_exceptions.dart';
 import '../parsers/phrase_response_handler.dart';
+import '../parsers/response_parser_utils.dart';
 import '../../../../utils/logger.dart';
 import '../../../../config/secure_storage.dart';
 
@@ -19,7 +20,7 @@ class GeminiService {
   });
 
   Future<AiRequestResult> fetchEpisodeContext(String url, String prompt, int videoId, {required AiModel model}) async {
-    logger.d('Gemini HTTP: fetching episode context for video $videoId');
+    logger.d('[AiHttp] Fetching episode context for video $videoId');
     try {
       final String jsonString = await sendRequest(url, prompt, model: model);
 
@@ -41,7 +42,7 @@ class GeminiService {
   }
 
   Future<AiRequestResult> fetchTranslations(String url, String prompt, {required AiModel model, List<int> expectedIds = const []}) async {
-    logger.d('AI HTTP: fetching translations for ${expectedIds.length} phrases');
+    logger.d('[AiHttp] Fetching translations for ${expectedIds.length} phrases');
     try {
       final String jsonString = await sendRequest(url, prompt, model: model);
       final Map<String, dynamic> jsonResponse = jsonDecode(jsonString);
@@ -61,11 +62,17 @@ class GeminiService {
     required AiModel model,
     List<int> expectedIds = const [],
     void Function(int processed)? onProgress,
+    String? language,
+    bool useSoftReset = false,
   }) async {
-    logger.d('AI HTTP: fetching parse and save for ${expectedIds.length} phrases');
+    logger.d('[AiHttp] Fetching parse and save for ${expectedIds.length} phrases. Soft reset: $useSoftReset');
     try {
       final String jsonResponse = await sendRequest(url, prompt, model: model);
-      final result = await phraseResponseHandler.processResponse(jsonResponse, expectedIds: expectedIds);
+      
+      // Log received data - Simplified
+      logger.d('[AiHttp] Received data (${jsonResponse.length} chars)');
+
+      final result = await phraseResponseHandler.processResponse(jsonResponse, expectedIds: expectedIds, language: language);
       
       if (result.phase == AiRequestPhase.success) {
         onProgress?.call(expectedIds.length);
@@ -81,7 +88,7 @@ class GeminiService {
   }
 
   Future<String> sendRequest(String url, String prompt, {required AiModel model}) async {
-    logger.d('AI HTTP: sending request to $url (Provider: ${model.provider.name})');
+    logger.d('[AiHttp] Sending request (Provider: ${model.provider.name})');
     
     final Map<String, String> headers = {'Content-Type': 'application/json'};
     
@@ -140,6 +147,9 @@ class GeminiService {
       onTimeout: () => throw GeminiGeneralException("AI request time out"),
     );
 
+    // Increment usage for each request
+    await ref.read(aiModelServiceProvider).incrementUsage(model.name, 1);
+
     if (response.statusCode == 200) {
       final bodyText = response.body;
       if (bodyText.trim().isEmpty) {
@@ -175,16 +185,19 @@ class GeminiService {
 
   void _handleHttpError(http.Response response) {
     final int code = response.statusCode;
-    logger.e('AI HTTP Error: $code. Body: ${response.body}');
+    final body = response.body;
+    logger.e('AI HTTP Error: $code. Body: $body');
+    
+    final retryAfter = ResponseParserUtils.parseRetryAfter(body);
 
     if (code == 403 || code == 400) {
       throw GeminiIncorrectTokenException("Token is incorrect or request malformed");
     } else if (code == 429) {
-      throw GeminiModelExpiredException('Rate limit exceeded');
+      throw GeminiModelExpiredException('Rate limit exceeded', retryAfter: retryAfter);
     } else if (code == 500 || code == 503 || code == 504) {
-      throw GeminiServerException('Server error');
+      throw GeminiServerException('Server error', retryAfter: retryAfter ?? const Duration(seconds: 4));
     } else {
-      throw GeminiGeneralException('Request failed with status $code');
+      throw GeminiGeneralException('Request failed with status $code', retryAfter: retryAfter);
     }
   }
 }

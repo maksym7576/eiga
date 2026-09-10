@@ -115,8 +115,56 @@ class PhraseService {
       final phrase = await db.phrases.get(phraseId);
       if (phrase != null) {
         phrase.translatedPhrase = translatedText;
-        phrase.isTranslated = false;
-        phrase.isTranslating = true;
+        phrase.isTranslated = true;
+        phrase.isTranslating = false;
+        await db.phrases.put(phrase);
+      }
+    });
+  }
+
+  /// Updates translation text without clearing the translating flag or marking as fully done.
+  /// Used between stages of multi-step pipelines.
+  Future<void> updateTranslatedPhraseTextRaw(int phraseId, String translatedText) async {
+    await db.writeTxn(() async {
+      final phrase = await db.phrases.get(phraseId);
+      if (phrase != null) {
+        phrase.translatedPhrase = translatedText;
+        await db.phrases.put(phrase);
+      }
+    });
+  }
+
+  Future<void> updatePhraseTexts(int phraseId, String original, String translation) async {
+    await db.writeTxn(() async {
+      final phrase = await db.phrases.get(phraseId);
+      if (phrase != null) {
+        phrase.originalPhrase = original;
+        phrase.translatedPhrase = translation;
+        phrase.isTranslated = true;
+        phrase.isTranslating = false;
+        await db.phrases.put(phrase);
+      }
+    });
+  }
+
+  /// Updates original and translation texts without clearing the translating flag.
+  Future<void> updatePhraseTextsRaw(int phraseId, String original, String translation) async {
+    await db.writeTxn(() async {
+      final phrase = await db.phrases.get(phraseId);
+      if (phrase != null) {
+        phrase.originalPhrase = original;
+        phrase.translatedPhrase = translation;
+        await db.phrases.put(phrase);
+      }
+    });
+  }
+
+  Future<void> updateTokens(int phraseId, {List<TokenEntry>? original, List<TokenEntry>? translated}) async {
+    await db.writeTxn(() async {
+      final phrase = await db.phrases.get(phraseId);
+      if (phrase != null) {
+        if (original != null) phrase.originalTokens = original;
+        if (translated != null) phrase.translatedTokens = translated;
         await db.phrases.put(phrase);
       }
     });
@@ -141,6 +189,18 @@ class PhraseService {
           phrase.isTranslating = false;
           phrase.translatedPhrase = null;
           phrase.isTranslated = false;
+          await db.phrases.put(phrase);
+        }
+      }
+    });
+  }
+
+  Future<void> resetTranslatingState(List<int> phraseIds) async {
+    await db.writeTxn(() async {
+      for (var id in phraseIds) {
+        final phrase = await db.phrases.get(id);
+        if (phrase != null) {
+          phrase.isTranslating = false;
           await db.phrases.put(phrase);
         }
       }

@@ -1,9 +1,13 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
-import 'package:eiga/providers/anilist_status_provider.dart';
+import 'package:eiga/providers/ui/search_provider.dart';
+import 'package:eiga/providers/service_status_providers.dart';
+import 'package:eiga/providers/ui/video_data_providers.dart';
+import 'package:eiga/providers/ui/player_provider.dart';
 import '../widgets/shared/loading_splash.dart';
 
 import '../widgets/shared/section_title.dart';
@@ -17,17 +21,29 @@ import '../widgets/upload/phrases_preview_section.dart';
 import '../widgets/upload/upload_action_buttons.dart';
 import '../widgets/upload/episode_selection_section.dart';
 
-class UploadScreen extends ConsumerWidget {
+class UploadScreen extends HookConsumerWidget {
   const UploadScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = AdditionalWindowTheme.of(context);
     final isInitialized = ref.watch(uploadProvider.select((s) => s.isInitialized));
+    final selectedProvider = ref.watch(selectedMetadataProvider);
 
-    // Trigger AniList health check on screen entry
-    developer.log('UploadScreen build: triggering AniList health check', name: 'UI');
-    ref.watch(checkAniListStatusProvider);
+    useEffect(() {
+      // Force stop and cleanup player when entering upload screen
+      // This prevents video playing in the background
+      Future.microtask(() {
+        ref.read(playerIdProvider.notifier).state = null;
+        ref.read(isPlayingProvider.notifier).state = false;
+        ref.read(playerProvider.notifier).setPlaying(false);
+      });
+      return null;
+    }, []);
+
+    // Trigger health check for the currently selected provider on screen entry
+    developer.log('UploadScreen build: triggering health check for $selectedProvider', name: 'UI');
+    ref.watch(checkServiceProviderStatus(selectedProvider));
 
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {

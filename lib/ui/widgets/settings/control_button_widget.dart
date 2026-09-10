@@ -54,7 +54,7 @@ class ControlButtonWidget extends ConsumerStatefulWidget {
           title: 'Jimaku API Key',
           description: 'Auto-search for subtitles & dictionaries',
           iconGradient: [Color(0xFF4338CA), Color(0xFF9333EA)],
-          icon: Icons.chat_bubble_rounded,
+          icon: Icons.vpn_key_rounded,
           steps: [
             GuideStep(
               title: 'Go to Jimaku Login',

@@ -38,22 +38,36 @@ const PhraseSchema = CollectionSchema(
       name: r'originalPhrase',
       type: IsarType.string,
     ),
-    r'phraseOrder': PropertySchema(
+    r'originalTokens': PropertySchema(
       id: 5,
+      name: r'originalTokens',
+      type: IsarType.objectList,
+
+      target: r'TokenEntry',
+    ),
+    r'phraseOrder': PropertySchema(
+      id: 6,
       name: r'phraseOrder',
       type: IsarType.long,
     ),
     r'startTime': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'startTime',
       type: IsarType.dateTime,
     ),
     r'translatedPhrase': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'translatedPhrase',
       type: IsarType.string,
     ),
-    r'videoId': PropertySchema(id: 8, name: r'videoId', type: IsarType.long),
+    r'translatedTokens': PropertySchema(
+      id: 9,
+      name: r'translatedTokens',
+      type: IsarType.objectList,
+
+      target: r'TokenEntry',
+    ),
+    r'videoId': PropertySchema(id: 10, name: r'videoId', type: IsarType.long),
   },
 
   estimateSize: _phraseEstimateSize,
@@ -77,7 +91,10 @@ const PhraseSchema = CollectionSchema(
     ),
   },
   links: {},
-  embeddedSchemas: {},
+  embeddedSchemas: {
+    r'TokenEntry': TokenEntrySchema,
+    r'ReadingItem': ReadingItemSchema,
+  },
 
   getId: _phraseGetId,
   getLinks: _phraseGetLinks,
@@ -98,9 +115,43 @@ int _phraseEstimateSize(
     }
   }
   {
+    final list = object.originalTokens;
+    if (list != null) {
+      bytesCount += 3 + list.length * 3;
+      {
+        final offsets = allOffsets[TokenEntry]!;
+        for (var i = 0; i < list.length; i++) {
+          final value = list[i];
+          bytesCount += TokenEntrySchema.estimateSize(
+            value,
+            offsets,
+            allOffsets,
+          );
+        }
+      }
+    }
+  }
+  {
     final value = object.translatedPhrase;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final list = object.translatedTokens;
+    if (list != null) {
+      bytesCount += 3 + list.length * 3;
+      {
+        final offsets = allOffsets[TokenEntry]!;
+        for (var i = 0; i < list.length; i++) {
+          final value = list[i];
+          bytesCount += TokenEntrySchema.estimateSize(
+            value,
+            offsets,
+            allOffsets,
+          );
+        }
+      }
     }
   }
   return bytesCount;
@@ -117,10 +168,22 @@ void _phraseSerialize(
   writer.writeBool(offsets[2], object.isTranslated);
   writer.writeBool(offsets[3], object.isTranslating);
   writer.writeString(offsets[4], object.originalPhrase);
-  writer.writeLong(offsets[5], object.phraseOrder);
-  writer.writeDateTime(offsets[6], object.startTime);
-  writer.writeString(offsets[7], object.translatedPhrase);
-  writer.writeLong(offsets[8], object.videoId);
+  writer.writeObjectList<TokenEntry>(
+    offsets[5],
+    allOffsets,
+    TokenEntrySchema.serialize,
+    object.originalTokens,
+  );
+  writer.writeLong(offsets[6], object.phraseOrder);
+  writer.writeDateTime(offsets[7], object.startTime);
+  writer.writeString(offsets[8], object.translatedPhrase);
+  writer.writeObjectList<TokenEntry>(
+    offsets[9],
+    allOffsets,
+    TokenEntrySchema.serialize,
+    object.translatedTokens,
+  );
+  writer.writeLong(offsets[10], object.videoId);
 }
 
 Phrase _phraseDeserialize(
@@ -135,10 +198,22 @@ Phrase _phraseDeserialize(
     isTranslated: reader.readBoolOrNull(offsets[2]) ?? false,
     isTranslating: reader.readBoolOrNull(offsets[3]) ?? false,
     originalPhrase: reader.readStringOrNull(offsets[4]),
-    phraseOrder: reader.readLongOrNull(offsets[5]),
-    startTime: reader.readDateTimeOrNull(offsets[6]),
-    translatedPhrase: reader.readStringOrNull(offsets[7]),
-    videoId: reader.readLongOrNull(offsets[8]),
+    originalTokens: reader.readObjectList<TokenEntry>(
+      offsets[5],
+      TokenEntrySchema.deserialize,
+      allOffsets,
+      TokenEntry(),
+    ),
+    phraseOrder: reader.readLongOrNull(offsets[6]),
+    startTime: reader.readDateTimeOrNull(offsets[7]),
+    translatedPhrase: reader.readStringOrNull(offsets[8]),
+    translatedTokens: reader.readObjectList<TokenEntry>(
+      offsets[9],
+      TokenEntrySchema.deserialize,
+      allOffsets,
+      TokenEntry(),
+    ),
+    videoId: reader.readLongOrNull(offsets[10]),
   );
   object.id = id;
   return object;
@@ -162,12 +237,28 @@ P _phraseDeserializeProp<P>(
     case 4:
       return (reader.readStringOrNull(offset)) as P;
     case 5:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readObjectList<TokenEntry>(
+            offset,
+            TokenEntrySchema.deserialize,
+            allOffsets,
+            TokenEntry(),
+          ))
+          as P;
     case 6:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 7:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 8:
+      return (reader.readStringOrNull(offset)) as P;
+    case 9:
+      return (reader.readObjectList<TokenEntry>(
+            offset,
+            TokenEntrySchema.deserialize,
+            allOffsets,
+            TokenEntry(),
+          ))
+          as P;
+    case 10:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -723,6 +814,75 @@ extension PhraseQueryFilter on QueryBuilder<Phrase, Phrase, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> originalTokensIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'originalTokens'),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  originalTokensIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'originalTokens'),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  originalTokensLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'originalTokens', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> originalTokensIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'originalTokens', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  originalTokensIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'originalTokens', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  originalTokensLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'originalTokens', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  originalTokensLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'originalTokens', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  originalTokensLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'originalTokens',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<Phrase, Phrase, QAfterFilterCondition> phraseOrderIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1037,6 +1197,82 @@ extension PhraseQueryFilter on QueryBuilder<Phrase, Phrase, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> translatedTokensIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'translatedTokens'),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  translatedTokensIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'translatedTokens'),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  translatedTokensLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'translatedTokens', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  translatedTokensIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'translatedTokens', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  translatedTokensIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'translatedTokens', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  translatedTokensLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'translatedTokens', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  translatedTokensLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'translatedTokens',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  translatedTokensLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'translatedTokens',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<Phrase, Phrase, QAfterFilterCondition> videoIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1113,7 +1349,23 @@ extension PhraseQueryFilter on QueryBuilder<Phrase, Phrase, QFilterCondition> {
   }
 }
 
-extension PhraseQueryObject on QueryBuilder<Phrase, Phrase, QFilterCondition> {}
+extension PhraseQueryObject on QueryBuilder<Phrase, Phrase, QFilterCondition> {
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> originalTokensElement(
+    FilterQuery<TokenEntry> q,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'originalTokens');
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> translatedTokensElement(
+    FilterQuery<TokenEntry> q,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'translatedTokens');
+    });
+  }
+}
 
 extension PhraseQueryLinks on QueryBuilder<Phrase, Phrase, QFilterCondition> {}
 
@@ -1452,6 +1704,13 @@ extension PhraseQueryProperty on QueryBuilder<Phrase, Phrase, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Phrase, List<TokenEntry>?, QQueryOperations>
+  originalTokensProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'originalTokens');
+    });
+  }
+
   QueryBuilder<Phrase, int?, QQueryOperations> phraseOrderProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'phraseOrder');
@@ -1470,9 +1729,688 @@ extension PhraseQueryProperty on QueryBuilder<Phrase, Phrase, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Phrase, List<TokenEntry>?, QQueryOperations>
+  translatedTokensProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'translatedTokens');
+    });
+  }
+
   QueryBuilder<Phrase, int?, QQueryOperations> videoIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'videoId');
+    });
+  }
+}
+
+// **************************************************************************
+// IsarEmbeddedGenerator
+// **************************************************************************
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const TokenEntrySchema = Schema(
+  name: r'TokenEntry',
+  id: -1817502199596935943,
+  properties: {
+    r'blockId': PropertySchema(id: 0, name: r'blockId', type: IsarType.long),
+    r'lemma': PropertySchema(id: 1, name: r'lemma', type: IsarType.string),
+    r'pos': PropertySchema(id: 2, name: r'pos', type: IsarType.string),
+    r'versions': PropertySchema(
+      id: 3,
+      name: r'versions',
+      type: IsarType.objectList,
+
+      target: r'ReadingItem',
+    ),
+    r'wordPosition': PropertySchema(
+      id: 4,
+      name: r'wordPosition',
+      type: IsarType.long,
+    ),
+  },
+
+  estimateSize: _tokenEntryEstimateSize,
+  serialize: _tokenEntrySerialize,
+  deserialize: _tokenEntryDeserialize,
+  deserializeProp: _tokenEntryDeserializeProp,
+);
+
+int _tokenEntryEstimateSize(
+  TokenEntry object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  {
+    final value = object.lemma;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.pos;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.versions.length * 3;
+  {
+    final offsets = allOffsets[ReadingItem]!;
+    for (var i = 0; i < object.versions.length; i++) {
+      final value = object.versions[i];
+      bytesCount += ReadingItemSchema.estimateSize(value, offsets, allOffsets);
+    }
+  }
+  return bytesCount;
+}
+
+void _tokenEntrySerialize(
+  TokenEntry object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeLong(offsets[0], object.blockId);
+  writer.writeString(offsets[1], object.lemma);
+  writer.writeString(offsets[2], object.pos);
+  writer.writeObjectList<ReadingItem>(
+    offsets[3],
+    allOffsets,
+    ReadingItemSchema.serialize,
+    object.versions,
+  );
+  writer.writeLong(offsets[4], object.wordPosition);
+}
+
+TokenEntry _tokenEntryDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = TokenEntry(
+    blockId: reader.readLongOrNull(offsets[0]),
+    lemma: reader.readStringOrNull(offsets[1]),
+    pos: reader.readStringOrNull(offsets[2]),
+    versions:
+        reader.readObjectList<ReadingItem>(
+          offsets[3],
+          ReadingItemSchema.deserialize,
+          allOffsets,
+          ReadingItem(),
+        ) ??
+        const [],
+    wordPosition: reader.readLongOrNull(offsets[4]),
+  );
+  return object;
+}
+
+P _tokenEntryDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readLongOrNull(offset)) as P;
+    case 1:
+      return (reader.readStringOrNull(offset)) as P;
+    case 2:
+      return (reader.readStringOrNull(offset)) as P;
+    case 3:
+      return (reader.readObjectList<ReadingItem>(
+                offset,
+                ReadingItemSchema.deserialize,
+                allOffsets,
+                ReadingItem(),
+              ) ??
+              const [])
+          as P;
+    case 4:
+      return (reader.readLongOrNull(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension TokenEntryQueryFilter
+    on QueryBuilder<TokenEntry, TokenEntry, QFilterCondition> {
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> blockIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'blockId'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  blockIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'blockId'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> blockIdEqualTo(
+    int? value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'blockId', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  blockIdGreaterThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'blockId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> blockIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'blockId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> blockIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'blockId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> lemmaIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'lemma'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> lemmaIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'lemma'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> lemmaEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'lemma',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> lemmaGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'lemma',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> lemmaLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'lemma',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> lemmaBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'lemma',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> lemmaStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'lemma',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> lemmaEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'lemma',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> lemmaContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'lemma',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> lemmaMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'lemma',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> lemmaIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'lemma', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  lemmaIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'lemma', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> posIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'pos'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> posIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'pos'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> posEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'pos',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> posGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'pos',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> posLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'pos',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> posBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'pos',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> posStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'pos',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> posEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'pos',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> posContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'pos',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> posMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'pos',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> posIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'pos', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> posIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'pos', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  versionsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'versions', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  versionsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'versions', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  versionsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'versions', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  versionsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'versions', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  versionsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'versions', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  versionsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'versions',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  wordPositionIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'wordPosition'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  wordPositionIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'wordPosition'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  wordPositionEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'wordPosition', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  wordPositionGreaterThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'wordPosition',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  wordPositionLessThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'wordPosition',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  wordPositionBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'wordPosition',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+}
+
+extension TokenEntryQueryObject
+    on QueryBuilder<TokenEntry, TokenEntry, QFilterCondition> {
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> versionsElement(
+    FilterQuery<ReadingItem> q,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'versions');
     });
   }
 }

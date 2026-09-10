@@ -21,6 +21,10 @@ class TranslationJob {
   String? errorStage;
   int? processedPhrases;
   int? totalPhrases;
+  bool? isAuto;
+
+  String? executionPlan; // JSON list of steps
+  int? completedSteps;
 
   List<AiStageHistory>? stageHistory;
 
@@ -37,6 +41,9 @@ class TranslationJob {
     this.errorStage,
     this.processedPhrases,
     this.totalPhrases,
+    this.isAuto,
+    this.executionPlan,
+    this.completedSteps,
     this.stageHistory,
   });
 }

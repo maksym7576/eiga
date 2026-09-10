@@ -1,21 +1,26 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../database/schemas/ai_model.dart';
 import '../../../../config/secure_storage.dart';
 import '../../../../providers/services/ai_request_state.dart';
+import '../../../../providers/services/database_services_providers.dart';
 import '../../utils/ai_exceptions.dart';
 import '../parsers/phrase_response_handler.dart';
+import '../parsers/response_parser_utils.dart';
 import '../../../../utils/logger.dart';
 
 class GeminiStreamingService {
   final PhraseResponseHandler phraseResponseHandler;
+  final Ref ref;
 
-  final Set<String> _processedBlockSignatures = {};
   final Set<int> _processedPhraseIds = {};
   final Set<int> _failedPhraseIds = {};
+  String? _currentLanguage;
 
   GeminiStreamingService({
     required this.phraseResponseHandler,
+    required this.ref,
   });
 
   void _log(String message) {
@@ -28,11 +33,13 @@ class GeminiStreamingService {
     required AiModel model,
     List<int> expectedIds = const [],
     void Function(int processed)? onProgress,
+    String? language,
+    bool useSoftReset = false,
   }) async {
-    logger.i('AI Stream: starting for ${expectedIds.length} phrases (Provider: ${model.provider.name})');
-    _processedBlockSignatures.clear();
+    logger.i('[AiStream] Starting for ${expectedIds.length} phrases (Provider: ${model.provider.name}). Soft reset: $useSoftReset');
     _processedPhraseIds.clear();
     _failedPhraseIds.clear();
+    _currentLanguage = language;
 
     // Headers
     final Map<String, String> headers = {'Content-Type': 'application/json'};
@@ -85,6 +92,9 @@ class GeminiStreamingService {
       ..headers.addAll(headers)
       ..body = jsonEncode(requestBody);
 
+    // Increment usage for each request
+    await ref.read(aiModelServiceProvider).incrementUsage(model.name, 1);
+
     http.Client? client;
     try {
       client = http.Client();
@@ -95,7 +105,11 @@ class GeminiStreamingService {
 
       if (streamedResponse.statusCode != 200) {
         final errorString = await streamedResponse.stream.bytesToString();
-        await phraseResponseHandler.phraseService.resetPhrasesTranslationStatusByIds(expectedIds);
+        if (useSoftReset) {
+          await phraseResponseHandler.phraseService.resetTranslatingState(expectedIds);
+        } else {
+          await phraseResponseHandler.phraseService.resetPhrasesTranslationStatusByIds(expectedIds);
+        }
         _handleHttpError(streamedResponse.statusCode, errorString);
       }
 
@@ -138,11 +152,15 @@ class GeminiStreamingService {
       await _extractAndSaveReadyObjects(fullTextBuffer);
       onProgress?.call(_processedPhraseIds.length);
 
-      logger.i('AI Stream: finished. Processed: ${_processedPhraseIds.length}, Failed: ${_failedPhraseIds.length}');
+      logger.i('[AiStream] Finished. Processed: ${_processedPhraseIds.length}, Failed: ${_failedPhraseIds.length}');
 
       final missingIds = expectedIds.where((id) => !_processedPhraseIds.contains(id)).toList();
       if (missingIds.isNotEmpty) {
-        await phraseResponseHandler.phraseService.resetPhrasesTranslationStatusByIds(missingIds);
+        if (useSoftReset) {
+          await phraseResponseHandler.phraseService.resetTranslatingState(missingIds);
+        } else {
+          await phraseResponseHandler.phraseService.resetPhrasesTranslationStatusByIds(missingIds);
+        }
         _failedPhraseIds.addAll(missingIds);
       }
 
@@ -153,7 +171,11 @@ class GeminiStreamingService {
     } catch (error) {
       final idsToReset = expectedIds.where((id) => !_processedPhraseIds.contains(id)).toList();
       if (idsToReset.isNotEmpty) {
-        await phraseResponseHandler.phraseService.resetPhrasesTranslationStatusByIds(idsToReset);
+        if (useSoftReset) {
+          await phraseResponseHandler.phraseService.resetTranslatingState(idsToReset);
+        } else {
+          await phraseResponseHandler.phraseService.resetPhrasesTranslationStatusByIds(idsToReset);
+        }
       }
       logger.e('Gemini Stream: fatal error', error: error);
       return AiRequestResult.failure(_resolveErrorType(error));
@@ -232,11 +254,11 @@ class GeminiStreamingService {
     for (var p in readyPieces) {
       try {
         final decoded = jsonDecode(p.text);
-        if (decoded is Map<String, dynamic> && decoded.containsKey('phraseId') && decoded.containsKey('blocks')) {
+        if (decoded is Map<String, dynamic> && ((decoded.containsKey('phraseId') && decoded.containsKey('blocks')) || (decoded.containsKey('id') && decoded.containsKey('b')))) {
           await _processOnePhrase(decoded);
         } else if (decoded is List) {
           for (var item in decoded) {
-            if (item is Map<String, dynamic> && item.containsKey('phraseId') && item.containsKey('blocks')) {
+            if (item is Map<String, dynamic> && ((item.containsKey('phraseId') && item.containsKey('blocks')) || (item.containsKey('id') && item.containsKey('b')))) {
               await _processOnePhrase(item);
             }
           }
@@ -254,16 +276,21 @@ class GeminiStreamingService {
   }
 
   Future<void> _processOnePhrase(Map<String, dynamic> entry) async {
-    final idStr = entry['phraseId']?.toString() ?? '0';
+    final idStr = (entry['id'] ?? entry['phraseId'])?.toString() ?? '0';
     final id = int.tryParse(idStr) ?? 0;
     
-    if (id > 0) _processedPhraseIds.add(id);
+    // Log received phrase entry in stream - Simplified
+    if (id % 10 == 0) { // Log every 10th phrase to avoid flooding
+      logger.d('[AiStream] Received phrase $id');
+    }
+
+    if (id > 0) {
+      if (_processedPhraseIds.contains(id)) return;
+      _processedPhraseIds.add(id);
+    }
 
     try {
-      final outcome = await phraseResponseHandler.processPhraseEntryData(
-        entry,
-        dedupSignatures: _processedBlockSignatures,
-      );
+      final outcome = await phraseResponseHandler.processPhraseEntryData(entry, language: _currentLanguage);
       if (outcome != null && !outcome.ok) {
         _failedPhraseIds.add(id);
       }
@@ -274,14 +301,17 @@ class GeminiStreamingService {
 
   void _handleHttpError(int code, String body) {
     logger.e('AI Stream Error: $code. Body: $body');
+    
+    final retryAfter = ResponseParserUtils.parseRetryAfter(body);
+
     if (code == 403 || code == 400) {
       throw GeminiIncorrectTokenException("Token is incorrect or request malformed");
     } else if (code == 429) {
-      throw GeminiModelExpiredException('Rate limit exceeded');
+      throw GeminiModelExpiredException('Rate limit exceeded', retryAfter: retryAfter);
     } else if (code == 500 || code == 503 || code == 504) {
-      throw GeminiServerException('Server error');
+      throw GeminiServerException('Server error', retryAfter: retryAfter ?? const Duration(seconds: 4));
     } else {
-      throw GeminiGeneralException('Stream request failed with status $code');
+      throw GeminiGeneralException('Stream request failed with status $code', retryAfter: retryAfter);
     }
   }
 

@@ -1,17 +1,17 @@
-import 'package:eiga/config/prompts/japanese/japanese_parser_prompt.dart';
-import 'package:eiga/config/prompts/japanese/japanese_total_prompt.dart';
+import 'package:eiga/config/prompts/japanese/japanese_morphology_prompt.dart';
+import 'package:eiga/config/prompts/japanese/japanese_tokenize_prompt.dart';
 import 'package:eiga/config/prompts/japanese/japanese_translation_prompt.dart';
 
 import 'context_research_prompt.dart';
-import 'default/default_parser_prompt.dart';
-import 'default/default_total_prompt.dart';
+import 'default/default_morphology_prompt.dart';
+import 'default/default_tokenize_prompt.dart';
 import 'default/default_translation_prompt.dart';
 
 enum PromptType {
   contextResearch,
   translation,
-  parser,
-  total,
+  tokenizer,
+  morphology,
 }
 
 class PromptManager {
@@ -65,12 +65,12 @@ class PromptManager {
 
   static String _getJapaneseTemplate(PromptType type) {
     switch (type) {
-      case PromptType.parser:
-        return japaneseParserPrompt;
+      case PromptType.morphology:
+        return japaneseMorphologyPrompt;
+      case PromptType.tokenizer:
+        return japaneseTokenizePrompt;
       case PromptType.translation:
         return japaneseTranslationPrompt;
-      case PromptType.total:
-        return japaneseTotalPrompt;
       default:
         return '';
     }
@@ -78,12 +78,12 @@ class PromptManager {
 
   static String _getDefaultTemplate(PromptType type) {
     switch (type) {
-      case PromptType.parser:
-        return defaultParserPrompt;
+      case PromptType.morphology:
+        return defaultMorphologyPrompt;
+      case PromptType.tokenizer:
+        return defaultTokenizerPrompt;
       case PromptType.translation:
         return defaultTranslationPrompt;
-      case PromptType.total:
-        return defaultTotalPrompt;
       default:
         return '';
     }

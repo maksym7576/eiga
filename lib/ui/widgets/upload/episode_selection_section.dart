@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../../../providers/ui/upload_provider.dart';
-import '../../../providers/ui/search_provider.dart';
-import '../../../providers/ui/dto_providers.dart';
-import 'package:eiga/backend/database/dto/jimaku_dto.dart';
-import 'package:eiga/backend/database/dto/anilist_dto.dart';
-import '../../styles/additional_window_theme.dart';
-import '../../styles/app_colors.dart';
-import '../dialogs/app_bottom_sheet.dart';
-import '../search/jimaku/jimaku_subtitle_source.dart';
-import '../shared/app_section_card.dart';
-import '../shared/app_text_field.dart';
-import '../shared/app_text_button.dart';
+import 'package:eiga/providers/ui/upload_provider.dart';
+import 'package:eiga/providers/ui/search_provider.dart';
+import 'package:eiga/providers/ui/dto_providers.dart';
+import 'package:eiga/backend/database/dto/media_dto.dart';
+import 'package:eiga/ui/styles/additional_window_theme.dart';
+import 'package:eiga/ui/styles/app_colors.dart';
+import 'package:eiga/ui/widgets/dialogs/app_bottom_sheet.dart';
+import 'package:eiga/ui/widgets/search/jimaku/jimaku_subtitle_source.dart';
+import 'package:eiga/ui/widgets/shared/app_section_card.dart';
+import 'package:eiga/ui/widgets/shared/app_text_field.dart';
+import 'package:eiga/ui/widgets/shared/app_text_button.dart';
 
 class EpisodeSelectionSection extends ConsumerWidget {
   const EpisodeSelectionSection({super.key});
@@ -50,14 +49,15 @@ class EpisodeSelectionSection extends ConsumerWidget {
 
     if (subtitleSource == SubtitleSource.local) {
       final aniListData = ref.watch(aniListProvider).value;
-      final data = selectedEntry as AniListDataDTO;
-      final displayData = (aniListData != null && aniListData.id == data.id) ? aniListData : data;
+      final displayData = (aniListData != null && aniListData.sourceId == selectedEntry.sourceId) ? aniListData : selectedEntry;
       epCount = displayData.episodes;
     } else {
-      final data = selectedEntry as JimakuDataDTO;
-      final summary = ref.watch(jimakuSummaryProvider(data.id));
-      epCount = summary?.episodeCount;
-      episodes = summary?.episodes ?? const [];
+      final id = int.tryParse(selectedEntry.sourceId);
+      if (id != null) {
+        final summary = ref.watch(jimakuSummaryProvider(id));
+        epCount = summary?.episodeCount;
+        episodes = summary?.episodes ?? const [];
+      }
     }
 
     final visibleEpisodes = episodes.length > 12 ? episodes.take(12).toList() : episodes;
@@ -80,7 +80,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
               ),
               if (subtitleSource == SubtitleSource.jimaku && epCount != null && episodes.isNotEmpty && hasMoreEpisodes)
                 AppTextButton(
-                  onPressed: () => _showAllEpisodes(context, ref, episodes, selectedEntry as JimakuDataDTO),
+                  onPressed: () => _showAllEpisodes(context, ref, episodes, selectedEntry),
                   text: 'See all $epCount',
                 ),
             ],
@@ -103,7 +103,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
                    context, 
                    ref,
                    episode, 
-                   selectedEntry as JimakuDataDTO,
+                   selectedEntry,
                    isSelected: ref.watch(uploadProvider.select((s) => s.episode)) == episode.toString(),
                  );
               },
@@ -114,6 +114,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
               onChanged: (val) => ref.read(uploadProvider.notifier).setEpisode(val),
               keyboardType: TextInputType.number,
               hintText: 'Episode number (Optional)',
+              controller: TextEditingController(text: ref.read(uploadProvider).episode),
             ),
           ] else ...[
             Text(
@@ -126,7 +127,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildEpisodeButton(BuildContext context, WidgetRef ref, int episode, JimakuDataDTO entry, {bool isSelected = false}) {
+  Widget _buildEpisodeButton(BuildContext context, WidgetRef ref, int episode, UnifiedMetadataDTO entry, {bool isSelected = false}) {
     final theme = AdditionalWindowTheme.of(context);
     
     return InkWell(
@@ -140,7 +141,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
           borderRadius: BorderRadius.circular(8),
           boxShadow: isSelected ? [
             BoxShadow(
-              color: theme.primaryAccent.withValues(alpha: 0.1),
+              color: theme.primaryAccent.withOpacity(0.1),
               blurRadius: 4,
               offset: const Offset(0, 2),
             )
@@ -160,7 +161,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
     );
   }
 
-  void _showAllEpisodes(BuildContext context, WidgetRef ref, List<int> episodes, JimakuDataDTO entry) {
+  void _showAllEpisodes(BuildContext context, WidgetRef ref, List<int> episodes, UnifiedMetadataDTO entry) {
     final theme = AdditionalWindowTheme.of(context);
     final selectedEp = ref.watch(uploadProvider.select((state) => state.episode));
 

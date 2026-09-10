@@ -1,12 +1,14 @@
 import 'package:eiga/providers/videoComponentsProvider.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
+import 'package:eiga/backend/database/schemas/language.dart';
+import 'package:eiga/ui/styles/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'languagePreviewWidget.dart';
 
 class LanguageWidget extends ConsumerWidget {
-  final String language;
+  final Language language;
   final LanguageType type;
 
   const LanguageWidget({
@@ -15,13 +17,11 @@ class LanguageWidget extends ConsumerWidget {
     required this.type,
   });
 
-  Future<void> setLanguage(WidgetRef ref, String language) async {
-    final value = language == 'Not Selected' ? null : language;
+  void _setLanguage(WidgetRef ref, String languageName) {
     if (type == LanguageType.original) {
-      ref.read(languageProvider.notifier).setOriginal(value);
-    }
-    if (type == LanguageType.translation) {
-      ref.read(languageProvider.notifier).setTarget(value);
+      ref.read(languageProvider.notifier).setOriginal(languageName);
+    } else {
+      ref.read(languageProvider.notifier).setTarget(languageName);
     }
   }
 
@@ -30,90 +30,99 @@ class LanguageWidget extends ConsumerWidget {
     final stateLan = ref.watch(languageProvider);
     final original = stateLan.original;
     final translation = stateLan.target;
-
     final theme = AdditionalWindowTheme.of(context);
 
-    final isNotSelectedValue = language == 'Not Selected';
-    
-    final bool isSelected = (type == LanguageType.original && (isNotSelectedValue ? original == null : language == original)) ||
-        (type == LanguageType.translation && (isNotSelectedValue ? translation == null : language == translation));
+    final String languageName = language.name ?? '';
+    final bool isSelected = (type == LanguageType.original && languageName == original) ||
+        (type == LanguageType.translation && languageName == translation);
 
-    final bool isOccupied = !isNotSelectedValue && ((type == LanguageType.original && language == translation) ||
-        (type == LanguageType.translation && language == original));
+    final bool isOccupied = (type == LanguageType.original && languageName == translation) ||
+        (type == LanguageType.translation && languageName == original);
 
-    // Sentence case
-    final String displayLanguage = language;
-
-    return GestureDetector(
-      onTap: isOccupied
-          ? null
-          : () {
-              setLanguage(ref, language);
-            },
+    return InkWell(
+      onTap: isOccupied ? null : () => _setLanguage(ref, languageName),
       child: Opacity(
         opacity: isOccupied ? 0.4 : 1.0,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? theme.selectedCardBackground : theme.cardBackground,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected ? theme.selectedCardBorder : theme.cardBorder,
-              width: isSelected ? 2.0 : 1.5,
-            ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: theme.selectedCardBorder.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    )
-                  ]
-                : null,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          color: isSelected ? theme.primaryAccent.withValues(alpha: 0.05) : Colors.transparent,
           child: Row(
             children: [
-              Expanded(
-                child: Text(
-                  displayLanguage,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                    color: isOccupied
-                        ? theme.occupiedText
-                        : isSelected
-                            ? theme.selectedText
-                            : theme.normalText,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              // Language Icon/Code Box
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: isSelected ? theme.primaryAccent.withValues(alpha: 0.1) : AppColors.slate100,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ),
-              const SizedBox(width: 8),
-              if (isSelected)
-                Container(
-                  width: 18,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: theme.primaryAccent,
-                  ),
-                )
-              else if (isOccupied)
-                Icon(Icons.lock, color: theme.lockIconColor, size: 18)
-              else
-                Container(
-                  width: 18,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: theme.unselectedCircleBorder,
-                      width: 2,
+                child: Center(
+                  child: Text(
+                    language.iconLabel ?? (languageName.length >= 2 ? languageName.substring(0, 2).toUpperCase() : '??'),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: isSelected ? theme.primaryAccent : AppColors.slate600,
                     ),
                   ),
                 ),
+              ),
+              const SizedBox(width: 14),
+              
+              // Name and Subtitle
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      languageName,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                        color: isSelected ? theme.primaryAccent : theme.normalText,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    if (language.subtitle != null)
+                      Text(
+                        language.subtitle!,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: isSelected ? theme.primaryAccent.withValues(alpha: 0.6) : AppColors.slate400,
+                          height: 1.2,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              // Radio Indicator
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? theme.primaryAccent : AppColors.slate300,
+                    width: isSelected ? 6 : 2,
+                  ),
+                  color: isSelected ? Colors.white : Colors.transparent,
+                ),
+                child: isSelected 
+                  ? Center(
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                        ),
+                      ),
+                    )
+                  : null,
+              ),
             ],
           ),
         ),

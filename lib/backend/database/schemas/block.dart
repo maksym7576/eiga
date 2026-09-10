@@ -11,24 +11,8 @@ class Block {
 
   int? blockPositionIndex;
 
-  List<int> translatedPositionIndex = [];
-
-  String? blockTranslation;
-
-  @Index(type: IndexType.hash)
-  String? contentSignature;
-
-  String? colorHex;
-
-  int? specificWordStyleId;
-
   Block({
     this.phraseId,
     this.blockPositionIndex,
-    this.translatedPositionIndex = const [],
-    this.blockTranslation,
-    this.contentSignature,
-    this.colorHex,
-    this.specificWordStyleId,
   });
 }

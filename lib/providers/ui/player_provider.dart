@@ -45,12 +45,16 @@ class PlayerState {
   }
 }
 
-class PlayerNotifier extends Notifier<PlayerState> {
+class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   Timer? _hideTimer;
   VideoPlayerController? _controller;
+  bool _isManuallyChangingPlaying = false;
 
   @override
   PlayerState build() {
+    // Register as observer
+    WidgetsBinding.instance.addObserver(this);
+
     // Initialize state
     final initialState = PlayerState();
     
@@ -61,9 +65,11 @@ class PlayerNotifier extends Notifier<PlayerState> {
     ref.listen(isPlayingProvider, (prev, next) {
       if (_controller != null && _controller!.value.isInitialized) {
         if (next && !_controller!.value.isPlaying) {
-          _controller!.play();
+          _isManuallyChangingPlaying = true;
+          _controller!.play().then((_) => _isManuallyChangingPlaying = false);
         } else if (!next && _controller!.value.isPlaying) {
-          _controller!.pause();
+          _isManuallyChangingPlaying = true;
+          _controller!.pause().then((_) => _isManuallyChangingPlaying = false);
         }
       }
     });
@@ -90,11 +96,22 @@ class PlayerNotifier extends Notifier<PlayerState> {
     });
 
     ref.onDispose(() {
+      WidgetsBinding.instance.removeObserver(this);
       _disposeController();
       _hideTimer?.cancel();
     });
 
     return initialState;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // Force pause playback when app is backgrounded, ignoring lock
+      if (_controller != null && _controller!.value.isPlaying) {
+        ref.read(isPlayingProvider.notifier).state = false;
+      }
+    }
   }
 
   Future<void> _initController(String path) async {
@@ -127,7 +144,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
   }
 
   void _videoListener() {
-    if (_controller == null || !_controller!.value.isInitialized) return;
+    if (_controller == null || !_controller!.value.isInitialized || _isManuallyChangingPlaying) return;
     
     final currentPos = _controller!.value.position;
     final providerPos = ref.read(playerTimeProvider);
@@ -146,6 +163,15 @@ class PlayerNotifier extends Notifier<PlayerState> {
   Future<void> _disposeController() async {
     if (_controller != null) {
       _controller!.removeListener(_videoListener);
+      
+      // Explicitly pause before disposal to ensure audio stops immediately
+      if (_controller!.value.isPlaying) {
+        await _controller!.pause();
+      }
+      
+      // Update provider directly to bypass lock check
+      ref.read(isPlayingProvider.notifier).state = false;
+      
       await _controller!.dispose();
       _controller = null;
       state = state.copyWith(controller: null, isInitialized: false);

@@ -34,28 +34,41 @@ class RubyText extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (word.versions.isEmpty) return const SizedBox.shrink();
 
-    final selectedBlockId = ref.watch(selectedBlockIdProvider);
-    final isSelected = blockId != null && selectedBlockId == blockId;
+    final highlightedWordIds = ref.watch(highlightedWordIdsProvider);
+    final isSelected = highlightedWordIds.contains(word.id);
+    
+    final anchorType = ref.watch(selectionAnchorTypeProvider);
     final clickedWordId = ref.watch(clickedWordIdProvider);
+    final bool isAnchor = anchorType == SelectionAnchor.word && clickedWordId == word.id;
+    
+    // Check if this word has any associated translations via the index
+    final linkIndexAsync = ref.watch(phraseLinkIndexProvider(word.phraseId ?? 0));
+    final translationInfo = linkIndexAsync.maybeWhen(
+      data: (index) {
+        final translations = index.wordToTranslations[word.id] ?? [];
+        if (translations.isEmpty) return null;
+        final t = translations.first;
+        final siblings = index.translationToWords[t.id] ?? [];
+        return (translation: t, siblings: siblings);
+      },
+      orElse: () => null,
+    );
+
+    final hasNoTranslation = translationInfo == null;
 
     useEffect(() {
-      if (clickedWordId == word.id) {
+      if (isAnchor) {
         // Use post frame callback to ensure RenderBox is ready and laid out
         WidgetsBinding.instance.addPostFrameCallback((_) {
           final RenderBox? box = context.findRenderObject() as RenderBox?;
           if (box != null && box.hasSize) {
             final position = box.localToGlobal(Offset(box.size.width / 2, 0));
             ref.read(clickedWordPositionProvider.notifier).state = position;
-            print('RUBY: Reactive position update for word ${word.id} at $position');
           }
         });
       }
       return null;
-    }, [clickedWordId]);
-
-    if (isSelected) {
-      print('RUBY: Building selected word ${word.id} in block $blockId. Style: ${style?.name}');
-    }
+    }, [isAnchor]);
 
     String baseText = '';
     String? annotationText;
@@ -81,8 +94,15 @@ class RubyText extends HookConsumerWidget {
       }
     }
 
-    final Color? customColor = style?.color;
-    final FontWeight? customWeight = style?.fontWeight;
+    final wordStyleAsync = ref.watch(wordStyleProvider(word.lemma ?? ''));
+    final blockStyleAsync = blockId != null ? ref.watch(blockStyleProvider(blockId!)) : const AsyncValue<SpecificWordStyle?>.data(null);
+    
+    // Priority: Block Style > Individual Word Style > Default (style prop)
+    final effectiveStyle = blockStyleAsync.maybeWhen(data: (s) => s, orElse: () => null) ?? 
+                           wordStyleAsync.maybeWhen(data: (s) => s, orElse: () => style);
+
+    final Color? customColor = effectiveStyle?.color;
+    final FontWeight? customWeight = effectiveStyle?.fontWeight;
 
     final effectiveBaseStyle = (baseStyle ?? const TextStyle(fontSize: 17.5, color: Color(0xFF0F172A), fontFamily: 'Noto Serif JP')).copyWith(
       color: customColor ?? (baseStyle?.color),
@@ -94,8 +114,25 @@ class RubyText extends HookConsumerWidget {
           color: customColor?.withValues(alpha: 0.6) ?? (annotationStyle?.color),
         );
 
+    final bool isPunctuation = RegExp(r'^[\p{P}\p{S}]+$', unicode: true).hasMatch(baseText.trim());
+
+    final Widget baseTextWidget = AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: EdgeInsets.symmetric(
+        horizontal: (isSelected && word.isClickable && !isPunctuation) ? 2 : 0, 
+        vertical: 1
+      ),
+      decoration: BoxDecoration(
+        color: (isSelected && word.isClickable && !isPunctuation) 
+            ? (hasNoTranslation ? const Color(0xFFE2E8F0) : const Color(0xFF3B66F5).withValues(alpha: 0.12))
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(baseText, style: effectiveBaseStyle),
+    );
+
     final Widget mainContent = annotationText == null || annotationText.isEmpty
-        ? Text(baseText, style: effectiveBaseStyle)
+        ? baseTextWidget
         : Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -109,53 +146,57 @@ class RubyText extends HookConsumerWidget {
                   overflow: TextOverflow.visible,
                 ),
               ),
-              Text(
-                baseText,
-                style: effectiveBaseStyle,
-              ),
+              baseTextWidget,
             ],
           );
 
-    return GestureDetector(
-      onTap: () {
-        if (blockId != null) {
-          final currentBlock = ref.read(selectedBlockIdProvider);
-          final currentWord = ref.read(clickedWordIdProvider);
+    final Widget gestureContent = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: word.isClickable ? () async {
+        final currentHighlighted = ref.read(highlightedWordIdsProvider);
+        final selectionAnchor = ref.read(selectionAnchorTypeProvider);
+        
+        if (currentHighlighted.contains(word.id) && selectionAnchor == SelectionAnchor.word) {
+          // Deselect
+          ref.read(highlightedWordIdsProvider.notifier).state = {};
+          ref.read(highlightedTranslationIdsProvider.notifier).state = {};
+          ref.read(clickedWordIdProvider.notifier).state = null;
+          ref.read(clickedTranslationWordIdProvider.notifier).state = null;
+          ref.read(selectionAnchorTypeProvider.notifier).state = null;
+          ref.read(playerProvider.notifier).setPlaying(true);
+        } else {
+          // Select
+          ref.read(playerProvider.notifier).setPlaying(false);
+          ref.read(clickedWordIdProvider.notifier).state = word.id;
+          ref.read(selectionAnchorTypeProvider.notifier).state = SelectionAnchor.word;
           
-          if (currentBlock == blockId && currentWord == word.id) {
-            ref.read(selectedBlockIdProvider.notifier).state = null;
-            ref.read(clickedWordIdProvider.notifier).state = null;
-            ref.read(clickedWordPositionProvider.notifier).state = null;
-            // Resume playback when deselecting
-            ref.read(playerProvider.notifier).setPlaying(true);
+          final index = await ref.read(phraseLinkIndexProvider(word.phraseId ?? 0).future);
+          final linked = index.getLinkedIdsForWord(word.id);
+          
+          ref.read(highlightedWordIdsProvider.notifier).state = linked['words']!;
+          ref.read(highlightedTranslationIdsProvider.notifier).state = linked['translations']!;
+          
+          // Also set the clicked translation ID if a link exists for popover content
+          if (linked['translations']!.isNotEmpty) {
+            ref.read(clickedTranslationWordIdProvider.notifier).state = linked['translations']!.first;
           } else {
-            // Auto-pause video when selecting
-            ref.read(playerProvider.notifier).setPlaying(false);
-            
-            ref.read(selectedBlockIdProvider.notifier).state = blockId;
-            ref.read(clickedWordIdProvider.notifier).state = word.id;
+            ref.read(clickedTranslationWordIdProvider.notifier).state = null;
           }
         }
-      },
-      child: _buildBody(isSelected, mainContent),
-    );
-  }
-
-  Widget _buildBody(bool isSelected, Widget content) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF3B66F5).withValues(alpha: 0.12) : Colors.transparent,
-        borderRadius: BorderRadius.horizontal(
-          left: Radius.circular(isFirstInBlock && isSelected ? 12 : 0),
-          right: Radius.circular(isLastInBlock && isSelected ? 12 : 0),
-        ),
-      ),
+      } : null,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2), 
-        child: content,
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: mainContent,
       ),
     );
+
+    if (isAnchor) {
+      return CompositedTransformTarget(
+        link: ref.watch(blockLayerLinkProvider),
+        child: gestureContent,
+      );
+    }
+    
+    return gestureContent;
   }
 }

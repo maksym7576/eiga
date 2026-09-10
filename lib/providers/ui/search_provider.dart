@@ -1,14 +1,16 @@
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/legacy.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/app_configs_provider.dart';
-import '../anilist_status_provider.dart';
 
-import 'package:eiga/backend/database/dto/anilist_dto.dart';
-import 'package:eiga/backend/database/dto/jimaku_dto.dart';
 
-enum MetadataProviderType { anilist, jikan, tvmaze, manual }
-enum ServiceStatus { active, maintenance, down }
+import 'package:eiga/backend/database/dto/media_dto.dart';
+import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
+
+import '../service_status_providers.dart';
+
+enum MetadataProviderType { anilist, shikimori, tvmaze, manual }
+enum ServiceStatus { active, down }
 
 class SelectedMetadataNotifier extends StateNotifier<MetadataProviderType> {
   final Ref _ref;
@@ -43,34 +45,15 @@ final selectedMetadataProvider = StateNotifierProvider<SelectedMetadataNotifier,
 final isMetadataSelectorExpandedProvider = StateProvider<bool>((ref) => false);
 
 final metadataStatusProvider = Provider.family<ServiceStatus, MetadataProviderType>((ref, provider) {
-  if (provider == MetadataProviderType.anilist) {
-    final status = ref.watch(aniListStatusProvider);
-    switch (status) {
-      case AniListStatus.online:
-        return ServiceStatus.active;
-      case AniListStatus.maintenance:
-        return ServiceStatus.maintenance;
-      case AniListStatus.error:
-        return ServiceStatus.down;
-    }
-  }
-
-  // Mock statuses for other providers
-  switch (provider) {
-    case MetadataProviderType.jikan:
-      return ServiceStatus.active;
-    case MetadataProviderType.tvmaze:
-      return ServiceStatus.active;
-    case MetadataProviderType.manual:
-      return ServiceStatus.active;
-    default:
-      return ServiceStatus.active;
-  }
+  final status = ref.watch(providerStatusProvider(provider));
+  return mapToServiceStatus(status);
 });
 
 class SearchSourceKeys {
   static const String jimaku = 'jimaku';
   static const String anilist = 'anilist';
+  static const String tvmaze = 'tvmaze';
+  static const String shikimori = 'shikimori';
 }
 
 final searchResultsProvider =
@@ -102,7 +85,7 @@ final searchMetadataProvider =
 
 final rawFilesProvider =
     StateProvider.family<List<JimakuFileOrGroupDTO>, String>(
-        (ref, key) => []); // Actually we need FileJimakuDTO here, but let's use dynamic or specific
+        (ref, key) => []);
 
 final jimakuRawFilesProvider =
     StateProvider.family<List<dynamic>, String>((ref, key) => []);
@@ -111,7 +94,7 @@ final jimakuExpandedGroupsProvider =
     StateProvider.family<Set<String>, String>((ref, key) => {});
 
 final jimakuSearchFullResultsProvider =
-    StateProvider<List<JimakuDataDTO>>((ref) => []);
+    StateProvider<List<UnifiedMetadataDTO>>((ref) => []);
 
 class JimakuSummary {
   final String? season;
@@ -131,28 +114,95 @@ final jimakuSummaryProvider =
     StateProvider.family<JimakuSummary?, int>((ref, entryId) => null);
 
 extension JimakuProviders on WidgetRef {
-  List<JimakuDataDTO> watchJimakuResults() => watch(
-        searchResultsProvider(SearchSourceKeys.jimaku),
-      ).cast<JimakuDataDTO>();
+  List<UnifiedMetadataDTO> watchJimakuResults() {
+    try {
+      return watch(searchResultsProvider(SearchSourceKeys.jimaku)).whereType<UnifiedMetadataDTO>().toList();
+    } catch (e) {
+      debugPrint('Error watching Jimaku results: $e');
+      return [];
+    }
+  }
 
-  JimakuDataDTO? watchJimakuSelectedEntry() =>
-      watch(selectedEntryProvider(SearchSourceKeys.jimaku)) as JimakuDataDTO?;
+  UnifiedMetadataDTO? watchJimakuSelectedEntry() {
+    try {
+      final entry = watch(selectedEntryProvider(SearchSourceKeys.jimaku));
+      return entry is UnifiedMetadataDTO ? entry : null;
+    } catch (e) {
+      return null;
+    }
+  }
 
-  List<JimakuFileOrGroupDTO> watchJimakuFiles() => watch(
-        filesProvider(SearchSourceKeys.jimaku),
-      ).cast<JimakuFileOrGroupDTO>();
+  List<JimakuFileOrGroupDTO> watchJimakuFiles() {
+    try {
+      return watch(filesProvider(SearchSourceKeys.jimaku)).whereType<JimakuFileOrGroupDTO>().toList();
+    } catch (e) {
+      return [];
+    }
+  }
 
-  JimakuFileOrGroupDTO? watchJimakuSelectedResult() =>
-      watch(selectedResultProvider(SearchSourceKeys.jimaku))
-          as JimakuFileOrGroupDTO?;
+  JimakuFileOrGroupDTO? watchJimakuSelectedResult() {
+    try {
+      final res = watch(selectedResultProvider(SearchSourceKeys.jimaku));
+      return res is JimakuFileOrGroupDTO ? res : null;
+    } catch (e) {
+      return null;
+    }
+  }
 }
 
 extension AniListSearchProviders on WidgetRef {
-  List<AniListDataDTO> watchAniListResults() => watch(
-        searchResultsProvider(SearchSourceKeys.anilist),
-      ).cast<AniListDataDTO>();
+  List<UnifiedMetadataDTO> watchAniListResults() {
+    try {
+      return watch(searchResultsProvider(SearchSourceKeys.anilist)).whereType<UnifiedMetadataDTO>().toList();
+    } catch (e) {
+      return [];
+    }
+  }
 
-  AniListDataDTO? watchAniListSelectedEntry() =>
-      watch(selectedEntryProvider(SearchSourceKeys.anilist))
-          as AniListDataDTO?;
+  UnifiedMetadataDTO? watchAniListSelectedEntry() {
+    try {
+      final entry = watch(selectedEntryProvider(SearchSourceKeys.anilist));
+      return entry is UnifiedMetadataDTO ? entry : null;
+    } catch (e) {
+      return null;
+    }
+  }
+}
+
+extension TVmazeSearchProviders on WidgetRef {
+  List<UnifiedMetadataDTO> watchTVmazeResults() {
+    try {
+      return watch(searchResultsProvider(SearchSourceKeys.tvmaze)).whereType<UnifiedMetadataDTO>().toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  UnifiedMetadataDTO? watchTVmazeSelectedEntry() {
+    try {
+      final entry = watch(selectedEntryProvider(SearchSourceKeys.tvmaze));
+      return entry is UnifiedMetadataDTO ? entry : null;
+    } catch (e) {
+      return null;
+    }
+  }
+}
+
+extension ShikimoriSearchProviders on WidgetRef {
+  List<UnifiedMetadataDTO> watchShikimoriResults() {
+    try {
+      return watch(searchResultsProvider(SearchSourceKeys.shikimori)).whereType<UnifiedMetadataDTO>().toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  UnifiedMetadataDTO? watchShikimoriSelectedEntry() {
+    try {
+      final entry = watch(selectedEntryProvider(SearchSourceKeys.shikimori));
+      return entry is UnifiedMetadataDTO ? entry : null;
+    } catch (e) {
+      return null;
+    }
+  }
 }

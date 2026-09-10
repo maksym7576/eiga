@@ -15,7 +15,6 @@ abstract class SearchSource<TEntry, TFile> {
   Future<List<TFile>> getFiles(TEntry entry, Map<String, dynamic> filters, WidgetRef ref) => Future.value(const []);
   Future<String> resolve(dynamic selected, WidgetRef ref);
   Widget buildFilterBar(BuildContext context, WidgetRef ref);
-  Widget buildEntryCard(TEntry entry, bool isActive, VoidCallback onTap);
   Widget buildFileCard(TFile file, bool isActive, VoidCallback onTap) => const SizedBox.shrink();
   String entryId(TEntry entry);
   String fileId(TFile file);

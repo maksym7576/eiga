@@ -62,7 +62,9 @@ class PartialFailureInfo {
 
 abstract class GeminiException implements Exception {
   final String message;
-  GeminiException(this.message);
+  final Duration? retryAfter;
+  
+  GeminiException(this.message, {this.retryAfter});
 
   AiErrorType get type;
 
@@ -71,7 +73,8 @@ abstract class GeminiException implements Exception {
 }
 
 class GeminiModelExpiredException extends GeminiException {
-  GeminiModelExpiredException(String message) : super(message);
+  GeminiModelExpiredException(String message, {Duration? retryAfter}) 
+      : super(message, retryAfter: retryAfter);
   @override
   AiErrorType get type => AiErrorType.rateLimit;
 }
@@ -83,13 +86,15 @@ class GeminiIncorrectTokenException extends GeminiException {
 }
 
 class GeminiGeneralException extends GeminiException {
-  GeminiGeneralException(String message) : super(message);
+  GeminiGeneralException(String message, {Duration? retryAfter}) 
+      : super(message, retryAfter: retryAfter);
   @override
   AiErrorType get type => AiErrorType.unknown;
 }
 
 class GeminiServerException extends GeminiException {
-  GeminiServerException(String message) : super(message);
+  GeminiServerException(String message, {Duration? retryAfter}) 
+      : super(message, retryAfter: retryAfter);
   @override
   AiErrorType get type => AiErrorType.server;
 }

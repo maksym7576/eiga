@@ -12,14 +12,47 @@ class AiModelsNotifier extends Notifier<Map<TranslationPipelineStep, String>> {
     final configs = ref.watch(appConfigsServiceProvider);
     
     final Map<TranslationPipelineStep, String> stateMap = {};
+    bool needsAutoSelect = false;
+
     for (final step in TranslationPipelineStep.values) {
-      stateMap[step] = configs.getActiveModelForStep(step);
+      final String? activeModel = configs.getActiveModelForStepRaw(step);
+      if (activeModel == null) {
+        needsAutoSelect = true;
+        stateMap[step] = configs.getActiveModelForStep(step); // Fallback to default
+      } else {
+        stateMap[step] = activeModel;
+      }
+    }
+    
+    if (needsAutoSelect) {
+      Future.microtask(() => _autoSelectBestModels());
     }
     
     // Initial reset check
     _checkAndResetDailyLimits();
     
     return stateMap;
+  }
+
+  Future<void> _autoSelectBestModels() async {
+    final aiModelService = ref.read(aiModelServiceProvider);
+    final configs = ref.read(appConfigsServiceProvider);
+    
+    final Map<TranslationPipelineStep, String> updates = {};
+    
+    for (final step in TranslationPipelineStep.values) {
+      if (configs.getActiveModelForStepRaw(step) == null) {
+        final best = await aiModelService.getBestFallbackModel(step, '');
+        if (best != null) {
+          updates[step] = best.name;
+          await configs.setActiveModelForStep(step, best.name);
+        }
+      }
+    }
+    
+    if (updates.isNotEmpty) {
+      state = {...state, ...updates};
+    }
   }
 
   Future<void> _checkAndResetDailyLimits() async {
@@ -47,13 +80,6 @@ class AiModelsNotifier extends Notifier<Map<TranslationPipelineStep, String>> {
     await service.updateModel(model);
     ref.invalidate(allModelsProvider);
   }
-
-  bool get isThreeStepMethod => ref.read(appConfigsServiceProvider).getIsThreeStepMethod;
-
-  Future<void> setThreeStepMethod(bool value) async {
-    await ref.read(appConfigsServiceProvider).setIsThreeStepMethod(value);
-    ref.invalidateSelf(); 
-  }
 }
 
 final aiModelsProvider = NotifierProvider<AiModelsNotifier, Map<TranslationPipelineStep, String>>(AiModelsNotifier.new);
@@ -65,30 +91,24 @@ final allModelsProvider = FutureProvider<List<AiModel>>((ref) async {
 });
 
 /// Synchronously filters models for a specific step.
-/// Research, Translation, and Morphemes share the same pool of models.
 final modelsForStepProvider = Provider.family<List<AiModel>, TranslationPipelineStep>((ref, step) {
   final allModelsAsync = ref.watch(allModelsProvider);
   
   return allModelsAsync.maybeWhen(
     data: (models) {
-      // If we are looking for Advanced steps (research, translate, morphemes)
-      if (step != TranslationPipelineStep.fullTranslate) {
-        final filtered = models.where((m) => 
-          m.supportedSteps.contains(step) || 
-          m.supportedSteps.contains(TranslationPipelineStep.research) ||
-          m.supportedSteps.contains(TranslationPipelineStep.translate) ||
-          m.supportedSteps.contains(TranslationPipelineStep.morphemes)
-        ).toList();
-        
-        // Fallback: if no models specifically support advanced steps, show all that support fullTranslate
-        if (filtered.isEmpty) {
-          return models.where((m) => m.supportedSteps.contains(TranslationPipelineStep.fullTranslate)).toList();
-        }
-        return filtered;
-      }
+      final filtered = models.where((m) => 
+        m.supportedSteps.contains(step) || 
+        m.supportedSteps.contains(TranslationPipelineStep.research) ||
+        m.supportedSteps.contains(TranslationPipelineStep.translate) ||
+        m.supportedSteps.contains(TranslationPipelineStep.tokenize) ||
+        m.supportedSteps.contains(TranslationPipelineStep.morphemes)
+      ).toList();
       
-      // For Standard method, show models that support fullTranslate
-      return models.where((m) => m.supportedSteps.contains(TranslationPipelineStep.fullTranslate)).toList();
+      // Fallback: if no models specifically support advanced steps, show all
+      if (filtered.isEmpty) {
+        return models;
+      }
+      return filtered;
     },
     orElse: () => [],
   );
@@ -101,7 +121,6 @@ final utcCountdownProvider = StreamProvider<Duration>((ref) async* {
     final tomorrow = DateTime.utc(now.year, now.month, now.day + 1);
     final remaining = tomorrow.difference(now);
     
-    // If remaining is exactly 0 (or slightly negative due to timing), trigger a reset check
     if (remaining.inSeconds <= 0) {
       ref.read(aiModelsProvider.notifier)._checkAndResetDailyLimits();
     }

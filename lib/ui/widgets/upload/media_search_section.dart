@@ -1,18 +1,22 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
 import 'package:eiga/providers/ui/search_provider.dart';
 import 'package:eiga/providers/ui/dto_providers.dart';
-import 'package:eiga/providers/anilist_status_provider.dart';
+import 'package:eiga/providers/service_status_providers.dart';
+import 'package:eiga/backend/database/dto/media_dto.dart';
 import 'package:eiga/backend/services/anilist_service.dart';
-import 'package:eiga/backend/database/dto/anilist_dto.dart';
-import 'package:eiga/backend/database/dto/jimaku_dto.dart';
+import 'package:eiga/backend/services/shikimori_service.dart';
+import 'package:eiga/ui/widgets/search/shikimori/shikimori_search_source.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
 import 'package:eiga/ui/widgets/search/search_source_abstract.dart';
+import 'package:eiga/ui/widgets/search/shared/unified_search_entry_card.dart';
 import 'package:eiga/ui/widgets/search/search_picker_widget.dart';
 import 'package:eiga/ui/widgets/search/anilist/anilist_search_source.dart';
 import 'package:eiga/ui/widgets/search/jimaku/jimaku_subtitle_source.dart';
+import 'package:eiga/ui/widgets/search/tvmaze/tvmaze_search_source.dart';
 import 'package:eiga/ui/widgets/shared/app_text_field.dart';
 import 'package:eiga/ui/widgets/shared/app_section_card.dart';
 import 'package:eiga/ui/widgets/shared/app_text_button.dart';
@@ -31,6 +35,8 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
   final _scrollController = ScrollController();
   final _debouncer = Debouncer(delay: const Duration(milliseconds: 600));
   final _aniListSource = AniListSearchSource();
+  final _tvMazeSource = TVmazeSearchSource();
+  final _shikimoriSource = ShikimoriSearchSource();
   final _jimakuSource = JimakuSubtitleSource();
   String? _lastAutoSearchQuery;
   bool _isInitialSearchDone = false;
@@ -44,9 +50,12 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
   }
 
   void _onSearchChanged(String query, SubtitleSource source) {
+    final trimmedQuery = query.trim();
+    if (trimmedQuery.isEmpty) return;
+    
     _debouncer.run(() {
-      if (query.length >= 3) {
-        _performSearch(query, source);
+      if (trimmedQuery.length >= 3) {
+        _performSearch(trimmedQuery, source);
       }
     });
   }
@@ -60,9 +69,11 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
     // 2. Remove common file extensions
     cleaned = cleaned.replaceAll(RegExp(r'\.(mp4|mkv|avi|srt|ass|zip|rar|7z|ts|flv|wmv)$', caseSensitive: false), ' ');
 
-    // 3. Remove episode markers: " - 01", " Ep 01", " Episode 1", "_01_", ".01.", " 1v2 "
-    // We look for numbers surrounded by separators or episode keywords
-    cleaned = cleaned.replaceAll(RegExp(r'[\s\-_.]+(episode|ep|e)?[\s\-_.]*\d+([\s\-_.]|$)', caseSensitive: false), ' ');
+    // 3. Remove episode markers: " - 01", " Ep 01", " Episode 1", " E01", " Part 1"
+    // We strictly look for numbers following episode keywords or a clear " - " separator
+    cleaned = cleaned.replaceAll(RegExp(r'[\s\-_.]+(episode|ep|e|part)[\s\-_.]*\d+([\s\-_.]|$)', caseSensitive: false), ' ');
+    cleaned = cleaned.replaceAll(RegExp(r'\s-\s\d+([\s\-_.]|$)', caseSensitive: false), ' '); // Only " - 01" type
+    cleaned = cleaned.replaceAll(RegExp(r'\s[sS]\d+[eE]\d+', caseSensitive: false), ' '); // S01E01
 
     // 4. Remove common technical terms and tags
     cleaned = cleaned.replaceAll(RegExp(r'(1080p|720p|480p|2160p|4k|x264|x265|hevc|h264|h265|bluray|bdrip|webrip|web-dl|dual-audio|multi-sub|subbed|dubbed|uncensored|eng sub|ua sub)', caseSensitive: false), ' ');
@@ -81,11 +92,38 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
   }
 
   Future<void> _performSearch(String query, SubtitleSource source) async {
-    final cleanedQuery = source == SubtitleSource.local ? _cleanQuery(query) : query;
-    final key = source == SubtitleSource.local ? _aniListSource.key : _jimakuSource.key;
-    final SearchSource<dynamic, dynamic> searchSource = source == SubtitleSource.local ? _aniListSource : _jimakuSource;
+    final trimmedQuery = query.trim();
+    if (trimmedQuery.isEmpty) {
+      debugPrint('Search skipped: query is empty');
+      return;
+    }
+
+    final metadataType = ref.read(selectedMetadataProvider);
+    final cleanedQuery = source == SubtitleSource.local ? _cleanQuery(trimmedQuery) : trimmedQuery;
+    
+    SearchSource<dynamic, dynamic> searchSource;
+    if (source == SubtitleSource.jimaku) {
+      searchSource = _jimakuSource;
+    } else {
+      switch (metadataType) {
+        case MetadataProviderType.tvmaze:
+          searchSource = _tvMazeSource;
+          break;
+        case MetadataProviderType.shikimori:
+          searchSource = _shikimoriSource;
+          break;
+        case MetadataProviderType.anilist:
+        default:
+          searchSource = _aniListSource;
+          break;
+      }
+    }
+    
+    final key = searchSource.key;
 
     ref.read(isSearchingProvider(key).notifier).state = true;
+    ref.read(searchResultsProvider(key).notifier).state = []; // Clear results on new search
+    
     try {
       final filters = ref.read(searchFiltersProvider(key));
       debugPrint('Performing search for $key. Original: "$query", Cleaned: "$cleanedQuery"');
@@ -95,39 +133,67 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
       
       // Auto-select the first result if none is selected and results are found
       if (results.isNotEmpty) {
-        final firstEntry = results.first;
+        final firstEntry = results.first as UnifiedMetadataDTO;
         ref.read(selectedEntryProvider(key).notifier).state = firstEntry;
         
-        if (source == SubtitleSource.local && firstEntry is AniListDataDTO) {
-          ref.read(aniListProvider.notifier).updateData(firstEntry);
-          _aniListSource.resolve(firstEntry, ref);
+        if (source == SubtitleSource.local) {
+          if (metadataType == MetadataProviderType.anilist) {
+            ref.read(aniListProvider.notifier).updateData(firstEntry);
+            _aniListSource.resolve(firstEntry, ref);
+          } else if (metadataType == MetadataProviderType.tvmaze) {
+            ref.read(tvMazeProvider.notifier).updateData(firstEntry);
+            _tvMazeSource.resolve(firstEntry, ref);
+          } else if (metadataType == MetadataProviderType.shikimori) {
+            ref.read(shikimoriProvider.notifier).updateData(firstEntry);
+            _shikimoriSource.resolve(firstEntry, ref);
+          }
         } else {
-          final data = firstEntry as JimakuDataDTO;
-          if (data.anilistId != null) {
+          if (firstEntry.anilistId != null) {
              final metadata = ref.read(searchMetadataProvider(_jimakuSource.key));
-             final cached = metadata[data.anilistId];
-             if (cached != null && cached is AniListDataDTO) {
+             final cached = metadata[firstEntry.anilistId!];
+             if (cached != null && cached is UnifiedMetadataDTO) {
                ref.read(aniListProvider.notifier).updateData(cached);
              }
           }
-          _jimakuSource.getFiles(data, {}, ref);
+          _jimakuSource.getFiles(firstEntry, {}, ref);
         }
       } else {
         debugPrint('No results found for $key with query "$cleanedQuery"');
       }
       
       // If we got here, AniList is working
-      if (source == SubtitleSource.local) {
-        ref.read(aniListStatusProvider.notifier).state = AniListStatus.online;
+      if (source == SubtitleSource.local && metadataType == MetadataProviderType.anilist) {
+        ref.read(providerStatusProvider(MetadataProviderType.anilist).notifier).state = ProviderStatus.online;
       }
     } catch (e, st) {
       debugPrint('Search failed for $key: $e');
-      if (e is AniListDisabledException) {
-        ref.read(aniListStatusProvider.notifier).state = AniListStatus.maintenance;
-      } else if (e is Exception) {
-        debugPrint('Exception details: ${e.runtimeType}');
+      developer.log('Search error for $key', name: 'UI', error: e, stackTrace: st);
+      
+      String errorMessage = 'Search failed';
+      if (e is ShikimoriRequestException) {
+        if (e.statusCode == 504) {
+          errorMessage = 'Shikimori service is currently down (504)';
+        } else if (e.statusCode == 429) {
+          errorMessage = 'Shikimori rate limit exceeded. Try again in a minute.';
+        } else {
+          errorMessage = 'Shikimori error: ${e.message}';
+        }
+      } else if (e is AniListDisabledException) {
+        errorMessage = 'AniList service is currently unavailable';
       }
-      debugPrint(st.toString());
+
+      if (mounted) {
+        final theme = AdditionalWindowTheme.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: theme.isDark ? Colors.grey[900] : Colors.red[400],
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+      
       ref.read(searchResultsProvider(key).notifier).state = [];
     } finally {
       ref.read(isSearchingProvider(key).notifier).state = false;
@@ -135,7 +201,20 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
   }
 
   void _openFullSearch(SubtitleSource source) {
-    final SearchSource<dynamic, dynamic> searchSource = source == SubtitleSource.local ? _aniListSource : _jimakuSource;
+    final metadataType = ref.read(selectedMetadataProvider);
+    SearchSource<dynamic, dynamic> searchSource;
+    if (source == SubtitleSource.jimaku) {
+      searchSource = _jimakuSource;
+    } else {
+      if (metadataType == MetadataProviderType.tvmaze) {
+        searchSource = _tvMazeSource;
+      } else if (metadataType == MetadataProviderType.shikimori) {
+        searchSource = _shikimoriSource;
+      } else {
+        searchSource = _aniListSource;
+      }
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -146,7 +225,15 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
         onResolved: (result) {
           if (source == SubtitleSource.local) {
             final id = int.tryParse(result);
-            if (id != null) ref.read(aniListProvider.notifier).load(id, downloadImages: true);
+            if (id != null) {
+              if (metadataType == MetadataProviderType.tvmaze) {
+                ref.read(tvMazeProvider.notifier).load(id, downloadImages: true);
+              } else if (metadataType == MetadataProviderType.shikimori) {
+                ref.read(shikimoriProvider.notifier).load(id);
+              } else {
+                ref.read(aniListProvider.notifier).load(id, downloadImages: true);
+              }
+            }
           } else {
             ref.read(uploadProvider.notifier).handleSubtitleSelected(result);
           }
@@ -159,8 +246,27 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
   Widget build(BuildContext context) {
     final theme = AdditionalWindowTheme.of(context);
     final subtitleSource = ref.watch(uploadProvider.select((s) => s.subtitleSource));
+    final metadataType = ref.watch(selectedMetadataProvider);
 
-    final sourceKey = subtitleSource == SubtitleSource.local ? _aniListSource.key : _jimakuSource.key;
+    final SearchSource<dynamic, dynamic> activeSource;
+    if (subtitleSource == SubtitleSource.jimaku) {
+      activeSource = _jimakuSource;
+    } else {
+      switch (metadataType) {
+        case MetadataProviderType.tvmaze:
+          activeSource = _tvMazeSource;
+          break;
+        case MetadataProviderType.shikimori:
+          activeSource = _shikimoriSource;
+          break;
+        case MetadataProviderType.anilist:
+        default:
+          activeSource = _aniListSource;
+          break;
+      }
+    }
+    
+    final sourceKey = activeSource.key;
 
     // Sync search field with fileName when it changes, but only if empty
     ref.listen(uploadProvider.select((s) => s.fileName), (previous, next) {
@@ -169,11 +275,23 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
       }
     });
 
-    // Auto-search when switching sources if text is present
+    // Auto-search when switching sources or metadata providers if text is present
     ref.listen(uploadProvider.select((s) => s.subtitleSource), (previous, next) {
       final query = _controller.text.trim();
       if (query.length >= 3) {
         _performSearch(query, next);
+      }
+    });
+
+    ref.listen(selectedMetadataProvider, (previous, next) {
+      final query = _controller.text.trim();
+      final currentSource = ref.read(uploadProvider).subtitleSource;
+      
+      // Clear Jimaku metadata cache when switching providers to force refresh
+      ref.read(searchMetadataProvider(SearchSourceKeys.jimaku).notifier).state = {};
+      
+      if (query.length >= 3) {
+        _performSearch(query, currentSource);
       }
     });
 
@@ -216,26 +334,38 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
       }
     });
 
-    final isSearching = ref.watch(isSearchingProvider(
-      subtitleSource == SubtitleSource.local ? _aniListSource.key : _jimakuSource.key,
-    ));
+    final isSearching = ref.watch(isSearchingProvider(sourceKey));
     
-    final rawResults = subtitleSource == SubtitleSource.local 
-        ? ref.watchAniListResults() 
-        : ref.watchJimakuResults();
+    final List<UnifiedMetadataDTO> rawResults;
+    final UnifiedMetadataDTO? selectedEntry;
 
-    final selectedEntry = subtitleSource == SubtitleSource.local
-        ? ref.watchAniListSelectedEntry()
-        : ref.watchJimakuSelectedEntry();
+    if (subtitleSource == SubtitleSource.jimaku) {
+      rawResults = ref.watchJimakuResults();
+      selectedEntry = ref.watchJimakuSelectedEntry();
+    } else {
+      switch (metadataType) {
+        case MetadataProviderType.tvmaze:
+          rawResults = ref.watchTVmazeResults();
+          selectedEntry = ref.watchTVmazeSelectedEntry();
+          break;
+        case MetadataProviderType.shikimori:
+          rawResults = ref.watchShikimoriResults();
+          selectedEntry = ref.watchShikimoriSelectedEntry();
+          break;
+        case MetadataProviderType.anilist:
+        default:
+          rawResults = ref.watchAniListResults();
+          selectedEntry = ref.watchAniListSelectedEntry();
+          break;
+      }
+    }
 
     // Limit visible results in the horizontal list to improve performance and prevent clutter
     final results = rawResults.length > 12 ? rawResults.take(12).toList() : [...rawResults];
 
     if (selectedEntry != null) {
       final index = results.indexWhere((e) => 
-          (subtitleSource == SubtitleSource.local 
-              ? _aniListSource.entryId(e as dynamic) == _aniListSource.entryId(selectedEntry as dynamic)
-              : _jimakuSource.entryId(e as dynamic) == _jimakuSource.entryId(selectedEntry as dynamic))
+          activeSource.entryId(e as dynamic) == activeSource.entryId(selectedEntry as dynamic)
       );
       if (index != -1) {
         final item = results.removeAt(index);
@@ -351,7 +481,7 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
                 ),
               )
             : SizedBox(
-                height: 220,
+                height: 280,
                 child: ListView.separated(
                   controller: _scrollController,
                   scrollDirection: Axis.horizontal,
@@ -360,32 +490,32 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
                   separatorBuilder: (_, _) => const SizedBox(width: 12),
                   itemBuilder: (context, index) {
                     final entry = results[index];
-                    final isSelected = subtitleSource == SubtitleSource.local
-                        ? (selectedEntry != null && _aniListSource.entryId(entry as dynamic) == _aniListSource.entryId(selectedEntry as dynamic))
-                        : (selectedEntry != null && _jimakuSource.entryId(entry as dynamic) == _jimakuSource.entryId(selectedEntry as dynamic));
+                    final isSelected = selectedEntry != null &&
+                        activeSource.entryId(entry as dynamic) == activeSource.entryId(selectedEntry as dynamic);
 
                     return SizedBox(
                       width: 140,
-                      child: subtitleSource == SubtitleSource.local
-                          ? _aniListSource.buildEntryCard(entry as dynamic, isSelected, () {
-                              ref.read(selectedEntryProvider(_aniListSource.key).notifier).state = entry;
-                              _aniListSource.resolve(entry, ref);
-                            })
-                          : _jimakuSource.buildEntryCard(entry as dynamic, isSelected, () {
-                              ref.read(selectedEntryProvider(_jimakuSource.key).notifier).state = entry;
-                              _jimakuSource.getFiles(entry as JimakuDataDTO, {}, ref);
-                              
-                              // Automatically load AniList metadata if anilistId is present
-                              final data = entry;
-                              if (data.anilistId != null) {
-                                final metadata = ref.read(searchMetadataProvider(_jimakuSource.key));
-                                final cached = metadata[data.anilistId];
-                                if (cached != null && cached is AniListDataDTO) {
-                                  ref.read(aniListProvider.notifier).updateData(cached);
-                                }
-                                ref.read(aniListProvider.notifier).load(data.anilistId!, downloadImages: true);
+                      child: UnifiedSearchEntryCard(
+                        entry: entry,
+                        isActive: isSelected,
+                        onTap: () {
+                          ref.read(selectedEntryProvider(sourceKey).notifier).state = entry;
+                          
+                          if (activeSource == _jimakuSource) {
+                            // Automatically load metadata if external IDs are present
+                            if (entry.anilistId != null) {
+                              final metadata = ref.read(searchMetadataProvider(_jimakuSource.key));
+                              final cached = metadata[entry.anilistId!];
+                              if (cached != null && cached is UnifiedMetadataDTO) {
+                                ref.read(aniListProvider.notifier).updateData(cached);
                               }
-                            }),
+                              ref.read(aniListProvider.notifier).load(entry.anilistId!, downloadImages: true);
+                            }
+                          } else {
+                            activeSource.resolve(entry, ref);
+                          }
+                        },
+                      ),
                     );
                   },
                 ),

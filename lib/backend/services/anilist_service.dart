@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:eiga/config/app_config.dart';
-import 'package:eiga/backend/database/dto/anilist_dto.dart';
+import 'package:eiga/backend/database/dto/media_dto.dart';
 
 class AniListDisabledException implements Exception {
   final String message;
@@ -103,7 +103,7 @@ class AniListService {
     }
   ''';
 
-  Future<List<AniListDataDTO>> getByName(
+  Future<List<UnifiedMetadataDTO>> getByName(
     String name, {
     int page = 1,
     int perPage = 10,
@@ -167,13 +167,49 @@ class AniListService {
 
       return mediaList
           .where((m) => m != null)
-          .map((m) => AniListDataDTO.fromJson(m as Map<String, dynamic>))
+          .map((m) => _mapAniListToUnified(m as Map<String, dynamic>))
           .toList();
     } catch (e, st) {
       if (e is AniListDisabledException) rethrow;
       _handleError('getByName', e, st, query: name);
       return [];
     }
+  }
+
+  UnifiedMetadataDTO _mapAniListToUnified(Map<String, dynamic> json) {
+    final title = json['title'] as Map<String, dynamic>? ?? {};
+    final cover = json['coverImage'] as Map<String, dynamic>? ?? {};
+    final id = json['id'] as int?;
+
+    int? colorValue;
+    final colorStr = cover['color'] as String?;
+    if (colorStr != null && colorStr.startsWith('#')) {
+      final hex = colorStr.replaceFirst('#', '');
+      colorValue = int.tryParse('FF$hex', radix: 16);
+    }
+
+    return UnifiedMetadataDTO(
+      sourceId: id?.toString() ?? '',
+      anilistId: id,
+      title: title['romaji'] as String? ?? title['english'] as String? ?? 'Unknown',
+      subtitle: title['english'] as String?,
+      originalTitle: title['native'] as String?,
+      imageUrl: (cover['extraLarge'] ?? cover['large']) as String?,
+      bannerUrl: json['bannerImage'] as String?,
+      description: json['description'] as String?,
+      genres: (json['genres'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList() ?? [],
+      colorThemeValue: colorValue,
+      episodes: json['episodes'] as int?,
+      type: json['format'] as String?,
+      status: json['status'] as String?, // status is not in the query but good to have if added
+      linkUrl: id != null ? 'https://anilist.co/anime/$id' : null,
+      extras: {
+        'season': json['season'],
+        'seasonYear': json['seasonYear'],
+      },
+    );
   }
 
   void _handleError(String methodName, dynamic error, StackTrace stackTrace, {String? query}) {
@@ -245,7 +281,7 @@ class AniListService {
     return null;
   }
 
-  Future<List<AniListDataDTO>> getByIds(List<int> ids) async {
+  Future<List<UnifiedMetadataDTO>> getByIds(List<int> ids) async {
     if (ids.isEmpty) return [];
 
     try {
@@ -304,7 +340,7 @@ class AniListService {
 
       return mediaList
           .where((m) => m != null)
-          .map((m) => AniListDataDTO.fromJson(m as Map<String, dynamic>))
+          .map((m) => _mapAniListToUnified(m as Map<String, dynamic>))
           .toList();
     } catch (e, st) {
       if (e is AniListDisabledException) rethrow;
@@ -313,7 +349,7 @@ class AniListService {
     }
   }
 
-  Future<AniListDataDTO?> getById(
+  Future<UnifiedMetadataDTO?> getById(
       int anilistId, {
         bool downloadImages = true,
       }) async {
@@ -361,16 +397,16 @@ class AniListService {
       final media = decoded['data']?['Media'] as Map<String, dynamic>?;
       if (media == null) return null;
 
-      var dto = AniListDataDTO.fromJson(media);
+      var dto = _mapAniListToUnified(media);
 
       if (downloadImages) {
         final results = await Future.wait([
-          if (dto.coverImageUrl != null)
-            _downloadAndSave(dto.coverImageUrl!, anilistId, suffix: 'cover')
+          if (dto.imageUrl != null)
+            _downloadAndSave(dto.imageUrl!, anilistId, suffix: 'cover')
           else
             Future.value(null),
-          if (dto.bannerImage != null)
-            _downloadAndSave(dto.bannerImage!, anilistId, suffix: 'banner')
+          if (dto.bannerUrl != null)
+            _downloadAndSave(dto.bannerUrl!, anilistId, suffix: 'banner')
           else
             Future.value(null),
         ]);
@@ -379,8 +415,8 @@ class AniListService {
         final bannerPath = results[1];
 
         dto = dto.copyWith(
-          coverImagePath: coverPath ?? dto.coverImagePath,
-          bannerImagePath: bannerPath ?? dto.bannerImagePath,
+          imagePath: coverPath ?? dto.imagePath,
+          bannerPath: bannerPath ?? dto.bannerPath,
         );
       }
 

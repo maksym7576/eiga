@@ -55,6 +55,8 @@ class AiModel {
   
   int estimatedTokensPerSec = 50;
 
+  int errorCount = 0;
+
   int contextWindow = 128000;
   int maxOutputTokens = 8192;
 
@@ -63,7 +65,7 @@ class AiModel {
 
   @Enumerated(EnumType.name)
   List<TranslationPipelineStep> supportedSteps = [
-    TranslationPipelineStep.fullTranslate
+    TranslationPipelineStep.translate
   ];
 
   double inputPricePerMToken = 0.0;

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../backend/database/schemas/phrase.dart';
-import '../../../backend/database/schemas/block.dart';
 import '../../../backend/database/schemas/specific_word_style.dart';
 import '../../../providers/ui/video_data_providers.dart';
 import '../../../providers/ui/player_provider.dart';
-import '../../../providers/services/database_services_providers.dart';
+import '../../styles/app_colors.dart';
 import 'ruby_text.dart';
-import 'word_popover.dart';
 
+// Component for rendering subtitle text with support for interactive blocks
 class SubtitleTextContent extends ConsumerWidget {
   final Phrase phrase;
   final String mainOption;
@@ -33,8 +33,6 @@ class SubtitleTextContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedBlockId = ref.watch(selectedBlockIdProvider);
-
     return Column(
       crossAxisAlignment: textAlign == TextAlign.center 
           ? CrossAxisAlignment.center 
@@ -51,15 +49,14 @@ class SubtitleTextContent extends ConsumerWidget {
           textColor: textColor,
           useShadows: useShadows,
         ),
-        if (showTranslation && phrase.translatedPhrase != null) ...[
-          const SizedBox(height: 6),
+        if (showTranslation) ...[
+          const SizedBox(height: 2),
           _TranslationStyledContent(
             phraseId: phrase.id,
             baseFontSize: baseFontSize * 0.75,
             textAlign: textAlign,
             textColor: textColor,
             useShadows: useShadows,
-            selectedBlockId: selectedBlockId,
           ),
         ],
       ],
@@ -67,13 +64,12 @@ class SubtitleTextContent extends ConsumerWidget {
   }
 }
 
-class _TranslationStyledContent extends ConsumerWidget {
+class _TranslationStyledContent extends HookConsumerWidget {
   final int phraseId;
   final double baseFontSize;
   final TextAlign textAlign;
   final Color textColor;
   final bool useShadows;
-  final int? selectedBlockId;
 
   const _TranslationStyledContent({
     required this.phraseId,
@@ -81,17 +77,19 @@ class _TranslationStyledContent extends ConsumerWidget {
     required this.textAlign,
     required this.textColor,
     required this.useShadows,
-    this.selectedBlockId,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final blocksWithStylesAsync = ref.watch(phraseBlocksWithStylesProvider(phraseId));
+    final tokensAsync = ref.watch(phraseTranslationTokensProvider(phraseId));
+    final highlightedTranslationIds = ref.watch(highlightedTranslationIdsProvider);
+    final anchorType = ref.watch(selectionAnchorTypeProvider);
+    final clickedTranslationId = ref.watch(clickedTranslationWordIdProvider);
 
-    return blocksWithStylesAsync.when(
+    return tokensAsync.when(
       skipLoadingOnRefresh: true,
-      data: (entries) {
-        if (entries.isEmpty) return const SizedBox.shrink();
+      data: (tokens) {
+        if (tokens.isEmpty) return const SizedBox.shrink();
 
         final List<Shadow>? shadows = useShadows
             ? [
@@ -105,82 +103,151 @@ class _TranslationStyledContent extends ConsumerWidget {
 
         return Wrap(
           alignment: textAlign == TextAlign.center ? WrapAlignment.center : WrapAlignment.start,
-          spacing: 0,
-          runSpacing: 0,
-          children: entries.asMap().entries.map((item) {
-            final index = item.key;
-            final entry = item.value;
-            final block = entry['block'] as Block;
-            final style = entry['style'] as SpecificWordStyle?;
-            final isSelected = selectedBlockId == block.id;
+          spacing: 1, 
+          runSpacing: 2, 
+          children: tokens.map((tokenWithStyle) {
+            final tokenText = tokenWithStyle.token.text ?? '';
+            final isHighlighted = highlightedTranslationIds.contains(tokenWithStyle.token.id);
+            final bool isAnchor = anchorType == SelectionAnchor.translation && tokenWithStyle.token.id == clickedTranslationId;
+            
+            // Check if token is just punctuation
+            final bool isPunctuation = RegExp(r'^[\p{P}\p{S}]+$', unicode: true).hasMatch(tokenText.trim());
 
-            String text = block.blockTranslation?.trim() ?? '';
-            if (text.isEmpty) return const SizedBox.shrink();
-
-            // Add a space after each block except the last one to keep it continuous but readable
-            if (index < entries.length - 1) {
-              text = '$text ';
-            }
-
-            final bool isFirst = index == 0 || (entries[index - 1]['block'] as Block).id != block.id;
-            final bool isLast = index == entries.length - 1 || (entries[index + 1]['block'] as Block).id != block.id;
-
-            return TapRegion(
-              groupId: 'word_selection_group',
-              child: GestureDetector(
-                key: ValueKey('trans_${block.id}_$index'),
-                onTap: () async {
-                  final currentBlockId = ref.read(selectedBlockIdProvider);
-                  
-                  if (currentBlockId == block.id) {
-                    ref.read(selectedBlockIdProvider.notifier).state = null;
-                    ref.read(clickedWordIdProvider.notifier).state = null;
-                    ref.read(clickedWordPositionProvider.notifier).state = null;
-                    ref.read(playerProvider.notifier).setPlaying(true);
-                    return;
-                  }
-
-                  ref.read(playerProvider.notifier).setPlaying(false);
-
-                  final wordService = ref.read(wordServiceProvider);
-                  final words = await wordService.getWordsByBlockIds([block.id]);
-                  if (words.isNotEmpty) {
-                    ref.read(clickedWordIdProvider.notifier).state = words.first.id;
-                  }
-                  
-                  ref.read(selectedBlockIdProvider.notifier).state = block.id;
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF3B66F5).withValues(alpha: 0.12) : Colors.transparent,
-                    borderRadius: BorderRadius.horizontal(
-                      left: Radius.circular(isFirst && isSelected ? 4 : 0),
-                      right: Radius.circular(isLast && isSelected ? 4 : 0),
-                    ),
-                  ),
-                  child: Text(
-                    text,
-                    style: TextStyle(
-                      fontSize: baseFontSize,
-                      color: style?.color ?? textColor.withOpacity(0.85),
-                      fontWeight: isSelected ? FontWeight.bold : (style?.fontWeight ?? FontWeight.w500),
-                      height: 1.5, // Prevents clipping at the bottom
-                      shadows: shadows,
-                    ),
-                  ),
-                ),
-              ),
+            return _TranslationTokenWidget(
+              ts: tokenWithStyle,
+              phraseId: phraseId,
+              isHighlighted: isHighlighted,
+              isAnchor: isAnchor,
+              isPunctuation: isPunctuation,
+              baseFontSize: baseFontSize,
+              textColor: textColor,
+              shadows: shadows,
             );
           }).toList(),
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }
+
+class _TranslationTokenWidget extends HookConsumerWidget {
+  final TranslationTokenWithStyle ts;
+  final int phraseId;
+  final bool isHighlighted;
+  final bool isAnchor;
+  final bool isPunctuation;
+  final double baseFontSize;
+  final Color textColor;
+  final List<Shadow>? shadows;
+
+  const _TranslationTokenWidget({
+    required this.ts,
+    required this.phraseId,
+    required this.isHighlighted,
+    required this.isAnchor,
+    required this.isPunctuation,
+    required this.baseFontSize,
+    required this.textColor,
+    this.shadows,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final blockStyleAsync = ts.token.blockId != null 
+        ? ref.watch(blockStyleProvider(ts.token.blockId!)) 
+        : const AsyncValue<SpecificWordStyle?>.data(null);
+    final styleAsync = ref.watch(wordStyleProvider(ts.lemma ?? ''));
+    
+    final currentStyle = blockStyleAsync.maybeWhen(data: (s) => s, orElse: () => null) ??
+                        styleAsync.maybeWhen(data: (s) => s, orElse: () => ts.style);
+
+    useEffect(() {
+      if (isAnchor) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final RenderBox? box = context.findRenderObject() as RenderBox?;
+          if (box != null && box.hasSize) {
+            final position = box.localToGlobal(Offset(box.size.width / 2, 0));
+            ref.read(clickedWordPositionProvider.notifier).state = position;
+          }
+        });
+      }
+      return null;
+    }, [isAnchor]);
+
+    return TapRegion(
+      groupId: 'word_selection_group',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: isPunctuation ? null : () async {
+          final currentAnchorType = ref.read(selectionAnchorTypeProvider);
+          final currentClickedId = ref.read(clickedTranslationWordIdProvider);
+          
+          if (currentClickedId == ts.token.id && currentAnchorType == SelectionAnchor.translation) {
+            // Deselect
+            ref.read(highlightedWordIdsProvider.notifier).state = {};
+            ref.read(highlightedTranslationIdsProvider.notifier).state = {};
+            ref.read(clickedWordIdProvider.notifier).state = null;
+            ref.read(clickedTranslationWordIdProvider.notifier).state = null;
+            ref.read(selectionAnchorTypeProvider.notifier).state = null;
+            ref.read(playerProvider.notifier).setPlaying(true);
+          } else {
+            // Select
+            ref.read(playerProvider.notifier).setPlaying(false);
+            
+            final index = await ref.read(phraseLinkIndexProvider(phraseId).future);
+
+            final linked = index.getLinkedIdsForTranslation(ts.token.id);
+            
+            ref.read(highlightedTranslationIdsProvider.notifier).state = linked['translations']!;
+            ref.read(highlightedWordIdsProvider.notifier).state = linked['words']!;
+            
+            ref.read(clickedTranslationWordIdProvider.notifier).state = ts.token.id;
+            
+            // User wants popover above ORIGINAL word.
+            // Find the first source word and set it as anchor.
+            final sourceWords = index.translationToWords[ts.token.id] ?? [];
+            if (sourceWords.isNotEmpty) {
+              ref.read(clickedWordIdProvider.notifier).state = sourceWords.first.id;
+              ref.read(selectionAnchorTypeProvider.notifier).state = SelectionAnchor.word;
+            } else {
+              ref.read(clickedWordIdProvider.notifier).state = null;
+              ref.read(selectionAnchorTypeProvider.notifier).state = SelectionAnchor.translation;
+            }
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: EdgeInsets.symmetric(
+            horizontal: isPunctuation ? 0 : 2, 
+            vertical: 1
+          ),
+          decoration: BoxDecoration(
+            color: (isHighlighted && !isPunctuation)
+                ? const Color(0xFFE2E8F0) // Changed to grey like original
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            ts.token.text ?? '',
+            style: TextStyle(
+              fontSize: baseFontSize,
+              color: currentStyle?.color ?? 
+                  ((isHighlighted && !isPunctuation) ? AppColors.slate700 : textColor.withValues(alpha: 0.85)),
+              fontWeight: (isHighlighted && !isPunctuation) ? FontWeight.bold : (currentStyle?.fontWeight ?? FontWeight.w500),
+              height: 1.5,
+              shadows: shadows,
+              decoration: TextDecoration.none,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
 
 class PhraseOriginalContent extends HookConsumerWidget {
   final int phraseId;
@@ -231,12 +298,10 @@ class PhraseOriginalContent extends HookConsumerWidget {
         return Wrap(
           alignment: textAlign == TextAlign.center ? WrapAlignment.center : WrapAlignment.start,
           crossAxisAlignment: WrapCrossAlignment.end,
-          spacing: removeSpaces ? 0 : 2, // No spacing for languages like Japanese
-          runSpacing: 4,
+          spacing: removeSpaces ? 0 : 1, 
+          runSpacing: 2, 
           children: List.generate(wordsWithStyles.length, (index) {
             final ws = wordsWithStyles[index];
-            final clickedWordId = ref.watch(clickedWordIdProvider);
-            final bool isClicked = ws.word.id == clickedWordId;
 
             final bool isFirst = index == 0 || wordsWithStyles[index - 1].block.id != ws.block.id;
             final bool isLast = index == wordsWithStyles.length - 1 || wordsWithStyles[index + 1].block.id != ws.block.id;
@@ -262,7 +327,7 @@ class PhraseOriginalContent extends HookConsumerWidget {
                 annotationStyle: TextStyle(
                   fontFamily: 'Plus Jakarta Sans',
                   fontSize: baseFontSize * 0.55,
-                  color: useShadows ? textColor.withOpacity(0.9) : const Color(0xFF94A3B8),
+                  color: useShadows ? textColor.withValues(alpha: 0.9) : const Color(0xFF94A3B8),
                   fontWeight: FontWeight.normal,
                   height: 1.0,
                   shadows: useShadows ? [const Shadow(blurRadius: 1.0, color: Colors.black, offset: Offset(0.5, 0.5))] : null,
@@ -270,18 +335,12 @@ class PhraseOriginalContent extends HookConsumerWidget {
               ),
             );
 
-            if (isClicked) {
-              return CompositedTransformTarget(
-                link: ref.watch(blockLayerLinkProvider),
-                child: ruby,
-              );
-            }
             return ruby;
           }),
         );
       },
       loading: () => Text(fallbackText?.trim() ?? '', style: TextStyle(fontSize: baseFontSize, color: textColor)),
-      error: (_, __) => Text(fallbackText?.trim() ?? '', style: const TextStyle(color: Colors.red)),
+      error: (_, st) => Text(fallbackText?.trim() ?? '', style: const TextStyle(color: Colors.red)),
     );
   }
 }

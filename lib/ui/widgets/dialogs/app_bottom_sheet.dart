@@ -8,6 +8,7 @@ class AppBottomSheet {
     required Widget child,
     String barrierLabel = "BottomSheetLabel",
     Color? backgroundColor,
+    bool opaque = true,
     double heightFactor = 1.0,
     bool barrierDismissible = true,
     bool isScrollControlled = true,
@@ -29,6 +30,7 @@ class AppBottomSheet {
             child: _DraggableSheetBody(
               heightFactor: heightFactor,
               backgroundColor: backgroundColor,
+              opaque: opaque,
               theme: theme,
               child: child,
             ),
@@ -56,12 +58,14 @@ class AppBottomSheet {
 class _DraggableSheetBody extends StatefulWidget {
   final double heightFactor;
   final Color? backgroundColor;
+  final bool opaque;
   final AppBottomSheetTheme theme;
   final Widget child;
 
   const _DraggableSheetBody({
     required this.heightFactor,
     required this.backgroundColor,
+    required this.opaque,
     required this.theme,
     required this.child,
   });
@@ -139,10 +143,10 @@ class _DraggableSheetBodyState extends State<_DraggableSheetBody>
             constraints: BoxConstraints(maxHeight: sheetHeight),
             decoration: BoxDecoration(
               color: (widget.backgroundColor ?? theme.backgroundColor)
-                  .withValues(alpha: 0.85),
+                  .withValues(alpha: widget.opaque ? 1.0 : 0.85),
               borderRadius: theme.borderRadius,
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.1),
+                color: widget.opaque ? Colors.transparent : Colors.white.withValues(alpha: 0.1),
                 width: 1.5,
               ),
               boxShadow: theme.shadow,

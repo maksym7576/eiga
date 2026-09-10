@@ -5,12 +5,10 @@ import 'package:eiga/backend/database/services/video_service.dart';
 import 'package:eiga/providers/database/database_providers.dart';
 import 'package:eiga/providers/ui/ai_models_state_provider.dart';
 import 'pipeline_abstract.dart';
-import 'total_pipeline.dart';
 import 'context_translation_pipeline.dart';
 
 class PipelineManager {
   static final Map<String, PipelineAbstract> _registry = {
-    'total_v1': TotalPipeline(),
     'context_translation_v1': ContextTranslationPipeline(),
   };
 

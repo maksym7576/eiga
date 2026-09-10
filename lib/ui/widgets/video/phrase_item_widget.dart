@@ -61,6 +61,13 @@ class PhraseItemWidget extends HookConsumerWidget {
         // Clear word selection when tapping background
         ref.read(selectedBlockIdProvider.notifier).state = null;
         ref.read(clickedWordIdProvider.notifier).state = null;
+        ref.read(clickedTranslationWordIdProvider.notifier).state = null;
+        ref.read(selectionAnchorTypeProvider.notifier).state = null;
+        ref.read(highlightedWordIdsProvider.notifier).state = {};
+        ref.read(highlightedTranslationIdsProvider.notifier).state = {};
+        ref.read(infoPanelTextProvider.notifier).state = null;
+        ref.read(clickedWordPositionProvider.notifier).state = null;
+        ref.read(playerProvider.notifier).setPlaying(true);
       },
       child: Container(
         width: double.infinity,
@@ -184,6 +191,8 @@ class PhraseItemWidget extends HookConsumerWidget {
   }
 
   Widget _buildTranslatingContent(BuildContext context) {
+    final hasTranslation = phrase.translatedPhrase != null && phrase.translatedPhrase!.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -199,14 +208,27 @@ class PhraseItemWidget extends HookConsumerWidget {
           ),
         ),
         const SizedBox(height: 10),
-        Container(
-          height: 12,
-          width: MediaQuery.of(context).size.width * 0.6,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(6),
+        if (hasTranslation)
+          ShimmerText(
+            child: Text(
+              phrase.translatedPhrase!,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF64748B),
+                height: 1.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          )
+        else
+          Container(
+            height: 12,
+            width: MediaQuery.of(context).size.width * 0.6,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(6),
+            ),
           ),
-        ),
       ],
     );
   }

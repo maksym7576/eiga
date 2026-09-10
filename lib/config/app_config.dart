@@ -9,6 +9,8 @@ class AppConfig {
   // --- API Constants ---
   static const String aniListEndpoint = 'https://graphql.anilist.co';
   static const String jimakuBaseUrl = 'https://jimaku.cc/api';
+  static const String tvMazeEndpoint = 'https://api.tvmaze.com';
+  static const String shikimoriBaseUrl = 'https://shikimori.one/api';
   static const Duration defaultTimeout = Duration(seconds: 15);
 
   // --- Default Values ---
@@ -19,16 +21,20 @@ class AppConfig {
   static const Map<TranslationPipelineStep, String> defaultModels = {
     TranslationPipelineStep.research: 'gemini-3.5-flash-lite',
     TranslationPipelineStep.translate: 'gemini-3.8-flash',
+    TranslationPipelineStep.tokenize: 'gemini-3.5-flash-lite',
     TranslationPipelineStep.morphemes: 'gemini-3.5-flash',
-    TranslationPipelineStep.fullTranslate: 'gemini-3.8-flash',
   };
 
   // --- Storage Keys ---
   static const _keySecondsAhead = 'seconds_before_send';
   static const _keyNumberOfPhrases = 'number_of_phrases';
-  static const _keyIsThreeStepMethod = 'is_three_step_method';
+  static const _keyIsAutomaticModelSwitch = 'is_automatic_model_switch';
   static const _keyLastResetDate = 'last_reset_date_utc';
   static const _keyMaxConcurrentProcesses = 'max_concurrent_processes';
+  
+  static const _keyBatchSizeTranslate = 'batch_size_translate';
+  static const _keyBatchSizeTokenize = 'batch_size_tokenize';
+  static const _keyBatchSizeMorphemes = 'batch_size_morphemes';
   
   static String _modelKey(TranslationPipelineStep step) => 'active_model_${step.name}';
 
@@ -46,8 +52,20 @@ class AppConfig {
     await _prefs.setInt(_keyMaxConcurrentProcesses, value);
   }
 
-  Future<void> setIsThreeStepMethod(bool value) async {
-    await _prefs.setBool(_keyIsThreeStepMethod, value);
+  Future<void> setBatchSizeTranslate(int value) async {
+    await _prefs.setInt(_keyBatchSizeTranslate, value);
+  }
+
+  Future<void> setBatchSizeTokenize(int value) async {
+    await _prefs.setInt(_keyBatchSizeTokenize, value);
+  }
+
+  Future<void> setBatchSizeMorphemes(int value) async {
+    await _prefs.setInt(_keyBatchSizeMorphemes, value);
+  }
+
+  Future<void> setIsAutomaticModelSwitch(bool value) async {
+    await _prefs.setBool(_keyIsAutomaticModelSwitch, value);
   }
 
   Future<void> setActiveModelForStep(TranslationPipelineStep step, String modelName) async {
@@ -60,7 +78,11 @@ class AppConfig {
 
   int get getMaxConcurrentProcesses => _prefs.getInt(_keyMaxConcurrentProcesses) ?? defaultMaxConcurrentProcesses;
 
-  bool get getIsThreeStepMethod => _prefs.getBool(_keyIsThreeStepMethod) ?? true;
+  int get getBatchSizeTranslate => _prefs.getInt(_keyBatchSizeTranslate) ?? 40;
+  int get getBatchSizeTokenize => _prefs.getInt(_keyBatchSizeTokenize) ?? 40;
+  int get getBatchSizeMorphemes => _prefs.getInt(_keyBatchSizeMorphemes) ?? 40;
+
+  bool get getIsAutomaticModelSwitch => _prefs.getBool(_keyIsAutomaticModelSwitch) ?? true;
 
   String? get getLastResetDate => _prefs.getString(_keyLastResetDate);
 
@@ -72,10 +94,13 @@ class AppConfig {
     return _prefs.getString(_modelKey(step)) ?? defaultModels[step]!;
   }
 
+  String? getActiveModelForStepRaw(TranslationPipelineStep step) {
+    return _prefs.getString(_modelKey(step));
+  }
+
   Future<void> resetToDefault() async {
     await _prefs.remove(_keySecondsAhead);
     await _prefs.remove(_keyNumberOfPhrases);
-    await _prefs.remove(_keyIsThreeStepMethod);
     for (final step in TranslationPipelineStep.values) {
       await _prefs.remove(_modelKey(step));
     }

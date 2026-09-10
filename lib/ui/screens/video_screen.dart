@@ -29,6 +29,18 @@ class VideoScreen extends HookConsumerWidget {
     final isInitialized = ref.watch(playerProvider.select((s) => s.isInitialized));
 
     useEffect(() {
+      // Capture the notifier and state setters before the closure
+      final playerNotifier = ref.read(playerProvider.notifier);
+      final playerIdSetter = ref.read(playerIdProvider.notifier);
+      final selectedBlockSetter = ref.read(selectedBlockIdProvider.notifier);
+      final clickedWordSetter = ref.read(clickedWordIdProvider.notifier);
+      final clickedWordPosSetter = ref.read(clickedWordPositionProvider.notifier);
+      final playerTimeSetter = ref.read(playerTimeProvider.notifier);
+      final isPlayingSetter = ref.read(isPlayingProvider.notifier);
+
+      // Enter immersive mode on screen entry
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
       // Allow all orientations when entering the screen
       SystemChrome.setPreferredOrientations([
         DeviceOrientation.portraitUp,
@@ -47,12 +59,21 @@ class VideoScreen extends HookConsumerWidget {
         // Allow screen to sleep again
         WakelockPlus.disable();
 
-        // Clean up providers and dispose player
-        ref.read(playerIdProvider.notifier).state = null;
-        ref.read(selectedBlockIdProvider.notifier).state = null;
-        ref.read(clickedWordIdProvider.notifier).state = null;
-        ref.read(clickedWordPositionProvider.notifier).state = null;
-        ref.read(playerTimeProvider.notifier).state = Duration.zero;
+        // Stop playback explicitly using captured notifier
+        playerNotifier.setPlaying(false);
+
+        // Clean up providers using captured setters
+        playerIdSetter.state = null;
+        selectedBlockSetter.state = null;
+        clickedWordSetter.state = null;
+        ref.read(clickedTranslationWordIdProvider.notifier).state = null;
+        ref.read(selectionAnchorTypeProvider.notifier).state = null;
+        ref.read(highlightedWordIdsProvider.notifier).state = {};
+        ref.read(highlightedTranslationIdsProvider.notifier).state = {};
+        ref.read(infoPanelTextProvider.notifier).state = null;
+        clickedWordPosSetter.state = null;
+        playerTimeSetter.state = Duration.zero;
+        isPlayingSetter.state = false;
       };
     }, []);
 

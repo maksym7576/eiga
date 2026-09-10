@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
-import 'package:eiga/backend/database/dto/anilist_dto.dart';
+import 'package:eiga/backend/database/dto/media_dto.dart';
 import 'package:eiga/backend/services/anilist_service.dart';
-import 'package:eiga/providers/anilist_status_provider.dart';
+import 'package:eiga/providers/service_status_providers.dart';
 import 'package:eiga/providers/ui/dto_providers.dart';
 import 'package:eiga/providers/ui/search_provider.dart';
 import 'package:eiga/ui/widgets/search/search_source_abstract.dart';
-import 'anilist_entry_card.dart';
 
-class AniListSearchSource implements SearchSource<AniListDataDTO, void> {
+class AniListSearchSource implements SearchSource<UnifiedMetadataDTO, void> {
   @override
   String get key => SearchSourceKeys.anilist;
 
@@ -26,13 +24,13 @@ class AniListSearchSource implements SearchSource<AniListDataDTO, void> {
   Map<String, dynamic> get defaultFilters => {};
 
   @override
-  Future<List<AniListDataDTO>> search(String query, Map<String, dynamic> filters, WidgetRef ref) async {
+  Future<List<UnifiedMetadataDTO>> search(String query, Map<String, dynamic> filters, WidgetRef ref) async {
     try {
       final service = ref.read(aniListServiceProvider);
-      return await service.getByName(query, page: 1, perPage: 15);
+      return await service.getByName(query, page: 1, perPage: 10);
     } catch (e) {
       if (e is AniListDisabledException) {
-        ref.read(aniListStatusProvider.notifier).state = AniListStatus.maintenance;
+        ref.read(providerStatusProvider(MetadataProviderType.anilist).notifier).state = ProviderStatus.error;
       }
       rethrow;
     }
@@ -42,10 +40,10 @@ class AniListSearchSource implements SearchSource<AniListDataDTO, void> {
   Future<List<dynamic>> fetchNextPage(String query, int page, Map<String, dynamic> filters, WidgetRef ref) async {
     try {
       final service = ref.read(aniListServiceProvider);
-      return await service.getByName(query, page: page, perPage: 15);
+      return await service.getByName(query, page: page, perPage: 10);
     } catch (e) {
       if (e is AniListDisabledException) {
-        ref.read(aniListStatusProvider.notifier).state = AniListStatus.maintenance;
+        ref.read(providerStatusProvider(MetadataProviderType.anilist).notifier).state = ProviderStatus.error;
       }
       rethrow;
     }
@@ -53,24 +51,24 @@ class AniListSearchSource implements SearchSource<AniListDataDTO, void> {
 
   @override
   Future<String> resolve(dynamic selected, WidgetRef ref) async {
-    if (selected is! AniListDataDTO) return '';
+    if (selected is! UnifiedMetadataDTO) return '';
     final entry = selected;
-    if (entry.id != null) {
+    if (entry.anilistId != null) {
       final notifier = ref.read(aniListProvider.notifier);
       // Immediately update with search result data (faster UI)
       notifier.updateData(entry);
       // Then trigger full refresh with images/description
-      await notifier.refresh(entry.id!);
+      await notifier.refresh(entry.anilistId!);
       
       final currentSelected = ref.read(selectedEntryProvider(key));
-      if (currentSelected != null && currentSelected is AniListDataDTO && entryId(currentSelected) == entry.id.toString()) {
+      if (currentSelected != null && currentSelected is UnifiedMetadataDTO && entryId(currentSelected) == entry.anilistId.toString()) {
         final fullData = ref.read(aniListProvider).value;
         if (fullData != null) {
           ref.read(selectedEntryProvider(key).notifier).state = fullData;
         }
       }
     }
-    return entry.id.toString();
+    return entry.anilistId?.toString() ?? '';
   }
 
   @override
@@ -79,18 +77,8 @@ class AniListSearchSource implements SearchSource<AniListDataDTO, void> {
   }
 
   @override
-  Widget buildEntryCard(
-      AniListDataDTO entry, bool isActive, VoidCallback onTap) {
-    return AniListEntryCard(
-      entry: entry,
-      isActive: isActive,
-      onTap: onTap,
-    );
-  }
-
-  @override
   Future<List<void>> getFiles(
-      AniListDataDTO entry, Map<String, dynamic> filters, WidgetRef ref) async {
+      UnifiedMetadataDTO entry, Map<String, dynamic> filters, WidgetRef ref) async {
     return [];
   }
 
@@ -100,12 +88,11 @@ class AniListSearchSource implements SearchSource<AniListDataDTO, void> {
   }
 
   @override
-  String entryId(AniListDataDTO entry) => entry.id.toString();
+  String entryId(UnifiedMetadataDTO entry) => entry.anilistId?.toString() ?? entry.sourceId;
 
   @override
   String fileId(void file) => '';
 
   @override
-  String entryLabel(AniListDataDTO entry) =>
-      entry.romajiTitle ?? entry.englishTitle ?? 'Unknown';
+  String entryLabel(UnifiedMetadataDTO entry) => entry.title;
 }

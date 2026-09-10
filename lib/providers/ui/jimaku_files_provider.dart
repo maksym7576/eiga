@@ -1,5 +1,6 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:eiga/backend/database/dto/jimaku_dto.dart';
+import 'package:eiga/backend/database/dto/media_dto.dart';
+import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
 import 'package:eiga/backend/services/jimaku_service.dart';
 import 'package:eiga/backend/services/utils/jimaku_clustering_util.dart';
 import 'dto_providers.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../backend/database/dto/jimaku_dto.dart';
+import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
 
 class JimakuFileTile extends StatelessWidget {
@@ -38,13 +38,24 @@ class JimakuFileTile extends StatelessWidget {
     final theme = AdditionalWindowTheme.of(context);
     final ext = file.name.split('.').last.toUpperCase();
     
-    return Padding(
-      padding: EdgeInsets.only(
-        left: isSubItem ? 16 : 0,
-        right: 0,
-        top: 0,
-        bottom: isSubItem ? 2 : 0,
-      ),
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeIn,
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: isSubItem ? 16 : 0,
+              right: 0,
+              top: 0,
+              bottom: isSubItem ? 2 : 0,
+            ),
+            child: child,
+          ),
+        );
+      },
       child: GestureDetector(
         onTap: onTap,
         child: Container(

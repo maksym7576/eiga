@@ -8,10 +8,10 @@ import '../../backend/services/depacker_subtitles/season_episode_info.dart';
 import '../services/database_services_providers.dart';
 import '../services/subtitle_depacker_providers.dart';
 import '../videoComponentsProvider.dart';
-import 'package:eiga/backend/database/dto/jimaku_dto.dart';
-import 'package:eiga/backend/database/dto/anilist_dto.dart';
+import 'package:eiga/backend/database/dto/media_dto.dart';
 import 'dto_providers.dart';
 import 'search_provider.dart';
+import 'video_data_providers.dart';
 
 import '../services/token_provider.dart';
 import '../../config/secure_storage.dart';
@@ -125,15 +125,20 @@ class UploadNotifier extends Notifier<UploadState> {
     );
     
     // Clear global providers
-    ref.invalidate(videoPathProvider);
+    ref.invalidate(playerIdProvider);
+    ref.invalidate(playerTimeProvider);
+    ref.invalidate(isPlayingProvider);
+    
     ref.read(selectedEntryProvider(SearchSourceKeys.jimaku).notifier).state = null;
     ref.read(selectedEntryProvider(SearchSourceKeys.anilist).notifier).state = null;
     ref.read(selectedResultProvider(SearchSourceKeys.jimaku).notifier).state = null;
     ref.read(selectedResultProvider(SearchSourceKeys.anilist).notifier).state = null;
     ref.read(searchResultsProvider(SearchSourceKeys.jimaku).notifier).state = [];
     ref.read(searchResultsProvider(SearchSourceKeys.anilist).notifier).state = [];
+    ref.read(searchResultsProvider(SearchSourceKeys.tvmaze).notifier).state = [];
     ref.read(jimakuSearchFullResultsProvider.notifier).state = [];
     ref.read(aniListProvider.notifier).clear();
+    ref.read(tvMazeProvider.notifier).clear();
     
     // Explicitly reset search metadata
     ref.invalidate(searchMetadataProvider(SearchSourceKeys.jimaku));
@@ -210,42 +215,56 @@ class UploadNotifier extends Notifier<UploadState> {
 
     state = state.copyWith(isSaving: true);
     
-    // 1. Identify the Anilist ID from any source
-    int? targetAnilistId;
+    final metadataType = ref.read(selectedMetadataProvider);
+    UnifiedMetadataDTO? finalMetadata;
     
-    // From direct selection (AniList search)
-    final anilistData = ref.read(aniListProvider).value;
-    if (anilistData != null) {
-      targetAnilistId = anilistData.id;
+    // 1. Try to get metadata from specific provider notifier (most reliable source)
+    if (metadataType == MetadataProviderType.anilist) {
+      finalMetadata = ref.read(aniListProvider).value;
+    } else if (metadataType == MetadataProviderType.tvmaze) {
+      finalMetadata = ref.read(tvMazeProvider).value;
+    } else if (metadataType == MetadataProviderType.shikimori) {
+      finalMetadata = ref.read(shikimoriProvider).value;
     }
-    
-    // Fallback: search for selected entry in AniList source if provider value is null
-    if (targetAnilistId == null) {
-      final dynamic anilistEntry = ref.read(selectedEntryProvider(SearchSourceKeys.anilist));
-      if (anilistEntry != null && anilistEntry is AniListDataDTO) {
-        targetAnilistId = anilistEntry.id;
+
+    // 2. Fallback: Check search cache if enriched (important for Jimaku search results)
+    if (finalMetadata == null) {
+      final jimakuEntry = ref.read(selectedEntryProvider(SearchSourceKeys.jimaku));
+      if (jimakuEntry != null && jimakuEntry is UnifiedMetadataDTO) {
+        final jimakuId = int.tryParse(jimakuEntry.sourceId);
+        if (jimakuId != null) {
+          final cached = ref.read(searchMetadataProvider(SearchSourceKeys.jimaku))[jimakuId];
+          if (cached != null && cached is UnifiedMetadataDTO) {
+            finalMetadata = cached;
+          }
+        }
       }
     }
     
-    // Or from selected Jimaku entry
-    if (targetAnilistId == null) {
-      final dynamic jimakuEntry = ref.read(selectedEntryProvider(SearchSourceKeys.jimaku));
-      if (jimakuEntry != null && jimakuEntry is JimakuDataDTO) {
-        targetAnilistId = jimakuEntry.anilistId;
+    // 3. Last fallback: Check search source selection directly
+    if (finalMetadata == null) {
+      final key = metadataType == MetadataProviderType.tvmaze 
+          ? SearchSourceKeys.tvmaze 
+          : (metadataType == MetadataProviderType.shikimori ? SearchSourceKeys.shikimori : SearchSourceKeys.anilist);
+      final entry = ref.read(selectedEntryProvider(key));
+      if (entry != null && entry is UnifiedMetadataDTO) {
+        finalMetadata = entry;
       }
     }
 
-    // 2. Ensure AniList images are downloaded locally
-    String? finalCoverPath;
-    if (targetAnilistId != null) {
-       // Force reload with image download
-       await ref.read(aniListProvider.notifier).load(targetAnilistId, downloadImages: true);
-       final updatedData = ref.read(aniListProvider).value;
-       // Prefer local path, fallback to URL
-       finalCoverPath = updatedData?.coverImagePath ?? updatedData?.coverImageUrl;
+    // 4. If we found metadata, ensure images are downloaded locally before saving
+    if (finalMetadata != null) {
+      if (finalMetadata.anilistId != null) {
+         await ref.read(aniListProvider.notifier).load(finalMetadata.anilistId!, downloadImages: true);
+         finalMetadata = ref.read(aniListProvider).value ?? finalMetadata;
+      } else if (finalMetadata.tvmazeId != null) {
+         await ref.read(tvMazeProvider.notifier).load(finalMetadata.tvmazeId!, downloadImages: true);
+         finalMetadata = ref.read(tvMazeProvider).value ?? finalMetadata;
+      } else if (finalMetadata.shikimoriId != null) {
+         await ref.read(shikimoriProvider.notifier).load(finalMetadata.shikimoriId!, downloadImages: true);
+         finalMetadata = ref.read(shikimoriProvider).value ?? finalMetadata;
+      }
     }
-    
-    final latestAnilistData = ref.read(aniListProvider).value;
 
     final video = Video()
       ..videoPath = state.videoPath
@@ -258,14 +277,29 @@ class UploadNotifier extends Notifier<UploadState> {
       ..translatedLanguage = languages.target ?? 'Ukrainian'
       ..createdAt = DateTime.now();
 
-    if (latestAnilistData != null && latestAnilistData.id == targetAnilistId) {
-      video.anilistId = latestAnilistData.id;
-      video.coverImagePath = finalCoverPath;
-      video.description = latestAnilistData.description;
-      video.genres = latestAnilistData.genres;
-      video.seriesName = latestAnilistData.englishTitle;
-      video.originalName = latestAnilistData.nativeTitle;
-      video.colorThemeValue = latestAnilistData.colorThemeValue;
+    if (finalMetadata != null) {
+      video
+        ..anilistId = finalMetadata.anilistId
+        ..tvmazeId = finalMetadata.tvmazeId
+        ..shikimoriId = finalMetadata.shikimoriId
+        ..malId = finalMetadata.malId
+        ..tmdbId = finalMetadata.tmdbId
+        ..imdbId = finalMetadata.imdbId
+        ..thetvdbId = finalMetadata.thetvdbId
+        ..coverImagePath = finalMetadata.imagePath ?? finalMetadata.imageUrl
+        ..bannerImage = finalMetadata.bannerPath ?? finalMetadata.bannerUrl
+        ..description = finalMetadata.description
+        ..genres = finalMetadata.genres
+        ..seriesName = finalMetadata.title
+        ..originalName = finalMetadata.originalTitle
+        ..colorThemeValue = finalMetadata.colorThemeValue
+        ..status = finalMetadata.status
+        ..score = finalMetadata.score
+        ..totalEpisodes = finalMetadata.episodes
+        ..isAnime = finalMetadata.type?.toLowerCase().contains('anime') == true || 
+                   metadataType == MetadataProviderType.anilist || 
+                   metadataType == MetadataProviderType.shikimori
+        ..isMovie = finalMetadata.type?.toLowerCase().contains('movie') == true;
     }
 
     try {

@@ -47,17 +47,9 @@ class _ModelSelectionSheetState extends ConsumerState<ModelSelectionSheet> {
   Widget build(BuildContext context) {
     final theme = ModelSelectionTheme.of(context);
     final aiState = ref.watch(aiModelsProvider);
-    final isThreeStep = ref.watch(aiModelsProvider.notifier).isThreeStepMethod;
     
-    // Determine which steps to show based on method
-    final visibleSteps = isThreeStep 
-        ? [TranslationPipelineStep.research, TranslationPipelineStep.translate, TranslationPipelineStep.morphemes]
-        : [TranslationPipelineStep.fullTranslate];
-
-    // Adjust active step if it's not in visible list (e.g. switched from Advanced to Standard)
-    // We use a post-frame callback or just handle it during build for immediate UI update, 
-    // but ensure we don't trigger infinite rebuilds.
-    final effectiveStep = visibleSteps.contains(_activeStep) ? _activeStep : visibleSteps.first;
+    final visibleSteps = TranslationPipelineStep.values;
+    final effectiveStep = _activeStep;
 
     final models = ref.watch(modelsForStepProvider(effectiveStep));
     final activeName = aiState[effectiveStep];
@@ -65,51 +57,29 @@ class _ModelSelectionSheetState extends ConsumerState<ModelSelectionSheet> {
     return Column(
         children: [
           _buildHeader(theme),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           
-          // Method Selector
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Translation Method', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-                const SizedBox(height: 6),
-                EqualToggleButtons<bool>(
-                  items: const [true, false],
-                  activeItem: isThreeStep,
-                  onChanged: (val) => ref.read(aiModelsProvider.notifier).setThreeStepMethod(val),
-                  labelBuilder: (val) => val ? 'Advanced' : 'Standard',
-                  iconBuilder: (val) => val ? Icons.auto_awesome_rounded : Icons.bolt_rounded,
-                ),
-              ],
+            child: EqualToggleButtons<TranslationPipelineStep>(
+              items: visibleSteps,
+              activeItem: effectiveStep,
+              onChanged: (step) => setState(() => _activeStep = step),
+              labelBuilder: (step) => step.displayName,
+              iconBuilder: (step) {
+                switch (step) {
+                  case TranslationPipelineStep.research:
+                    return Icons.search_rounded;
+                  case TranslationPipelineStep.translate:
+                    return Icons.translate_rounded;
+                  case TranslationPipelineStep.tokenize:
+                    return Icons.extension_rounded;
+                  case TranslationPipelineStep.morphemes:
+                    return Icons.auto_awesome_rounded;
+                }
+              },
             ),
           ),
-          
-          if (isThreeStep) ...[
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: EqualToggleButtons<TranslationPipelineStep>(
-                items: visibleSteps,
-                activeItem: effectiveStep,
-                onChanged: (step) => setState(() => _activeStep = step),
-                labelBuilder: (step) => step.displayName,
-                iconBuilder: (step) {
-                  switch (step) {
-                    case TranslationPipelineStep.research:
-                      return Icons.search_rounded;
-                    case TranslationPipelineStep.translate:
-                      return Icons.translate_rounded;
-                    case TranslationPipelineStep.morphemes:
-                      return Icons.extension_rounded;
-                    case TranslationPipelineStep.fullTranslate:
-                      return Icons.auto_fix_high_rounded;
-                  }
-                },
-              ),
-            ),
-          ],
           
           const SizedBox(height: 12),
           Expanded(

@@ -60,7 +60,7 @@ class LanguageSelectionSection extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    languageState.original ?? 'Not Selected',
+                    languageState.original ?? 'Select Source',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -114,7 +114,7 @@ class LanguageSelectionSection extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    languageState.target ?? 'Not Selected',
+                    languageState.target ?? 'Select Target',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,

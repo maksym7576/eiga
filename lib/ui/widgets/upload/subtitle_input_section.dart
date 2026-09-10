@@ -37,100 +37,64 @@ class SubtitleInputSection extends ConsumerWidget {
 
   Widget _buildFilesCard(BuildContext context, WidgetRef ref, AdditionalWindowTheme theme, UploadState state, dynamic entry) {
     final hasFile = state.subtitlePath != null;
-    final isJimaku = state.subtitleSource == SubtitleSource.jimaku;
+    final fileName = hasFile ? p.basename(state.subtitlePath!) : 'No file selected';
 
     return AppSectionCard(
       padding: EdgeInsets.zero,
       child: InkWell(
         onTap: () => _openJimakuFiles(context, entry),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: theme.brandBlue50,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      isJimaku ? Icons.tune_rounded : Icons.folder_shared_outlined, 
-                      size: 16, 
-                      color: theme.primaryAccent
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isJimaku ? 'Subtitle Selection' : 'Selected Subtitles',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: theme.normalText,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          isJimaku ? 'Choose release group or track' : 'Locally provided subtitle file',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: theme.mutedText),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.chevron_right, size: 16, color: theme.mutedText.withValues(alpha: 0.5)),
-                ],
-              ),
-              if (hasFile) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: theme.isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.slate50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.slate200.withValues(alpha: 0.5)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.description_outlined, size: 14, color: theme.primaryAccent),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          p.basename(state.subtitlePath!),
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: theme.normalText,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: theme.isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: AppColors.slate200),
-                        ),
-                        child: Text(
-                          'Change',
-                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: theme.isDark ? Colors.white70 : AppColors.slate600),
-                        ),
-                      ),
-                    ],
-                  ),
+              // Mockup Leading Icon Container
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.slate100),
                 ),
-              ],
+                child: const Icon(
+                  Icons.file_open_outlined, 
+                  size: 20, 
+                  color: AppColors.slate700,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Selected Subtitle',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.slate900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      fileName,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.slate400,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded, 
+                size: 22, 
+                color: AppColors.slate300,
+              ),
             ],
           ),
         ),

@@ -23,7 +23,12 @@ class Video {
   String? originalName;
   String? subtitleFileName;
   int? anilistId;
+  int? tvmazeId;
+  int? shikimoriId;
+  int? malId;
   String? tmdbId;
+  String? imdbId;
+  String? thetvdbId;
   bool? isAnime;
   bool? isMovie;
   bool? isAdult;
@@ -33,6 +38,9 @@ class Video {
   String? description;
   String? bannerImage;
   List<String>? genres;
+  String? status;
+  double? score;
+  int? totalEpisodes;
 
   int? colorThemeValue;
 
@@ -72,7 +80,12 @@ class Video {
     String? originalName,
     String? subtitleFileName,
     int? anilistId,
+    int? tvmazeId,
+    int? shikimoriId,
+    int? malId,
     String? tmdbId,
+    String? imdbId,
+    String? thetvdbId,
     bool? isAnime,
     bool? isMovie,
     bool? isAdult,
@@ -81,6 +94,9 @@ class Video {
     String? description,
     String? bannerImage,
     List<String>? genres,
+    String? status,
+    double? score,
+    int? totalEpisodes,
     int? colorThemeValue,
     String? pipelineIndetificator,
     bool? isResearchDone,
@@ -102,7 +118,12 @@ class Video {
       ..originalName = originalName ?? this.originalName
       ..subtitleFileName = subtitleFileName ?? this.subtitleFileName
       ..anilistId = anilistId ?? this.anilistId
+      ..tvmazeId = tvmazeId ?? this.tvmazeId
+      ..shikimoriId = shikimoriId ?? this.shikimoriId
+      ..malId = malId ?? this.malId
       ..tmdbId = tmdbId ?? this.tmdbId
+      ..imdbId = imdbId ?? this.imdbId
+      ..thetvdbId = thetvdbId ?? this.thetvdbId
       ..isAnime = isAnime ?? this.isAnime
       ..isMovie = isMovie ?? this.isMovie
       ..isAdult = isAdult ?? this.isAdult
@@ -111,6 +132,9 @@ class Video {
       ..description = description ?? this.description
       ..bannerImage = bannerImage ?? this.bannerImage
       ..genres = genres ?? this.genres
+      ..status = status ?? this.status
+      ..score = score ?? this.score
+      ..totalEpisodes = totalEpisodes ?? this.totalEpisodes
       ..colorThemeValue = colorThemeValue ?? this.colorThemeValue
       ..pipelineIndetificator = pipelineIndetificator ?? this.pipelineIndetificator
       ..isResearchDone = isResearchDone ?? this.isResearchDone

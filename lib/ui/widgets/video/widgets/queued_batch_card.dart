@@ -17,35 +17,56 @@ class QueuedBatchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.slate200),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.slate300, shape: BoxShape.circle)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.slate600),
-                children: [
-                  TextSpan(text: 'Phrases ${(task.phraseIds.isNotEmpty) ? 1 : 1}–${task.phraseIds.length}'),
-                  const TextSpan(text: '  •  ', style: TextStyle(color: AppColors.slate300, fontWeight: FontWeight.normal)),
-                  const TextSpan(text: 'Queued for execution', style: TextStyle(color: AppColors.slate400, fontSize: 10, fontWeight: FontWeight.w500)),
-                ],
-              ),
+          const Expanded(
+            child: Row(
+              children: [
+                Icon(Icons.hourglass_empty_rounded, size: 16, color: Color(0xFF94A3B8)),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Queue Batch • Waiting',
+                    style: TextStyle(
+                      fontSize: 14, 
+                      fontWeight: FontWeight.w700, 
+                      color: Color(0xFF475569),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(color: AppColors.slate100, borderRadius: BorderRadius.circular(8)),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFF1F5F9)),
+            ),
             child: Text(
               '0 / ${task.phraseIds.length}',
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: AppColors.slate400),
+              style: const TextStyle(
+                fontSize: 12, 
+                fontWeight: FontWeight.w800, 
+                fontFamily: 'monospace', 
+                color: Color(0xFF64748B)
+              ),
             ),
           ),
         ],

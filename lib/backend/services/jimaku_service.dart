@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' as p;
-import 'package:eiga/backend/database/dto/jimaku_dto.dart';
+import 'package:eiga/backend/database/dto/media_dto.dart';
+import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:eiga/config/app_config.dart';
@@ -28,7 +29,7 @@ class JimakuService {
     'Content-Type': 'application/json',
   };
 
-  Future<List<JimakuDataDTO>> searchJumakuObjects({
+  Future<List<UnifiedMetadataDTO>> searchJumakuObjects({
     String? query,
     bool anime = true,
     int? anilistId,
@@ -62,12 +63,35 @@ class JimakuService {
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
-      return data.map((item) => JimakuDataDTO.fromJson(item)).toList();
+      return data.map((item) => _mapJimakuToUnified(item as Map<String, dynamic>)).toList();
     } else {
       throw Exception(
         'Searching error: ${response.statusCode} - ${response.body}',
       );
     }
+  }
+
+  UnifiedMetadataDTO _mapJimakuToUnified(Map<String, dynamic> json) {
+    final flags = json['flags'] as Map<String, dynamic>? ?? {};
+    final id = json['id'] as int;
+
+    return UnifiedMetadataDTO(
+      sourceId: id.toString(),
+      title: json['english_name'] as String? ?? json['name'] as String? ?? 'Unknown',
+      subtitle: json['name'] as String?,
+      originalTitle: json['japanese_name'] as String?,
+      anilistId: json['anilist_id'] as int?,
+      tmdbId: json['tmdb_id'] as String?,
+      imdbId: json['imdb_id'] as String?,
+      thetvdbId: json['thetvdb_id'] as String?,
+      type: flags['movie'] == true ? 'MOVIE' : (flags['anime'] == true ? 'ANIME' : 'TV'),
+      linkUrl: 'https://jimaku.cc/entry/$id',
+      extras: {
+        'last_modified': json['last_modified'],
+        'is_adult': flags['adult'],
+        'is_unverified': flags['unverified'],
+      },
+    );
   }
 
   Future<List<FileJimakuDTO>> getFiles(int id, {int? episode}) async {

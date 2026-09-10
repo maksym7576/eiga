@@ -11,7 +11,10 @@ import '../../config/secure_storage.dart';
 import 'petition_ai/gemini/gemini_service.dart';
 import 'petition_ai/gemini/gemini_streaming_service.dart';
 import 'pipelines/pipeline_manager.dart';
+import 'pipelines/pipeline_abstract.dart';
 import 'pipelines/pipeline_step_type.dart';
+import '../database/schemas/language.dart';
+import 'tokenization/tokenization_manager.dart';
 import 'utils/ai_exceptions.dart';
 import '../../utils/logger.dart';
 
@@ -30,38 +33,18 @@ class AiService {
     required Video video,
     required List<Phrase> phrases,
   }) async {
-    final config = ref.read(appConfigsServiceProvider);
-    final String defaultPipeline = config.getIsThreeStepMethod 
-        ? 'context_translation_v1' 
-        : 'total_v1';
-        
-    final String pipelineId = video.pipelineIndetificator ?? defaultPipeline;
+    const String pipelineId = 'context_translation_v1';
     
-    logger.d('Running translation for video ${video.id} using pipeline $pipelineId (Global 3-step: ${config.getIsThreeStepMethod})');
+    logger.d('[AiService] Running 4-stage translation for video ${video.id}');
 
-    // Start history entry
     final jobId = await _startHistoryEntry(video.id, pipelineId, phrases.length);
 
     try {
-      final AiRequestResult result;
-      switch (pipelineId) {
-        case 'context_translation_v1':
-          result = await processContextTranslationPipeline(
-            video: video,
-            phrases: phrases,
-            jobId: jobId,
-          );
-          break;
-        case 'total_v1':
-          result = await processTotalTranslationPipeline(
-            video: video,
-            phrases: phrases,
-            jobId: jobId,
-          );
-          break;
-        default:
-          throw Exception('Unknown pipelineId: "$pipelineId"');
-      }
+      final result = await processContextTranslationPipeline(
+        video: video,
+        phrases: phrases,
+        jobId: jobId,
+      );
 
       if (result.phase == AiRequestPhase.success) {
         await _completeHistoryEntry(jobId);
@@ -80,6 +63,7 @@ class AiService {
 
   Future<int> _startHistoryEntry(int videoId, String pipelineId, int totalPhrases) async {
     final service = ref.read(translationJobServiceProvider);
+    final config = ref.read(appConfigsServiceProvider);
     
     final job = TranslationJob(
       videoId: videoId,
@@ -88,6 +72,7 @@ class AiService {
       startTime: DateTime.now(),
       totalPhrases: totalPhrases,
       processedPhrases: 0,
+      isAuto: config.getIsAutomaticModelSwitch,
       stageHistory: [],
     );
 
@@ -149,27 +134,6 @@ class AiService {
     await service.updateJob(job);
   }
 
-  String _formPrompt(String basePrompt, List<Phrase> phrases) {
-    final sortPhraseList = List<Phrase>.from(phrases)
-      ..sort((a, b) => (a.phraseOrder ?? 0).compareTo(b.phraseOrder ?? 0));
-
-    final simplifiedPhrasesList = sortPhraseList.map((phrase) {
-      return {
-        'id': phrase.id,
-        'videoId': phrase.videoId,
-        'phraseOrder': phrase.phraseOrder,
-        'originalText': phrase.originalPhrase ?? '',
-        'startTime': phrase.startTime?.toIso8601String(),
-        'endTime': phrase.endTime?.toIso8601String(),
-      };
-    }).toList();
-
-    final payload = {'phrases': simplifiedPhrasesList};
-    final String jsonData = jsonEncode(payload);
-
-    return '$basePrompt\n\nINPUT_DATA (JSON):\n$jsonData';
-  }
-
   Future<String> _buildUrl(AiModel model, {bool? forceStreaming}) async {
     final bool isStreaming = forceStreaming ?? 
         (model.supportsStreaming && model.currentStreamingEnabled);
@@ -182,74 +146,9 @@ class AiService {
         return '${model.url}$endpoint?key=$token$sse';
       
       case AiProvider.openai:
-        // OpenAI usually has a fixed endpoint, but we use the one from the model
-        return model.url;
-        
       case AiProvider.anthropic:
-        return model.url;
-        
       case AiProvider.custom:
         return model.url;
-    }
-  }
-
-  Future<AiRequestResult> processTotalTranslationPipeline({
-    required Video video,
-    required List<Phrase> phrases,
-    required int jobId,
-  }) async {
-    final expectedIds = phrases.map((e) => e.id).toList();
-
-    final pipelineResult = await PipelineManager.build(
-      ref,
-      videoId: video.id,
-      pipelineId: 'total_v1',
-    );
-
-    if (pipelineResult == null) throw Exception('Pipeline build failed');
-
-    final translationStep = pipelineResult.stepOf(PipelineStepType.translation);
-    await _updateStageProgress(jobId, 'Translation', modelName: translationStep.model.name);
-    
-    final isStreaming = translationStep.model.supportsStreaming && translationStep.model.currentStreamingEnabled;
-    final url = await _buildUrl(translationStep.model, forceStreaming: isStreaming);
-    final fullPrompt = _formPrompt(translationStep.prompt, phrases);
-
-    try {
-      final AiRequestResult result;
-      if (isStreaming) {
-        logger.d('Total pipeline: using streaming mode for ${phrases.length} phrases');
-        result = await geminiStreamingService.fetchParseAndSaveData(
-          url,
-          fullPrompt,
-          model: translationStep.model,
-          expectedIds: expectedIds,
-          onProgress: (processed) => _updateStageProgress(jobId, 'Translation', processed: processed),
-        );
-      } else {
-        logger.d('Total pipeline: using HTTP mode for ${phrases.length} phrases');
-        result = await geminiService.fetchParseAndSaveData(
-          url,
-          fullPrompt,
-          model: translationStep.model,
-          expectedIds: expectedIds,
-          onProgress: (processed) => _updateStageProgress(jobId, 'Translation', processed: processed),
-        );
-      }
-      
-      await _updateStageProgress(jobId, 'Translation', status: result.phase == AiRequestPhase.success ? 'success' : 'error');
-      
-      logger.i('Total pipeline result: ${result.phase.name}. Failed IDs: ${result.failedPhraseIds.length}');
-      ref.read(aiRequestResultProvider.notifier).state = result;
-      return result;
-    } catch (e, st) {
-      logger.e('Total pipeline failed', error: e, stackTrace: st);
-      if (e is GeminiException) {
-        final res = AiRequestResult.failure(e.type);
-        ref.read(aiRequestResultProvider.notifier).state = res;
-        return res;
-      }
-      rethrow;
     }
   }
 
@@ -258,128 +157,337 @@ class AiService {
     required List<Phrase> phrases,
     required int jobId,
   }) async {
-    final expectedIds = phrases.map((e) => e.id).toList();
+    final pipelineResult = await PipelineManager.build(ref, videoId: video.id, pipelineId: 'context_translation_v1');
 
-    final pipelineResult = await PipelineManager.build(
-      ref,
-      videoId: video.id,
-      pipelineId: 'context_translation_v1',
-    );
+    if (pipelineResult == null) throw Exception('Pipeline build failed: ID ${video.pipelineIndetificator ?? 'context_translation_v1'} not found or video missing');
 
-    if (pipelineResult == null) throw Exception('Pipeline build failed');
-    final pipeline = PipelineManager.byId('context_translation_v1');
-    if (pipeline == null) throw Exception('Pipeline implementation missing');
+    if (video.pipelineIndetificator == null) {
+      video.pipelineIndetificator = 'context_translation_v1';
+      await ref.read(videoServiceProvider).updateVideo(video);
+    }
+
+    final plan = await _buildExecutionPlan(video, phrases);
+    
+    final jobService = ref.read(translationJobServiceProvider);
+    final initialJob = await jobService.getJobById(jobId);
+    if (initialJob != null) {
+      if (plan.isNotEmpty) {
+        final firstStepType = _mapTypeToStep(plan[0]['type']);
+        if (firstStepType != null) {
+           final stepResult = pipelineResult.steps.where((s) => s.type == firstStepType).firstOrNull;
+           if (stepResult != null) {
+             initialJob.modelName = stepResult.model.name;
+           }
+        }
+      }
+      initialJob.executionPlan = jsonEncode(plan);
+      initialJob.completedSteps = 0;
+      await jobService.updateJob(initialJob);
+    }
+
+    if (plan.isEmpty) return AiRequestResult.success();
 
     try {
-      // 1. Research phase
-      if (video.isResearchDone != true || video.researchInformation == null || video.researchInformation!.isEmpty) {
-        final researchStep = pipelineResult.stepOf(PipelineStepType.contextResearch);
-        await _updateStageProgress(jobId, 'Context', modelName: researchStep.model.name);
+      for (int i = 0; i < plan.length; i++) {
+        final step = plan[i];
+        final type = step['type'] as String;
         
-        logger.d('Context pipeline: starting research phase');
-        final researchUrl = await _buildUrl(researchStep.model, forceStreaming: false);
-        final researchResult = await geminiService.fetchEpisodeContext(researchUrl, researchStep.prompt, video.id, model: researchStep.model);
-        
-        if (researchResult.phase != AiRequestPhase.success) {
-          await _updateStageProgress(jobId, 'Context', status: 'error');
-          logger.w('Context pipeline: research phase failed with ${researchResult.phase.name}');
-          return researchResult;
+        AiRequestResult result;
+        switch (type) {
+          case 'context':
+            result = await _executeContextStep(video, pipelineResult.stepOf(PipelineStepType.contextResearch), jobId);
+            break;
+          case 'translation':
+            result = await _executeTranslationBatch(step['ids'], pipelineResult.stepOf(PipelineStepType.translation), jobId);
+            break;
+          case 'tokenize_source':
+            result = await _executeTokenizeBatch(step['ids'], pipelineResult.stepOf(PipelineStepType.tokenize), jobId, isOrig: true);
+            break;
+          case 'tokenize_translation':
+            result = await _executeTokenizeBatch(step['ids'], pipelineResult.stepOf(PipelineStepType.tokenize), jobId, isOrig: false);
+            break;
+          case 'morphology':
+            result = await _executeMorphologyBatch(step['ids'], pipelineResult.stepOf(PipelineStepType.morphemes), jobId);
+            break;
+          default:
+            result = AiRequestResult.success();
         }
-        
-        await _updateStageProgress(jobId, 'Context', status: 'success');
-        
-        // Reload video after update
-        final updatedVideo = await ref.read(videoServiceProvider).getVideoById(video.id);
-        if (updatedVideo != null) video = updatedVideo;
-        logger.d('Context pipeline: research phase completed');
-      }
 
-      // 2. Translation phase
-      final translationStep = pipelineResult.stepOf(PipelineStepType.translation);
-      await _updateStageProgress(jobId, 'Translation', modelName: translationStep.model.name);
-      
-      String rawTranslationJson;
-      final bool allTranslated = phrases.every((p) => p.translatedPhrase != null && p.translatedPhrase!.isNotEmpty);
+        if (result.phase != AiRequestPhase.success) {
+          await _failHistoryEntry(jobId, result.error?.message ?? 'Step failed');
+          return result;
+        }
 
-      if (allTranslated) {
-        logger.d('Context pipeline: all phrases already translated in DB, skipping AI request for Stage 2');
-        final Map<String, dynamic> resumeData = {
-          'lineCount': phrases.length,
-          'lines': phrases.map((p) => {
-            'id': p.id,
-            'translation': p.translatedPhrase,
-          }).toList(),
-        };
-        rawTranslationJson = jsonEncode(resumeData);
-      } else {
-        logger.d('Context pipeline: starting translation phase');
-        final translationStep = pipelineResult.stepOf(PipelineStepType.translation);
-        final translationUrl = await _buildUrl(translationStep.model, forceStreaming: false);
-        final translationPrompt = _formPrompt(translationStep.prompt, phrases);
-        
-        rawTranslationJson = await geminiService.sendRequest(translationUrl, translationPrompt, model: translationStep.model);
-        
-        // Save translations first
-        final Map<String, dynamic> parsedTranslation = jsonDecode(rawTranslationJson);
-        final saveResult = await geminiService.phraseResponseHandler.saveTranslationsResponse(
-          parsedTranslation,
-          expectedIds: expectedIds,
-        );
-
-        if (saveResult.phase != AiRequestPhase.success) {
-          await _updateStageProgress(jobId, 'Translation', status: 'error');
-          logger.w('Context pipeline: translation saving failed with ${saveResult.phase.name}');
-          return saveResult;
+        final currentJob = await jobService.getJobById(jobId);
+        if (currentJob != null) {
+          currentJob.completedSteps = i + 1;
+          await jobService.updateJob(currentJob);
         }
       }
-      
-      await _updateStageProgress(jobId, 'Translation', status: 'success');
-      logger.d('Context pipeline: translation phase completed');
-
-      // 3. Morphemes/Parser phase
-      final morphemesStep = pipelineResult.stepOf(PipelineStepType.morphemes);
-      await _updateStageProgress(jobId, 'Morphology', modelName: morphemesStep.model.name);
-      
-      logger.d('Context pipeline: starting morphemes phase');
-      final isStreaming = morphemesStep.model.supportsStreaming && morphemesStep.model.currentStreamingEnabled;
-      final morphemesUrl = await _buildUrl(morphemesStep.model, forceStreaming: isStreaming);
-      final morphemesPrompt = '${morphemesStep.prompt}\n\nTRANSLATION_DATA:\n$rawTranslationJson';
-
-      final AiRequestResult result;
-
-      if (isStreaming) {
-        logger.d('Context pipeline: using streaming mode for morphemes');
-        result = await geminiStreamingService.fetchParseAndSaveData(
-          morphemesUrl,
-          morphemesPrompt,
-          model: morphemesStep.model,
-          expectedIds: expectedIds,
-          onProgress: (processed) => _updateStageProgress(jobId, 'Morphology', processed: processed),
-        );
-      } else {
-        logger.d('Context pipeline: using HTTP mode for morphemes');
-        result = await geminiService.fetchParseAndSaveData(
-          morphemesUrl,
-          morphemesPrompt,
-          model: morphemesStep.model,
-          expectedIds: expectedIds,
-          onProgress: (processed) => _updateStageProgress(jobId, 'Morphology', processed: processed),
-        );
-      }
-
-      await _updateStageProgress(jobId, 'Morphology', status: result.phase == AiRequestPhase.success ? 'success' : 'error');
-
-      logger.i('Context pipeline completed with result: ${result.phase.name}');
-      ref.read(aiRequestResultProvider.notifier).state = result;
-      return result;
+      return AiRequestResult.success();
     } catch (e, st) {
-      logger.e('Context pipeline failed', error: e, stackTrace: st);
-      if (e is GeminiException) {
-        final res = AiRequestResult.failure(e.type);
-        ref.read(aiRequestResultProvider.notifier).state = res;
-        return res;
-      }
-      rethrow;
+      logger.e('Pipeline execution failed', error: e, stackTrace: st);
+      await _failHistoryEntry(jobId, e.toString());
+      if (e is GeminiException) return AiRequestResult.failure(e.type);
+      return AiRequestResult.failure(AiErrorType.unknown, message: e.toString());
     }
+  }
+
+  Future<List<Map<String, dynamic>>> _buildExecutionPlan(Video video, List<Phrase> phrases) async {
+    final config = ref.read(appConfigsServiceProvider);
+    final List<Map<String, dynamic>> plan = [];
+    final langService = ref.read(languageServiceProvider);
+    final origLang = await langService.getLanguageByName(video.originalLanguage ?? '');
+    final destLang = await langService.getLanguageByName(video.translatedLanguage ?? '');
+
+    final toTranslateIds = phrases.where((p) => p.translatedPhrase == null || p.translatedPhrase!.isEmpty).map((e) => e.id).toList();
+    final toTokenizeOrigIds = phrases.where((p) => p.originalTokens == null || p.originalTokens!.isEmpty).map((e) => e.id).toList();
+    final toTokenizeDestIds = phrases.where((p) => p.translatedTokens == null || p.translatedTokens!.isEmpty).toList();
+    final toMorphIds = phrases.where((p) => !p.isTranslated).map((e) => e.id).toList();
+
+    if (video.isResearchDone != true) {
+      plan.add({'type': 'context', 'method': 'ai'});
+    }
+
+    if (toTranslateIds.isNotEmpty) {
+      _addBatchesToPlan(plan, 'translation', toTranslateIds, config.getBatchSizeTranslate, extra: {'method': 'ai'});
+    }
+
+    // 3. Tokenization (Predictive)
+    // For original language
+    if (toTokenizeOrigIds.isNotEmpty) {
+      final method = (origLang?.tokenizationMethod == TokenizationMethod.ai) ? 'ai' : 'local';
+      _addBatchesToPlan(plan, 'tokenize_source', toTokenizeOrigIds, config.getBatchSizeTokenize, extra: {'method': method});
+    }
+
+    // For translated language
+    final List<int> destTokenizeIds = {
+      ...toTranslateIds, 
+      ...phrases.where((p) => p.translatedTokens == null || p.translatedTokens!.isEmpty).map((e) => e.id)
+    }.toList();
+
+    if (destTokenizeIds.isNotEmpty) {
+      final method = (destLang?.tokenizationMethod == TokenizationMethod.ai) ? 'ai' : 'local';
+      _addBatchesToPlan(plan, 'tokenize_translation', destTokenizeIds, config.getBatchSizeTokenize, extra: {'method': method});
+    }
+
+    // 4. Morphology (Predictive)
+    final List<int> morphologyNeededIds = {
+      ...toTranslateIds,
+      ...toTokenizeOrigIds,
+      ...toTokenizeDestIds.map((e) => e.id),
+      ...toMorphIds,
+    }.toList();
+
+    if (morphologyNeededIds.isNotEmpty) {
+      _addBatchesToPlan(plan, 'morphology', morphologyNeededIds, config.getBatchSizeMorphemes, extra: {'method': 'ai'});
+    }
+
+    return plan;
+  }
+
+  PipelineStepType? _mapTypeToStep(String type) {
+    switch (type) {
+      case 'context': return PipelineStepType.contextResearch;
+      case 'translation': return PipelineStepType.translation;
+      case 'tokenize': return PipelineStepType.tokenize;
+      case 'morphology': return PipelineStepType.morphemes;
+      default: return null;
+    }
+  }
+
+  void _addBatchesToPlan(List<Map<String, dynamic>> plan, String type, List<int> ids, int batchSize, {Map<String, dynamic>? extra}) {
+    final batchCount = (ids.length / batchSize).ceil();
+    for (int i = 0; i < batchCount; i++) {
+      final start = i * batchSize;
+      final end = (start + batchSize) > ids.length ? ids.length : (start + batchSize);
+      plan.add({
+        'type': type,
+        'ids': ids.sublist(start, end),
+        ...?extra,
+      });
+    }
+  }
+
+  Future<AiRequestResult> _executeContextStep(Video video, PipelineStepResult step, int jobId) async {
+    await _updateStageProgress(jobId, 'Context', modelName: step.model.name);
+    try {
+      final url = await _buildUrl(step.model, forceStreaming: false);
+      final result = await geminiService.fetchEpisodeContext(url, step.prompt, video.id, model: step.model);
+      if (result.phase == AiRequestPhase.success) {
+        await _updateStageProgress(jobId, 'Context', status: 'success');
+      }
+      return result;
+    } catch (e) {
+      return AiRequestResult.failure(AiErrorType.unknown, message: e.toString(), stepType: 'context', model: step.model);
+    }
+  }
+
+  Future<AiRequestResult> _executeTranslationBatch(List<dynamic> ids, PipelineStepResult step, int jobId) async {
+    final phraseService = ref.read(phraseServiceProvider);
+    final List<Phrase> batch = [];
+    for (var id in ids) {
+      final p = await phraseService.getPhraseById(id);
+      if (p != null) batch.add(p);
+    }
+    
+    await _updateStageProgress(jobId, 'Translation', modelName: step.model.name);
+    try {
+      final url = await _buildUrl(step.model, forceStreaming: false);
+      final prompt = _formTranslationBatchPrompt(step.prompt, batch);
+      final response = await geminiService.sendRequest(url, prompt, model: step.model);
+      final result = await geminiService.phraseResponseHandler.saveTranslationsResponse(jsonDecode(response), expectedIds: batch.map((e) => e.id).toList());
+      if (result.phase == AiRequestPhase.success) {
+        await _updateStageProgress(jobId, 'Translation', status: 'success');
+      }
+      return result;
+    } catch (e) {
+      return AiRequestResult.failure(AiErrorType.unknown, message: e.toString(), stepType: 'translation', model: step.model);
+    }
+  }
+
+  Future<AiRequestResult> _executeTokenizeBatch(List<dynamic> ids, PipelineStepResult step, int jobId, {required bool isOrig}) async {
+    final phraseService = ref.read(phraseServiceProvider);
+    final videoService = ref.read(videoServiceProvider);
+    final tokManager = ref.read(tokenizationManagerProvider);
+    
+    final List<Phrase> batch = [];
+    for (var id in ids) {
+      final p = await phraseService.getPhraseById(id);
+      if (p != null) batch.add(p);
+    }
+
+    if (batch.isEmpty) return AiRequestResult.success();
+
+    final video = await videoService.getVideoById(batch[0].videoId!);
+    final langName = isOrig ? (video?.originalLanguage ?? 'Japanese') : (video?.translatedLanguage ?? 'English');
+    final langService = ref.read(languageServiceProvider);
+    final lang = await langService.getLanguageByName(langName);
+    
+    final bool useAi = (lang?.tokenizationMethod == TokenizationMethod.ai);
+    final String stageName = isOrig ? 'Source Tokenization' : 'Translation Tokenization';
+
+    await _updateStageProgress(jobId, stageName, modelName: useAi ? step.model.name : 'Local Engine');
+    
+    try {
+      if (useAi) {
+        final prompt = _formTokenizeBatchPrompt(step.prompt, batch, isOriginal: isOrig);
+        final url = await _buildUrl(step.model, forceStreaming: false);
+        final response = await geminiService.sendRequest(url, prompt, model: step.model);
+        await geminiService.phraseResponseHandler.processTokenizationBatch(jsonDecode(response), batch, isOriginal: isOrig, language: lang!);
+      } else {
+        final tokenizer = tokManager.getTokenizer(langName);
+        for (var p in batch) {
+          final text = isOrig ? (p.originalPhrase ?? '') : (p.translatedPhrase ?? '');
+          if (text.isEmpty) continue;
+          
+          final localTokens = await tokenizer.tokenize(text);
+          final tokens = localTokens.map((t) => TokenEntry(
+            wordPosition: t.wordPosition, 
+            pos: t.pos.name, 
+            blockId: t.wordPosition,
+            versions: List.from(t.versions),
+          )).toList();
+          
+          await phraseService.updateTokens(p.id, original: isOrig ? tokens : null, translated: isOrig ? null : tokens);
+        }
+      }
+      
+      await _updateStageProgress(jobId, stageName, status: 'success');
+      return AiRequestResult.success();
+    } catch (e) {
+      return AiRequestResult.failure(AiErrorType.unknown, message: e.toString(), stepType: 'tokenization', model: step.model);
+    }
+  }
+
+  Future<AiRequestResult> _executeMorphologyBatch(List<dynamic> ids, PipelineStepResult step, int jobId) async {
+    final phraseService = ref.read(phraseServiceProvider);
+    final List<Phrase> batch = [];
+    for (var id in ids) {
+      final p = await phraseService.getPhraseById(id);
+      // Validate: Morphology MUST have translation and both token lists
+      if (p != null && 
+          p.translatedPhrase != null && p.translatedPhrase!.isNotEmpty &&
+          p.originalTokens != null && p.originalTokens!.isNotEmpty &&
+          p.translatedTokens != null && p.translatedTokens!.isNotEmpty) {
+        batch.add(p);
+      } else if (p != null) {
+        logger.w('[AiService] Skipping phrase ${p.id} for Morphology: missing tokens or translation');
+      }
+    }
+
+    if (batch.isEmpty) {
+      await _updateStageProgress(jobId, 'Morphology', status: 'success', modelName: 'Skipped (No Data)');
+      return AiRequestResult.success();
+    }
+    
+    await _updateStageProgress(jobId, 'Morphology', modelName: step.model.name);
+
+    try {
+      final url = await _buildUrl(step.model, forceStreaming: false);
+      final prompt = _formMorphologyBatchPrompt(step.prompt, batch);
+      final response = await geminiService.sendRequest(url, prompt, model: step.model);
+      await geminiService.phraseResponseHandler.processMorphologyBatch(jsonDecode(response), batch);
+      await _updateStageProgress(jobId, 'Morphology', status: 'success');
+      return AiRequestResult.success();
+    } catch (e) {
+      return AiRequestResult.failure(AiErrorType.unknown, message: e.toString(), stepType: 'morphology', model: step.model);
+    }
+  }
+
+  String _formTranslationBatchPrompt(String basePrompt, List<Phrase> phrases) {
+    final lines = phrases.map((p) => {'id': p.id, 'text': p.originalPhrase ?? ''}).toList();
+    return '$basePrompt\n\nINPUT:\n${jsonEncode({'lines': lines})}';
+  }
+
+  String _formTokenizeBatchPrompt(String basePrompt, List<Phrase> phrases, {required bool isOriginal}) {
+    final lines = phrases.map((p) => {'id': p.id, 'text': isOriginal ? (p.originalPhrase ?? '') : (p.translatedPhrase ?? '')}).toList();
+    return '$basePrompt\n\nINPUT:\n${jsonEncode({'lines': lines})}';
+  }
+
+  String _formMorphologyBatchPrompt(String basePrompt, List<Phrase> phrases) {
+    final lines = phrases.map((p) {
+      final Map<int, List<int>> blockGroups = {};
+      final tokens = p.originalTokens ?? [];
+      for (var t in tokens) {
+        final bId = t.blockId ?? (t.wordPosition ?? 0);
+        blockGroups.putIfAbsent(bId, () => []).add(t.wordPosition!);
+      }
+      final jaTokens = (p.originalTokens ?? []).map((t) {
+        final Map<String, dynamic> map = {
+          "wordPosition": t.wordPosition,
+          "partOfSpeech": t.pos,
+          "lemma": t.lemma,
+        };
+        for (var v in t.versions) {
+          map[v.key == 'original' ? 'text' : v.key!] = v.text;
+        }
+        return map;
+      }).toList();
+
+      final trTokens = (p.translatedTokens ?? []).map((t) {
+        final Map<String, dynamic> map = {
+          "translationPosition": t.wordPosition,
+        };
+        for (var v in t.versions) {
+          map[v.key == 'original' ? 'text' : v.key!] = v.text;
+        }
+        return map;
+      }).toList();
+
+      return {
+        'id': p.id,
+        'original': p.originalPhrase ?? '',
+        'translation': p.translatedPhrase ?? '',
+        'japanese_tokens': {
+          "words": jaTokens,
+          "blocks": blockGroups.entries.map((e) => {"blockId": e.key, "wordPositions": e.value}).toList(),
+        },
+        'translation_tokens': {
+          "tokens": trTokens,
+        }
+      };
+    }).toList();
+    return '$basePrompt\n\nINPUT:\n${jsonEncode({'lines': lines})}';
   }
 }

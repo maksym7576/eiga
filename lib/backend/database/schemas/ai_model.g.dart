@@ -62,99 +62,104 @@ const AiModelSchema = CollectionSchema(
       name: r'defaultPhrasesPerRequest',
       type: IsarType.long,
     ),
-    r'estimatedTokensPerSec': PropertySchema(
+    r'errorCount': PropertySchema(
       id: 9,
+      name: r'errorCount',
+      type: IsarType.long,
+    ),
+    r'estimatedTokensPerSec': PropertySchema(
+      id: 10,
       name: r'estimatedTokensPerSec',
       type: IsarType.long,
     ),
     r'inputPricePerMToken': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'inputPricePerMToken',
       type: IsarType.double,
     ),
     r'isDailyMaxLimitCustom': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'isDailyMaxLimitCustom',
       type: IsarType.bool,
     ),
     r'isMaxLimitCustom': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'isMaxLimitCustom',
       type: IsarType.bool,
     ),
     r'isPhrasesPerRequestCustom': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'isPhrasesPerRequestCustom',
       type: IsarType.bool,
     ),
     r'isStreamingCustom': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'isStreamingCustom',
       type: IsarType.bool,
     ),
     r'maxOutputTokens': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'maxOutputTokens',
       type: IsarType.long,
     ),
-    r'name': PropertySchema(id: 16, name: r'name', type: IsarType.string),
+    r'name': PropertySchema(id: 17, name: r'name', type: IsarType.string),
     r'outputPricePerMToken': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'outputPricePerMToken',
       type: IsarType.double,
     ),
     r'provider': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'provider',
       type: IsarType.string,
       enumMap: _AiModelproviderEnumValueMap,
     ),
     r'quality': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'quality',
       type: IsarType.string,
       enumMap: _AiModelqualityEnumValueMap,
     ),
     r'speed': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'speed',
       type: IsarType.string,
       enumMap: _AiModelspeedEnumValueMap,
     ),
     r'supportedInputs': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'supportedInputs',
       type: IsarType.stringList,
       enumMap: _AiModelsupportedInputsEnumValueMap,
     ),
     r'supportedSteps': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'supportedSteps',
       type: IsarType.stringList,
       enumMap: _AiModelsupportedStepsEnumValueMap,
     ),
     r'supportsLiveApi': PropertySchema(
-      id: 23,
+      id: 24,
       name: r'supportsLiveApi',
       type: IsarType.bool,
     ),
     r'supportsStreaming': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'supportsStreaming',
       type: IsarType.bool,
     ),
     r'supportsThinking': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'supportsThinking',
       type: IsarType.bool,
     ),
     r'supportsWebSearch': PropertySchema(
-      id: 26,
+      id: 27,
       name: r'supportsWebSearch',
       type: IsarType.bool,
     ),
-    r'url': PropertySchema(id: 27, name: r'url', type: IsarType.string),
-    r'used': PropertySchema(id: 28, name: r'used', type: IsarType.long),
+    r'url': PropertySchema(id: 28, name: r'url', type: IsarType.string),
+    r'used': PropertySchema(id: 29, name: r'used', type: IsarType.long),
   },
 
   estimateSize: _aiModelEstimateSize,
@@ -229,32 +234,33 @@ void _aiModelSerialize(
   writer.writeLong(offsets[6], object.defaultDailyMaxLimit);
   writer.writeLong(offsets[7], object.defaultLimit);
   writer.writeLong(offsets[8], object.defaultPhrasesPerRequest);
-  writer.writeLong(offsets[9], object.estimatedTokensPerSec);
-  writer.writeDouble(offsets[10], object.inputPricePerMToken);
-  writer.writeBool(offsets[11], object.isDailyMaxLimitCustom);
-  writer.writeBool(offsets[12], object.isMaxLimitCustom);
-  writer.writeBool(offsets[13], object.isPhrasesPerRequestCustom);
-  writer.writeBool(offsets[14], object.isStreamingCustom);
-  writer.writeLong(offsets[15], object.maxOutputTokens);
-  writer.writeString(offsets[16], object.name);
-  writer.writeDouble(offsets[17], object.outputPricePerMToken);
-  writer.writeString(offsets[18], object.provider.name);
-  writer.writeString(offsets[19], object.quality.name);
-  writer.writeString(offsets[20], object.speed.name);
+  writer.writeLong(offsets[9], object.errorCount);
+  writer.writeLong(offsets[10], object.estimatedTokensPerSec);
+  writer.writeDouble(offsets[11], object.inputPricePerMToken);
+  writer.writeBool(offsets[12], object.isDailyMaxLimitCustom);
+  writer.writeBool(offsets[13], object.isMaxLimitCustom);
+  writer.writeBool(offsets[14], object.isPhrasesPerRequestCustom);
+  writer.writeBool(offsets[15], object.isStreamingCustom);
+  writer.writeLong(offsets[16], object.maxOutputTokens);
+  writer.writeString(offsets[17], object.name);
+  writer.writeDouble(offsets[18], object.outputPricePerMToken);
+  writer.writeString(offsets[19], object.provider.name);
+  writer.writeString(offsets[20], object.quality.name);
+  writer.writeString(offsets[21], object.speed.name);
   writer.writeStringList(
-    offsets[21],
+    offsets[22],
     object.supportedInputs.map((e) => e.name).toList(),
   );
   writer.writeStringList(
-    offsets[22],
+    offsets[23],
     object.supportedSteps.map((e) => e.name).toList(),
   );
-  writer.writeBool(offsets[23], object.supportsLiveApi);
-  writer.writeBool(offsets[24], object.supportsStreaming);
-  writer.writeBool(offsets[25], object.supportsThinking);
-  writer.writeBool(offsets[26], object.supportsWebSearch);
-  writer.writeString(offsets[27], object.url);
-  writer.writeLong(offsets[28], object.used);
+  writer.writeBool(offsets[24], object.supportsLiveApi);
+  writer.writeBool(offsets[25], object.supportsStreaming);
+  writer.writeBool(offsets[26], object.supportsThinking);
+  writer.writeBool(offsets[27], object.supportsWebSearch);
+  writer.writeString(offsets[28], object.url);
+  writer.writeLong(offsets[29], object.used);
 }
 
 AiModel _aiModelDeserialize(
@@ -273,34 +279,35 @@ AiModel _aiModelDeserialize(
   object.defaultDailyMaxLimit = reader.readLong(offsets[6]);
   object.defaultLimit = reader.readLong(offsets[7]);
   object.defaultPhrasesPerRequest = reader.readLong(offsets[8]);
-  object.estimatedTokensPerSec = reader.readLong(offsets[9]);
+  object.errorCount = reader.readLong(offsets[9]);
+  object.estimatedTokensPerSec = reader.readLong(offsets[10]);
   object.id = id;
-  object.inputPricePerMToken = reader.readDouble(offsets[10]);
-  object.isDailyMaxLimitCustom = reader.readBool(offsets[11]);
-  object.isMaxLimitCustom = reader.readBool(offsets[12]);
-  object.isPhrasesPerRequestCustom = reader.readBool(offsets[13]);
-  object.isStreamingCustom = reader.readBool(offsets[14]);
-  object.maxOutputTokens = reader.readLong(offsets[15]);
-  object.name = reader.readString(offsets[16]);
-  object.outputPricePerMToken = reader.readDouble(offsets[17]);
+  object.inputPricePerMToken = reader.readDouble(offsets[11]);
+  object.isDailyMaxLimitCustom = reader.readBool(offsets[12]);
+  object.isMaxLimitCustom = reader.readBool(offsets[13]);
+  object.isPhrasesPerRequestCustom = reader.readBool(offsets[14]);
+  object.isStreamingCustom = reader.readBool(offsets[15]);
+  object.maxOutputTokens = reader.readLong(offsets[16]);
+  object.name = reader.readString(offsets[17]);
+  object.outputPricePerMToken = reader.readDouble(offsets[18]);
   object.provider =
-      _AiModelproviderValueEnumMap[reader.readStringOrNull(offsets[18])] ??
+      _AiModelproviderValueEnumMap[reader.readStringOrNull(offsets[19])] ??
       AiProvider.google;
   object.quality =
-      _AiModelqualityValueEnumMap[reader.readStringOrNull(offsets[19])] ??
+      _AiModelqualityValueEnumMap[reader.readStringOrNull(offsets[20])] ??
       ModelQuality.basic;
   object.speed =
-      _AiModelspeedValueEnumMap[reader.readStringOrNull(offsets[20])] ??
+      _AiModelspeedValueEnumMap[reader.readStringOrNull(offsets[21])] ??
       ModelSpeed.ultraFast;
   object.supportedInputs =
       reader
-          .readStringList(offsets[21])
+          .readStringList(offsets[22])
           ?.map((e) => _AiModelsupportedInputsValueEnumMap[e] ?? InputType.text)
           .toList() ??
       [];
   object.supportedSteps =
       reader
-          .readStringList(offsets[22])
+          .readStringList(offsets[23])
           ?.map(
             (e) =>
                 _AiModelsupportedStepsValueEnumMap[e] ??
@@ -308,12 +315,12 @@ AiModel _aiModelDeserialize(
           )
           .toList() ??
       [];
-  object.supportsLiveApi = reader.readBool(offsets[23]);
-  object.supportsStreaming = reader.readBool(offsets[24]);
-  object.supportsThinking = reader.readBool(offsets[25]);
-  object.supportsWebSearch = reader.readBool(offsets[26]);
-  object.url = reader.readString(offsets[27]);
-  object.used = reader.readLong(offsets[28]);
+  object.supportsLiveApi = reader.readBool(offsets[24]);
+  object.supportsStreaming = reader.readBool(offsets[25]);
+  object.supportsThinking = reader.readBool(offsets[26]);
+  object.supportsWebSearch = reader.readBool(offsets[27]);
+  object.url = reader.readString(offsets[28]);
+  object.used = reader.readLong(offsets[29]);
   return object;
 }
 
@@ -345,9 +352,9 @@ P _aiModelDeserializeProp<P>(
     case 9:
       return (reader.readLong(offset)) as P;
     case 10:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 11:
-      return (reader.readBool(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 12:
       return (reader.readBool(offset)) as P;
     case 13:
@@ -355,24 +362,26 @@ P _aiModelDeserializeProp<P>(
     case 14:
       return (reader.readBool(offset)) as P;
     case 15:
-      return (reader.readLong(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 16:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 17:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 18:
+      return (reader.readDouble(offset)) as P;
+    case 19:
       return (_AiModelproviderValueEnumMap[reader.readStringOrNull(offset)] ??
               AiProvider.google)
           as P;
-    case 19:
+    case 20:
       return (_AiModelqualityValueEnumMap[reader.readStringOrNull(offset)] ??
               ModelQuality.basic)
           as P;
-    case 20:
+    case 21:
       return (_AiModelspeedValueEnumMap[reader.readStringOrNull(offset)] ??
               ModelSpeed.ultraFast)
           as P;
-    case 21:
+    case 22:
       return (reader
                   .readStringList(offset)
                   ?.map(
@@ -383,7 +392,7 @@ P _aiModelDeserializeProp<P>(
                   .toList() ??
               [])
           as P;
-    case 22:
+    case 23:
       return (reader
                   .readStringList(offset)
                   ?.map(
@@ -394,8 +403,6 @@ P _aiModelDeserializeProp<P>(
                   .toList() ??
               [])
           as P;
-    case 23:
-      return (reader.readBool(offset)) as P;
     case 24:
       return (reader.readBool(offset)) as P;
     case 25:
@@ -403,8 +410,10 @@ P _aiModelDeserializeProp<P>(
     case 26:
       return (reader.readBool(offset)) as P;
     case 27:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 28:
+      return (reader.readString(offset)) as P;
+    case 29:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -464,14 +473,14 @@ const _AiModelsupportedInputsValueEnumMap = {
 const _AiModelsupportedStepsEnumValueMap = {
   r'research': r'research',
   r'translate': r'translate',
+  r'tokenize': r'tokenize',
   r'morphemes': r'morphemes',
-  r'fullTranslate': r'fullTranslate',
 };
 const _AiModelsupportedStepsValueEnumMap = {
   r'research': TranslationPipelineStep.research,
   r'translate': TranslationPipelineStep.translate,
+  r'tokenize': TranslationPipelineStep.tokenize,
   r'morphemes': TranslationPipelineStep.morphemes,
-  r'fullTranslate': TranslationPipelineStep.fullTranslate,
 };
 
 Id _aiModelGetId(AiModel object) {
@@ -1139,6 +1148,65 @@ extension AiModelQueryFilter
       return query.addFilterCondition(
         FilterCondition.between(
           property: r'defaultPhrasesPerRequest',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> errorCountEqualTo(
+    int value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'errorCount', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> errorCountGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'errorCount',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> errorCountLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'errorCount',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> errorCountBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'errorCount',
           lower: lower,
           includeLower: includeLower,
           upper: upper,
@@ -2858,6 +2926,18 @@ extension AiModelQuerySortBy on QueryBuilder<AiModel, AiModel, QSortBy> {
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByErrorCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'errorCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByErrorCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'errorCount', Sort.desc);
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByEstimatedTokensPerSec() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'estimatedTokensPerSec', Sort.asc);
@@ -3197,6 +3277,18 @@ extension AiModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByErrorCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'errorCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByErrorCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'errorCount', Sort.desc);
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByEstimatedTokensPerSec() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'estimatedTokensPerSec', Sort.asc);
@@ -3490,6 +3582,12 @@ extension AiModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByErrorCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'errorCount');
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QDistinct> distinctByEstimatedTokensPerSec() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'estimatedTokensPerSec');
@@ -3684,6 +3782,12 @@ extension AiModelQueryProperty
   defaultPhrasesPerRequestProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'defaultPhrasesPerRequest');
+    });
+  }
+
+  QueryBuilder<AiModel, int, QQueryOperations> errorCountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'errorCount');
     });
   }
 

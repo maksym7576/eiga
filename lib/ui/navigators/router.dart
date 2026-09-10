@@ -5,6 +5,7 @@ import 'package:eiga/ui/screens/main_screen.dart';
 import 'package:eiga/ui/screens/upload_screen.dart';
 import 'package:eiga/ui/screens/settings_screen.dart';
 import 'package:eiga/ui/screens/video_screen.dart';
+import 'package:eiga/ui/screens/full_vocabulary_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -48,6 +49,11 @@ final appRouter = GoRouter(
       path: '/player',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const VideoScreen(),
+    ),
+    GoRoute(
+      path: '/vocabulary',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const FullVocabularyScreen(),
     ),
   ],
 );

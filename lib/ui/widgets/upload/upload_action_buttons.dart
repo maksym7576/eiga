@@ -76,7 +76,6 @@ class UploadActionButtons extends ConsumerWidget {
     if (context.mounted) {
       if (success) {
         notifier.reset();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Video added successfully!')));
         Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to add video')));

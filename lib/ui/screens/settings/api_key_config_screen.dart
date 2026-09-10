@@ -114,11 +114,13 @@ class _ApiKeyConfigScreenState extends ConsumerState<ApiKeyConfigScreen> {
             _controller.text = token;
           }
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 // API Key Input Section
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -198,17 +200,17 @@ class _ApiKeyConfigScreenState extends ConsumerState<ApiKeyConfigScreen> {
                 const SizedBox(height: 24),
 
                 // Guide Section
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: theme.isDark ? Colors.white.withValues(alpha: 0.03) : AppColors.slate50,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: theme.dividerColor),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: theme.isDark ? Colors.white.withValues(alpha: 0.03) : AppColors.slate50,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: theme.dividerColor),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -252,12 +254,13 @@ class _ApiKeyConfigScreenState extends ConsumerState<ApiKeyConfigScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        Expanded(
-                          child: ListView.builder(
-                            padding: EdgeInsets.zero,
-                            itemCount: widget.steps.length,
-                            itemBuilder: (context, index) {
+                      const SizedBox(height: 16),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: EdgeInsets.zero,
+                        itemCount: widget.steps.length,
+                        itemBuilder: (context, index) {
                               final step = widget.steps[index];
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 16),
@@ -340,8 +343,7 @@ class _ApiKeyConfigScreenState extends ConsumerState<ApiKeyConfigScreen> {
                               );
                             },
                           ),
-                        ),
-                        Divider(color: theme.dividerColor, height: 1),
+                          Divider(color: theme.dividerColor, height: 1),
                         const SizedBox(height: 8),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,8 +367,8 @@ class _ApiKeyConfigScreenState extends ConsumerState<ApiKeyConfigScreen> {
                       ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },

@@ -1,6 +1,6 @@
 import 'package:eiga/backend/database/schemas/translation_pipeline_step.dart';
 
-enum PipelineStepType { contextResearch, translation, morphemes }
+enum PipelineStepType { contextResearch, translation, tokenize, morphemes }
 
 extension PipelineStepTypeMapping on PipelineStepType {
   TranslationPipelineStep get asTranslationStep {
@@ -9,6 +9,8 @@ extension PipelineStepTypeMapping on PipelineStepType {
         return TranslationPipelineStep.research;
       case PipelineStepType.translation:
         return TranslationPipelineStep.translate;
+      case PipelineStepType.tokenize:
+        return TranslationPipelineStep.tokenize;
       case PipelineStepType.morphemes:
         return TranslationPipelineStep.morphemes;
     }

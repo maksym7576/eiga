@@ -11,6 +11,7 @@ final phraseResponseHandlerProvider = Provider<PhraseResponseHandler>((ref) {
     phraseService: ref.watch(phraseServiceProvider),
     blockService: ref.watch(blockServiceProvider),
     wordService: ref.watch(wordServiceProvider),
+    translationWordService: ref.watch(translationWordServiceProvider),
   );
 });
 
@@ -24,6 +25,7 @@ final geminiServiceProvider = Provider<GeminiService>((ref) {
 final geminiStreamingServiceProvider = Provider<GeminiStreamingService>((ref) {
   return GeminiStreamingService(
     phraseResponseHandler: ref.watch(phraseResponseHandlerProvider),
+    ref: ref,
   );
 });
 

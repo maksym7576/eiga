@@ -6,7 +6,12 @@ import '../../../providers/services/app_configs_provider.dart';
 import '../../../providers/services/ai_services_providers.dart';
 import '../../../providers/services/ai_request_state.dart';
 import '../../../providers/services/database_services_providers.dart';
+import '../../../providers/ui/ai_models_state_provider.dart';
 import '../../database/schemas/phrase.dart';
+import '../../database/schemas/translation_pipeline_step.dart';
+import '../../../providers/ui/player_provider.dart';
+import '../../../providers/ui/ai_error_state_provider.dart';
+import '../../services/utils/ai_exceptions.dart';
 import '../../../utils/logger.dart';
 
 enum TaskPriority { high, normal }
@@ -61,7 +66,7 @@ class TranslationBackgroundManager {
 
     _queue.add(task);
     _sortQueue();
-    logger.i('Task added to queue: Video ${task.videoId}, Phrases: ${task.phraseIds.length}, Priority: ${task.priority.name}');
+    logger.i('[Queue] Task added: Video ${task.videoId}, Phrases: ${task.phraseIds.length}, Priority: ${task.priority.name}');
     _queueLengthController.add(_queue.length);
     ref.read(translationQueueProvider.notifier).state = List.from(_queue);
     
@@ -97,7 +102,7 @@ class TranslationBackgroundManager {
       final config = ref.read(appConfigsServiceProvider);
       final maxConcurrent = config.getMaxConcurrentProcesses;
 
-      logger.d('Processing queue. Active: $_activeTasks, Max: $maxConcurrent, Queue: ${_queue.length}');
+      logger.d('[Manager] Processing queue. Active: $_activeTasks, Max: $maxConcurrent, Queue: ${_queue.length}');
 
       while (_queue.isNotEmpty) {
         if (_activeTasks < maxConcurrent) {
@@ -143,22 +148,57 @@ class TranslationBackgroundManager {
       // Mark as translating
       await phraseService.markPhrasesAsTranslatingByPhraseList(phrases);
 
-      logger.d('Starting background task for video ${task.videoId} (${task.phraseIds.length} phrases)');
+      logger.d('[Task] Starting background task for video ${task.videoId} (${task.phraseIds.length} phrases)');
       final result = await aiService.runTranslationForVideo(
         video: video,
         phrases: phrases,
       );
 
       if (result.phase == AiRequestPhase.error) {
-        await phraseService.resetPhrasesTranslationStatusByIds(task.phraseIds);
+        await phraseService.resetTranslatingState(task.phraseIds);
+        
+        final config = ref.read(appConfigsServiceProvider);
+        if (config.getIsAutomaticModelSwitch && result.failedStepType != null && result.failedModel != null) {
+          final stepType = _mapStepToEnum(result.failedStepType!);
+          if (stepType != null) {
+             final fallback = await ref.read(aiModelServiceProvider).getBestFallbackModel(stepType, result.failedModel!.name);
+             if (fallback != null) {
+               logger.i('[Manager] Attempt failed. Switching model to ${fallback.name} and retrying with a NEW card.');
+               await ref.read(aiModelServiceProvider).incrementErrorCount(result.failedModel!.name);
+               await ref.read(aiModelsProvider.notifier).updateActiveModel(stepType, fallback.name);
+               
+               // Re-add task to queue (it will create a NEW TranslationJob in runTranslationForVideo)
+               addTask(task);
+             }
+          }
+        }
+
+        // Pause video on error
+        ref.read(playerProvider.notifier).setPlaying(false);
+        
+        // Trigger global error dialog if there is one
+        if (result.error != null) {
+          ref.read(aiErrorStateProvider.notifier).state = result.error;
+        }
       } else if (result.phase == AiRequestPhase.partialSuccess) {
-        await phraseService.resetPhrasesTranslationStatusByIds(result.failedPhraseIds);
+        // SOFT RESET: Keep translation for failed phrases in multi-stage pipeline
+        await phraseService.resetTranslatingState(result.failedPhraseIds);
       }
 
-      logger.i('Background task completed for video ${task.videoId} with status: ${result.phase.name}');
+      logger.i('[Task] Background task completed for video ${task.videoId} with status: ${result.phase.name}');
     } catch (e, st) {
-      logger.e('Background Task Error for video ${task.videoId}', error: e, stackTrace: st);
-      await ref.read(phraseServiceProvider).resetPhrasesTranslationStatusByIds(task.phraseIds);
+      logger.e('[Task] Background Task Error for video ${task.videoId}', error: e, stackTrace: st);
+      await ref.read(phraseServiceProvider).resetTranslatingState(task.phraseIds);
+      
+      // Pause video on fatal error
+      ref.read(playerProvider.notifier).setPlaying(false);
+      
+      // Trigger global error
+      if (e is GeminiException) {
+        ref.read(aiErrorStateProvider.notifier).state = e.type.toUserFacing();
+      } else {
+        ref.read(aiErrorStateProvider.notifier).state = AiErrorType.unknown.toUserFacing();
+      }
     } finally {
       _activeTasks--;
       _activeTaskList.remove(task);
@@ -172,8 +212,18 @@ class TranslationBackgroundManager {
     }
   }
 
+  TranslationPipelineStep? _mapStepToEnum(String stepName) {
+    switch (stepName) {
+      case 'context': return TranslationPipelineStep.research;
+      case 'translation': return TranslationPipelineStep.translate;
+      case 'tokenization': return TranslationPipelineStep.tokenize;
+      case 'morphology': return TranslationPipelineStep.morphemes;
+      default: return null;
+    }
+  }
+
   void _onQueueComplete() {
-    logger.i('Translation Queue Empty. All background tasks completed.');
+    logger.i('[Manager] Translation Queue Empty. All background tasks completed.');
     ref.read(translationQueueProvider.notifier).state = [];
     ref.read(activeTranslationTasksProvider.notifier).state = [];
   }
@@ -184,7 +234,7 @@ class TranslationBackgroundManager {
   void cancelTask(int videoId) {
     _queue.removeWhere((t) => t.videoId == videoId);
     ref.read(translationQueueProvider.notifier).state = List.from(_queue);
-    logger.i('Translation tasks for video $videoId cancelled from queue.');
+    logger.i('[Manager] Translation tasks for video $videoId cancelled from queue.');
     // Note: Active tasks are harder to stop immediately without abort signals,
     // but clearing the queue prevents next batches from starting.
   }

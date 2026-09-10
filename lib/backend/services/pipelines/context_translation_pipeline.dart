@@ -11,6 +11,7 @@ class ContextTranslationPipeline extends PipelineAbstract {
   List<PipelineStepType> get stepTypes => const [
     PipelineStepType.contextResearch,
     PipelineStepType.translation,
+    PipelineStepType.tokenize,
     PipelineStepType.morphemes,
   ];
 
@@ -18,7 +19,9 @@ class ContextTranslationPipeline extends PipelineAbstract {
   String promptFor(PipelineStepType type, Video video) {
     final sourceLanguage = video.originalLanguage ?? '';
     final targetLanguage = video.translatedLanguage ?? '';
-    final title = video.seriesName ?? video.fileName ?? video.nameJumaku ?? '';
+    
+    // Prioritize originalName or seriesName for better context research accuracy
+    final title = video.originalName ?? video.seriesName ?? video.nameJumaku ?? video.fileName ?? '';
 
     switch (type) {
       case PipelineStepType.contextResearch:
@@ -42,11 +45,19 @@ class ContextTranslationPipeline extends PipelineAbstract {
           contextBlock: video.researchInformation ?? '',
         );
 
-      case PipelineStepType.morphemes:
+      case PipelineStepType.tokenize:
         return PromptManager.getPrompt(
-          type: PromptType.parser,
+          type: PromptType.tokenizer,
           sourceLanguage: sourceLanguage,
           targetLanguage: targetLanguage,
+          title: title,
+        );
+
+      case PipelineStepType.morphemes:
+        return PromptManager.getPrompt(
+          type: PromptType.morphology,
+          targetLanguage: targetLanguage,
+          sourceLanguage: sourceLanguage,
           title: title,
         );
     }

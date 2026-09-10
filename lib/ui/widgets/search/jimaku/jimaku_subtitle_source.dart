@@ -1,18 +1,18 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import 'package:eiga/backend/database/dto/jimaku_dto.dart';
+import 'package:eiga/backend/database/dto/media_dto.dart';
+import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
 import 'package:eiga/backend/services/jimaku_service.dart';
 import 'package:eiga/backend/services/utils/jimaku_clustering_util.dart';
 import 'package:eiga/providers/ui/dto_providers.dart';
 import 'package:eiga/providers/ui/search_provider.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
 import 'package:eiga/providers/ui/jimaku_files_provider.dart';
-import 'package:eiga/providers/anilist_status_provider.dart';
-import 'package:eiga/backend/services/anilist_service.dart';
+import 'package:eiga/providers/ui/metadata_enrichment_provider.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
 import 'package:eiga/ui/widgets/search/search_source_abstract.dart';
-import 'jimaku_entry_card.dart';
 import 'jimaku_file_tile.dart';
 
 class JimakuAutoSelectException implements Exception {
@@ -23,7 +23,7 @@ class JimakuAutoSelectException implements Exception {
 }
 
 class JimakuSubtitleSource
-    implements SearchSource<JimakuDataDTO, JimakuFileOrGroupDTO> {
+    implements SearchSource<UnifiedMetadataDTO, JimakuFileOrGroupDTO> {
   @override
   String get key => SearchSourceKeys.jimaku;
 
@@ -48,7 +48,7 @@ class JimakuSubtitleSource
   }
 
   @override
-  Future<List<JimakuDataDTO>> search(String query, Map<String, dynamic> filters, WidgetRef ref) async {
+  Future<List<UnifiedMetadataDTO>> search(String query, Map<String, dynamic> filters, WidgetRef ref) async {
     final service = await _service(ref);
     final results = await service.searchJumakuObjects(
       query: query,
@@ -59,17 +59,22 @@ class JimakuSubtitleSource
     final includeUnverified = filters['includeUnverified'] as bool? ?? true;
 
     final filteredResults = results.where((e) {
-      if (!includeAdult && e.isAdult) return false;
-      if (!includeUnverified && e.isUnverified) return false;
+      if (!includeAdult && e.extras['is_adult'] == true) return false;
+      if (!includeUnverified && e.extras['is_unverified'] == true) return false;
       return true;
     }).toList();
+
+    developer.log(
+      'Jimaku search for "$query" found ${results.length} results, ${filteredResults.length} after filtering.',
+      name: 'JimakuSearch'
+    );
 
     ref.read(jimakuSearchFullResultsProvider.notifier).state = filteredResults;
 
     final chunk = filteredResults.length > 15 ? filteredResults.sublist(0, 15) : filteredResults;
     
-    // Await metadata (AniList info) so images and episode counts appear immediately
-    await _fetchMetadataForRange(filteredResults, 0, 15, ref);
+    // Trigger background metadata fetching (non-blocking)
+    Future.microtask(() => _fetchMetadataForRange(filteredResults, 0, 15, ref));
     
     // Still trigger background summaries for the chunk (actual file analysis)
     Future.microtask(() => _fetchSummariesForRange(chunk, ref));
@@ -78,7 +83,7 @@ class JimakuSubtitleSource
   }
 
   @override
-  Future<List<JimakuDataDTO>> fetchNextPage(String query, int page, Map<String, dynamic> filters, WidgetRef ref) async {
+  Future<List<UnifiedMetadataDTO>> fetchNextPage(String query, int page, Map<String, dynamic> filters, WidgetRef ref) async {
     final allResults = ref.read(jimakuSearchFullResultsProvider);
     final int start = (page - 1) * 15;
     final int end = start + 15;
@@ -88,8 +93,8 @@ class JimakuSubtitleSource
     final rangeEnd = end > allResults.length ? allResults.length : end;
     final chunk = allResults.sublist(start, rangeEnd);
     
-    // Await metadata for the next page
-    await _fetchMetadataForRange(allResults, start, rangeEnd, ref);
+    // Trigger background metadata for the next page (non-blocking)
+    Future.microtask(() => _fetchMetadataForRange(allResults, start, rangeEnd, ref));
     
     // Trigger background summaries for the new chunk
     Future.microtask(() => _fetchSummariesForRange(chunk, ref));
@@ -97,10 +102,13 @@ class JimakuSubtitleSource
     return chunk;
   }
 
-  Future<void> _fetchSummariesForRange(List<JimakuDataDTO> range, WidgetRef ref) async {
+  Future<void> _fetchSummariesForRange(List<UnifiedMetadataDTO> range, WidgetRef ref) async {
     // Process summaries sequentially with a small delay to avoid rate limiting
     for (final entry in range) {
-      final summary = ref.read(jimakuSummaryProvider(entry.id));
+      final id = int.tryParse(entry.sourceId);
+      if (id == null) continue;
+
+      final summary = ref.read(jimakuSummaryProvider(id));
       if (summary == null) {
         try {
           // getFiles already calls _analyzeAndStoreSummary
@@ -115,49 +123,196 @@ class JimakuSubtitleSource
   }
 
   Future<void> _fetchMetadataForRange(
-      List<JimakuDataDTO> results, int start, int end, WidgetRef ref) async {
+      List<UnifiedMetadataDTO> results, int start, int end, WidgetRef ref) async {
     if (start >= results.length) return;
     final rangeEnd = end > results.length ? results.length : end;
     final range = results.sublist(start, rangeEnd);
 
+    final provider = ref.read(selectedMetadataProvider);
     final currentMetadata = ref.read(searchMetadataProvider(key));
-    final missingIds = range
-        .map((e) => e.anilistId)
-        .whereType<int>()
-        .where((id) => !currentMetadata.containsKey(id))
-        .toSet()
+
+    final missingEntries = range
+        .where((e) => !currentMetadata.containsKey(int.parse(e.sourceId)))
         .toList();
 
-    if (missingIds.isNotEmpty) {
-      final aniListService = ref.read(aniListServiceProvider);
-      try {
-        final metadataList = await aniListService.getByIds(missingIds);
-        final newMetadata = {for (var m in metadataList) m.id!: m};
+    if (missingEntries.isEmpty) return;
 
-        ref.read(searchMetadataProvider(key).notifier).state = {
-          ...currentMetadata,
-          ...newMetadata,
-        };
-        ref.read(aniListStatusProvider.notifier).state = AniListStatus.online;
-      } catch (e) {
-        if (e is AniListDisabledException) {
-          ref.read(aniListStatusProvider.notifier).state = AniListStatus.maintenance;
-        } else {
-          ref.read(aniListStatusProvider.notifier).state = AniListStatus.error;
+    if (provider == MetadataProviderType.tvmaze) {
+      final tvMazeService = ref.read(tvMazeServiceProvider);
+      
+      // Process in sub-batches of 5 to be "gradual" and avoid rate limits (20 req / 10s)
+      for (int i = 0; i < missingEntries.length; i += 5) {
+        final batch = missingEntries.sublist(i, i + 5 > missingEntries.length ? missingEntries.length : i + 5);
+        final Map<int, dynamic> batchMetadata = {};
+        
+        final List<Future<void>> tasks = batch.map((entry) async {
+          try {
+            UnifiedMetadataDTO? show;
+            
+            developer.log(
+              'Enriching Jimaku entry: ${entry.title} (id: ${entry.sourceId}, tmdb: ${entry.tmdbId}, imdb: ${entry.imdbId}, tvdb: ${entry.thetvdbId}, jp: ${entry.originalTitle})',
+              name: 'JimakuMetadata'
+            );
+
+            // 1. Try IMDB lookup
+            if (entry.imdbId != null && entry.imdbId!.isNotEmpty) {
+              show = await tvMazeService.lookupShowByImdb(entry.imdbId!);
+              if (show != null) developer.log('Matched by IMDB: ${entry.imdbId}', name: 'JimakuMetadata');
+            }
+            
+            // 2. Try TheTVDB lookup
+            if (show == null && entry.thetvdbId != null && entry.thetvdbId!.isNotEmpty) {
+              show = await tvMazeService.lookupShowByTheTvdb(entry.thetvdbId!);
+              if (show != null) developer.log('Matched by TheTVDB: ${entry.thetvdbId}', name: 'JimakuMetadata');
+            }
+            
+            // 3. Try clean title search
+            if (show == null) {
+              final cleanTitle = _cleanTitleForSearch(entry.title);
+              show = await tvMazeService.singleSearchShow(cleanTitle, embed: 'episodes');
+              if (show != null) developer.log('Matched by title: $cleanTitle', name: 'JimakuMetadata');
+            }
+
+            // 4. Try Japanese title search fallback
+            if (show == null && entry.originalTitle != null && entry.originalTitle!.isNotEmpty) {
+              final cleanJp = _cleanTitleForSearch(entry.originalTitle!);
+              show = await tvMazeService.singleSearchShow(cleanJp, embed: 'episodes');
+              if (show != null) developer.log('Matched by Japanese title: $cleanJp', name: 'JimakuMetadata');
+            }
+
+            final jimakuId = int.parse(entry.sourceId);
+            if (show != null) {
+              batchMetadata[jimakuId] = show;
+            } else {
+              developer.log('No TVMaze match found for: ${entry.title}', name: 'JimakuMetadata');
+              batchMetadata[jimakuId] = const NoMetadataDTO();
+            }
+          } catch (e) {
+            developer.log('TVmaze metadata fetch failed for ${entry.title}: $e', name: 'JimakuMetadata', error: e);
+            batchMetadata[int.parse(entry.sourceId)] = const NoMetadataDTO();
+          }
+        }).toList();
+
+        await Future.wait(tasks);
+
+        if (batchMetadata.isNotEmpty) {
+          ref.read(searchMetadataProvider(key).notifier).state = {
+            ...ref.read(searchMetadataProvider(key)),
+            ...batchMetadata,
+          };
         }
-        debugPrint('Silent metadata fetch failure: $e');
-        // Do not rethrow - allows Jimaku search to proceed without covers
+
+        // Small delay between batches to ensure UI updates and stay within rate limits
+        if (i + 5 < missingEntries.length) {
+          await Future.delayed(const Duration(milliseconds: 200));
+        }
+      }
+    } else if (provider == MetadataProviderType.shikimori) {
+      final shikimoriService = ref.read(shikimoriServiceProvider);
+      
+      for (int i = 0; i < missingEntries.length; i += 5) {
+        final batch = missingEntries.sublist(i, i + 5 > missingEntries.length ? missingEntries.length : i + 5);
+        final Map<int, dynamic> batchMetadata = {};
+        
+        final List<Future<void>> tasks = batch.map((entry) async {
+          try {
+            UnifiedMetadataDTO? anime;
+            
+            // 1. Try search by clean English title
+            final cleanTitle = _cleanTitleForSearch(entry.title);
+            anime = await shikimoriService.singleSearchAnime(cleanTitle);
+            
+            // 2. Try Japanese title fallback
+            if (anime == null && entry.originalTitle != null) {
+               final cleanJp = _cleanTitleForSearch(entry.originalTitle!);
+               anime = await shikimoriService.singleSearchAnime(cleanJp);
+            }
+
+            final jimakuId = int.parse(entry.sourceId);
+            if (anime != null) {
+              batchMetadata[jimakuId] = anime;
+            } else {
+              batchMetadata[jimakuId] = const NoMetadataDTO();
+            }
+          } catch (e) {
+            developer.log('Shikimori enrichment failed for ${entry.title}: $e', name: 'JimakuMetadata');
+            batchMetadata[int.parse(entry.sourceId)] = const NoMetadataDTO();
+          }
+        }).toList();
+
+        await Future.wait(tasks);
+
+        if (batchMetadata.isNotEmpty) {
+          ref.read(searchMetadataProvider(key).notifier).state = {
+            ...ref.read(searchMetadataProvider(key)),
+            ...batchMetadata,
+          };
+        }
+
+        if (i + 5 < missingEntries.length) {
+          await Future.delayed(const Duration(milliseconds: 200));
+        }
+      }
+    } else {
+      // Default to AniList logic
+      final missingIds = missingEntries
+          .map((e) => e.anilistId)
+          .whereType<int>()
+          .toSet()
+          .toList();
+
+      if (missingIds.isNotEmpty) {
+        final aniListService = ref.read(aniListServiceProvider);
+        try {
+          final metadataList = await aniListService.getByIds(missingIds);
+          
+          // Map metadata back to Jimaku IDs
+          final Map<int, dynamic> newMetadata = {};
+          for (final entry in missingEntries) {
+            final meta = metadataList.firstWhere(
+              (m) => m.anilistId == entry.anilistId, 
+              orElse: () => const UnifiedMetadataDTO(sourceId: '', title: ''),
+            );
+            if (meta.sourceId.isNotEmpty) {
+              newMetadata[int.parse(entry.sourceId)] = meta;
+            } else {
+              // If not found in the bulk list, try searching by title as fallback
+              try {
+                final searchResults = await aniListService.getByName(entry.title, perPage: 1);
+                if (searchResults.isNotEmpty) {
+                  newMetadata[int.parse(entry.sourceId)] = searchResults.first;
+                } else {
+                  newMetadata[int.parse(entry.sourceId)] = const NoMetadataDTO();
+                }
+              } catch (_) {
+                newMetadata[int.parse(entry.sourceId)] = const NoMetadataDTO();
+              }
+            }
+          }
+
+          if (newMetadata.isNotEmpty) {
+            ref.read(searchMetadataProvider(key).notifier).state = {
+              ...currentMetadata,
+              ...newMetadata,
+            };
+          }
+        } catch (e) {
+          debugPrint('Silent metadata fetch failure: $e');
+        }
       }
     }
   }
 
   @override
   Future<List<JimakuFileOrGroupDTO>> getFiles(
-      JimakuDataDTO entry, Map<String, dynamic> filters, WidgetRef ref) async {
+      UnifiedMetadataDTO entry, Map<String, dynamic> filters, WidgetRef ref) async {
     // This is now handled by jimakuFilesProvider for the sheet
     // But we keep it here if SearchSource interface expects it
     final service = await _service(ref);
-    final rawFiles = await service.getFiles(entry.id);
+    final id = int.tryParse(entry.sourceId);
+    if (id == null) return [];
+
+    final rawFiles = await service.getFiles(id);
     
     final groups = JimakuClusteringUtil.groupFiles(rawFiles);
     _analyzeAndStoreSummary(entry, groups, ref);
@@ -220,11 +375,11 @@ class JimakuSubtitleSource
   }
 
   void _analyzeAndStoreSummary(
-      JimakuDataDTO entry, List<JimakuGroup> groups, WidgetRef ref) {
+      UnifiedMetadataDTO entry, List<JimakuGroup> groups, WidgetRef ref) {
     if (groups.isEmpty) return;
 
     // Aggregate files from ALL groups to find every possible episode
-    final allFiles = groups.expand((g) => g.files).toList();
+    final allFiles = groups.whereType<JimakuGroup>().expand((g) => g.files).toList();
     final episodes = _extractEpisodeNumbers(allFiles);
     
     int srtCount = 0;
@@ -245,8 +400,10 @@ class JimakuSubtitleSource
     final season = seasonMatch?.group(1);
     
     final episodeCount = episodes.length;
+    final id = int.tryParse(entry.sourceId);
+    if (id == null) return;
 
-    ref.read(jimakuSummaryProvider(entry.id).notifier).state = JimakuSummary(
+    ref.read(jimakuSummaryProvider(id).notifier).state = JimakuSummary(
       episodeCount: episodeCount,
       season: season,
       bestFormat: srtCount >= assCount ? 'srt' : 'ass',
@@ -262,20 +419,23 @@ class JimakuSubtitleSource
   }
 
   /// Finds the best matching file for the current video state
-  Future<FileJimakuDTO?> findBestFile(JimakuDataDTO entry, WidgetRef ref, {String? targetEpisode}) async {
+  Future<FileJimakuDTO?> findBestFile(UnifiedMetadataDTO entry, WidgetRef ref, {String? targetEpisode}) async {
     final uploadState = ref.read(uploadProvider);
     final targetEp = targetEpisode ?? uploadState.episode;
 
     if (targetEp == null || targetEp.trim().isEmpty) return null;
 
     final service = await _service(ref);
-    var rawFiles = await service.getFiles(entry.id);
+    final id = int.tryParse(entry.sourceId);
+    if (id == null) return null;
+
+    var rawFiles = await service.getFiles(id);
     if (rawFiles.isEmpty) return null;
 
     final groups = JimakuClusteringUtil.groupFiles(rawFiles);
     _analyzeAndStoreSummary(entry, groups, ref);
 
-    final summary = ref.read(jimakuSummaryProvider(entry.id));
+    final summary = ref.read(jimakuSummaryProvider(id));
     final preferredExt = summary?.bestFormat ?? 'srt';
 
     final targetValue = targetEp.trim();
@@ -292,7 +452,7 @@ class JimakuSubtitleSource
     };
 
     // Search across ALL files from ALL groups
-    final allFiles = groups.expand((g) => g.files).toList();
+    final allFiles = groups.whereType<JimakuGroup>().expand((g) => g.files).toList();
     final matches = allFiles.where((f) {
       final normalizedName = f.name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), ' ');
       return targetTokens.any((token) => normalizedName.contains(token));
@@ -314,7 +474,7 @@ class JimakuSubtitleSource
   }
 
   Future<void> autoSelectSubtitle(
-    JimakuDataDTO entry,
+    UnifiedMetadataDTO entry,
     WidgetRef ref, {
     String? targetEpisode,
   }) async {
@@ -332,7 +492,7 @@ class JimakuSubtitleSource
   }
 
   Future<void> selectEpisodeSubtitle(
-    JimakuDataDTO entry,
+    UnifiedMetadataDTO entry,
     int episode,
     WidgetRef ref,
   ) async {
@@ -342,7 +502,7 @@ class JimakuSubtitleSource
 
   @override
   Future<String> resolve(dynamic selected, WidgetRef ref) async {
-    if (selected is JimakuDataDTO) {
+    if (selected is UnifiedMetadataDTO) {
       final bestFile = await findBestFile(selected, ref);
       if (bestFile == null) {
         throw JimakuAutoSelectException('No matching subtitle file found for this episode');
@@ -366,24 +526,21 @@ class JimakuSubtitleSource
   }
 
   @override
-  Widget buildEntryCard(
-      JimakuDataDTO entry, bool isActive, VoidCallback onTap) {
-    return JimakuEntryCard(entry: entry, isActive: isActive, onTap: onTap);
-  }
-
-  @override
   Widget buildFileCard(
       JimakuFileOrGroupDTO item, bool isActive, VoidCallback onTap) {
     if (item.isGroup) {
       final group = item.group!;
       return Consumer(
         builder: (context, ref, child) {
-          final entry = ref.watch(selectedEntryProvider(key)) as JimakuDataDTO?;
+          final entry = ref.watch(selectedEntryProvider(key)) as UnifiedMetadataDTO?;
           if (entry == null) return const SizedBox.shrink();
+
+          final id = int.tryParse(entry.sourceId);
+          if (id == null) return const SizedBox.shrink();
 
           return _JimakuGroupTile(
             group: group,
-            onTap: () => ref.read(jimakuFilesProvider(entry.id).notifier).toggleGroup(group.name),
+            onTap: () => ref.read(jimakuFilesProvider(id).notifier).toggleGroup(group.name),
           );
         },
       );
@@ -391,10 +548,13 @@ class JimakuSubtitleSource
 
     return Consumer(
       builder: (context, ref, child) {
-        final entry = ref.watch(selectedEntryProvider(key)) as JimakuDataDTO?;
+        final entry = ref.watch(selectedEntryProvider(key)) as UnifiedMetadataDTO?;
         if (entry == null) return const SizedBox.shrink();
 
-        final filesState = ref.watch(jimakuFilesProvider(entry.id));
+        final id = int.tryParse(entry.sourceId);
+        if (id == null) return const SizedBox.shrink();
+
+        final filesState = ref.watch(jimakuFilesProvider(id));
         final bool isSubItem = filesState.expandedGroups.contains(groupNameOf(item.file!)) ||
             filesState.expandedGroups.any((g) => item.file!.name.contains(g));
 
@@ -412,14 +572,19 @@ class JimakuSubtitleSource
     return JimakuClusteringUtil.groupFiles([file]).first.name;
   }
 
+  String _cleanTitleForSearch(String title) {
+    // Remove "TV" or "Movie" suffixes in brackets
+    return title.replaceAll(RegExp(r'\(TV\)|\(Movie\)|\(ONA\)|\(OAV\)'), '').trim();
+  }
+
   @override
-  String entryId(JimakuDataDTO entry) => entry.id.toString();
+  String entryId(UnifiedMetadataDTO entry) => entry.sourceId;
 
   @override
   String fileId(JimakuFileOrGroupDTO item) => item.id;
 
   @override
-  String entryLabel(JimakuDataDTO entry) => entry.displayTitle;
+  String entryLabel(UnifiedMetadataDTO entry) => entry.title;
 }
 
 class _JimakuGroupTile extends StatelessWidget {
@@ -435,29 +600,36 @@ class _JimakuGroupTile extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-      child: GestureDetector(
+      child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: isExpanded
-                ? theme.selectionAccentColor.withValues(alpha: 0.1)
+                ? theme.selectionAccentColor.withValues(alpha: 0.08)
                 : theme.cardBackground,
             borderRadius: isExpanded
-                ? const BorderRadius.vertical(top: Radius.circular(10))
-                : BorderRadius.circular(10),
-            border: !isExpanded
-                ? Border.all(color: theme.cardBorder, width: 0.5)
-                : null,
+                ? const BorderRadius.vertical(top: Radius.circular(12))
+                : BorderRadius.circular(12),
+            border: Border.all(
+              color: isExpanded ? theme.selectionAccentColor.withValues(alpha: 0.3) : theme.cardBorder, 
+              width: 0.5
+            ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                isExpanded ? Icons.folder_open_rounded : Icons.folder_rounded,
-                color: theme.selectionAccentColor,
-                size: 20,
+              AnimatedRotation(
+                duration: const Duration(milliseconds: 300),
+                turns: isExpanded ? 0.0 : 0.0, // Can add rotation if icon changes
+                child: Icon(
+                  isExpanded ? Icons.folder_open_rounded : Icons.folder_rounded,
+                  color: theme.selectionAccentColor,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(

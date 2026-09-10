@@ -5,6 +5,8 @@ import 'package:eiga/backend/database/services/isar_service.dart';
 import 'package:eiga/providers/database/database_providers.dart';
 import 'package:eiga/providers/services/app_configs_provider.dart';
 import 'package:eiga/ui/navigators/router.dart';
+import 'package:eiga/ui/widgets/ai_error_overlay.dart';
+import 'package:eiga/ui/widgets/global_hint_overlay.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +41,11 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       routerConfig: appRouter,
+      builder: (context, child) {
+        return GlobalHintOverlay(
+          child: AiErrorOverlay(child: child ?? const SizedBox.shrink()),
+        );
+      },
     );
   }
 }

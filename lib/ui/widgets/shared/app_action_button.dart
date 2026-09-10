@@ -79,19 +79,19 @@ class AppActionButton extends StatelessWidget {
         return ElevatedButton.styleFrom(
           backgroundColor: theme.addButtonBackground,
           foregroundColor: theme.addButtonText,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           elevation: 0,
-          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: -0.2),
         );
       case AppActionButtonType.secondary:
         return ElevatedButton.styleFrom(
           backgroundColor: theme.tabSwitcherBackground,
           foregroundColor: theme.normalText,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           elevation: 0,
-          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
         );
       case AppActionButtonType.outlined:
         return OutlinedButton.styleFrom(

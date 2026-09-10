@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import '../../../backend/database/schemas/translation_job.dart';
 import '../../../providers/ui/video_data_providers.dart';
+import '../../../providers/ui/main_hub_providers.dart';
 import '../../styles/app_colors.dart';
 import '../shared/progress_ring.dart';
 import '../dialogs/app_bottom_sheet.dart';
@@ -15,6 +17,11 @@ class VideoBottomDock extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final phrasesAsync = ref.watch(phrasesStreamProvider);
     final isAutoScrollEnabled = ref.watch(isAutoScrollEnabledProvider);
+    
+    final videoId = ref.watch(playerIdProvider);
+    final activeJobsAsync = videoId != null 
+        ? ref.watch(translationJobsStreamProvider(videoId)) 
+        : const AsyncValue<List<TranslationJob>>.data([]);
 
     return phrasesAsync.when(
       data: (phrases) {
@@ -23,29 +30,37 @@ class VideoBottomDock extends HookConsumerWidget {
         final total = phrases.length;
         final translated = phrases.where((p) => p.isTranslated).length;
         final progress = total > 0 ? translated / total : 0.0;
+        
+        final hasActiveJobs = activeJobsAsync.value?.any((j) => j.status == 'active') ?? false;
 
-        return ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.95),
-                border: const Border(
-                  top: BorderSide(color: Color(0xFFF1F5F9)),
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: MediaQuery.of(context).padding.bottom + 16,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Pill Row Container
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF15151F).withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0xFF24242F), width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
-              ),
-              padding: EdgeInsets.only(
-                left: 12,
-                right: 12,
-                top: 8,
-                bottom: MediaQuery.of(context).padding.bottom + 8,
-              ),
-              child: SafeArea(
-                top: false,
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Progress Ring
+                    // Knob: Progress Ring
                     GestureDetector(
                       onTap: () {
                         AppBottomSheet.show(
@@ -55,156 +70,83 @@ class VideoBottomDock extends HookConsumerWidget {
                       },
                       child: ProgressRing(
                         progress: progress,
-                        textStyle: const TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.brandBlue,
-                        ),
+                        isAnimating: hasActiveJobs,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
 
-                    // Primary Action Button (Right Now)
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          ref.read(isAutoScrollEnabledProvider.notifier).state = true;
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: isAutoScrollEnabled ? AppColors.brandBlue : const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(14),
-                            border: isAutoScrollEnabled
-                                ? null
-                                : Border.all(color: const Color(0xFFE2E8F0)),
-                            boxShadow: isAutoScrollEnabled
-                                ? [
-                                    BoxShadow(
-                                      color: AppColors.brandBlue.withOpacity(0.25),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Pulsing indicator dot
-                              _StatusDot(isActive: isAutoScrollEnabled),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Right now',
-                                style: TextStyle(
-                                  color: isAutoScrollEnabled ? Colors.white : AppColors.brandBlue,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-
-                    // Settings Button
+                    // Pill Button: Right now
                     GestureDetector(
                       onTap: () {
-                        AppBottomSheet.show(
-                          context: context,
-                          backgroundColor: const Color(0xFFF8FAFC),
-                          child: const VideoSettingsSheet(),
-                        );
+                        ref.read(isAutoScrollEnabledProvider.notifier).state = true;
                       },
-                      child: Container(
-                        height: 44,
-                        width: 44,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          color: isAutoScrollEnabled ? const Color(0xFF4D5BF9) : const Color(0xFF2A2A38),
+                          borderRadius: BorderRadius.circular(999),
                         ),
-                        child: const Icon(
-                          Icons.tune,
-                          size: 19,
-                          color: Color(0xFF0F172A),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Dot indicator
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: isAutoScrollEnabled ? Colors.white : const Color(0xFF4D5BF9),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Right now',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-          ),
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-    );
-  }
-}
+              const SizedBox(width: 12),
 
-class _StatusDot extends StatefulWidget {
-  final bool isActive;
-  const _StatusDot({required this.isActive});
-
-  @override
-  State<_StatusDot> createState() => _StatusDotState();
-}
-
-class _StatusDotState extends State<_StatusDot> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!widget.isActive) {
-      return Container(
-        width: 8,
-        height: 8,
-        decoration: const BoxDecoration(
-          color: AppColors.brandBlue,
-          shape: BoxShape.circle,
-        ),
-      );
-    }
-
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.6 + (_controller.value * 0.4)),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.white.withOpacity(0.4 * _controller.value),
-                blurRadius: 4,
-                spreadRadius: 2,
+              // Settings Button (Separate for now, or could be part of pill)
+              GestureDetector(
+                onTap: () {
+                  AppBottomSheet.show(
+                    context: context,
+                    backgroundColor: const Color(0xFFF8FAFC),
+                    child: const VideoSettingsSheet(),
+                  );
+                },
+                child: Container(
+                  height: 54,
+                  width: 54,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF15151F).withOpacity(0.9),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFF24242F), width: 1),
+                  ),
+                  child: const Icon(
+                    Icons.tune,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ],
           ),
         );
       },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }

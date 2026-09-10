@@ -17,61 +17,72 @@ const TranslationJobSchema = CollectionSchema(
   name: r'TranslationJob',
   id: -222899793982030664,
   properties: {
-    r'endTime': PropertySchema(
+    r'completedSteps': PropertySchema(
       id: 0,
+      name: r'completedSteps',
+      type: IsarType.long,
+    ),
+    r'endTime': PropertySchema(
+      id: 1,
       name: r'endTime',
       type: IsarType.dateTime,
     ),
     r'errorMessage': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'errorMessage',
       type: IsarType.string,
     ),
     r'errorStage': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'errorStage',
       type: IsarType.string,
     ),
+    r'executionPlan': PropertySchema(
+      id: 4,
+      name: r'executionPlan',
+      type: IsarType.string,
+    ),
+    r'isAuto': PropertySchema(id: 5, name: r'isAuto', type: IsarType.bool),
     r'modelName': PropertySchema(
-      id: 3,
+      id: 6,
       name: r'modelName',
       type: IsarType.string,
     ),
-    r'phase': PropertySchema(id: 4, name: r'phase', type: IsarType.string),
+    r'phase': PropertySchema(id: 7, name: r'phase', type: IsarType.string),
     r'pipelineId': PropertySchema(
-      id: 5,
+      id: 8,
       name: r'pipelineId',
       type: IsarType.string,
     ),
     r'processedPhrases': PropertySchema(
-      id: 6,
+      id: 9,
       name: r'processedPhrases',
       type: IsarType.long,
     ),
     r'stageHistory': PropertySchema(
-      id: 7,
+      id: 10,
       name: r'stageHistory',
       type: IsarType.objectList,
 
       target: r'AiStageHistory',
     ),
     r'startTime': PropertySchema(
-      id: 8,
+      id: 11,
       name: r'startTime',
       type: IsarType.dateTime,
     ),
-    r'status': PropertySchema(id: 9, name: r'status', type: IsarType.string),
+    r'status': PropertySchema(id: 12, name: r'status', type: IsarType.string),
     r'totalPhrases': PropertySchema(
-      id: 10,
+      id: 13,
       name: r'totalPhrases',
       type: IsarType.long,
     ),
     r'translatedAt': PropertySchema(
-      id: 11,
+      id: 14,
       name: r'translatedAt',
       type: IsarType.dateTime,
     ),
-    r'videoId': PropertySchema(id: 12, name: r'videoId', type: IsarType.long),
+    r'videoId': PropertySchema(id: 15, name: r'videoId', type: IsarType.long),
   },
 
   estimateSize: _translationJobEstimateSize,
@@ -117,6 +128,12 @@ int _translationJobEstimateSize(
   }
   {
     final value = object.errorStage;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.executionPlan;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -171,24 +188,27 @@ void _translationJobSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDateTime(offsets[0], object.endTime);
-  writer.writeString(offsets[1], object.errorMessage);
-  writer.writeString(offsets[2], object.errorStage);
-  writer.writeString(offsets[3], object.modelName);
-  writer.writeString(offsets[4], object.phase);
-  writer.writeString(offsets[5], object.pipelineId);
-  writer.writeLong(offsets[6], object.processedPhrases);
+  writer.writeLong(offsets[0], object.completedSteps);
+  writer.writeDateTime(offsets[1], object.endTime);
+  writer.writeString(offsets[2], object.errorMessage);
+  writer.writeString(offsets[3], object.errorStage);
+  writer.writeString(offsets[4], object.executionPlan);
+  writer.writeBool(offsets[5], object.isAuto);
+  writer.writeString(offsets[6], object.modelName);
+  writer.writeString(offsets[7], object.phase);
+  writer.writeString(offsets[8], object.pipelineId);
+  writer.writeLong(offsets[9], object.processedPhrases);
   writer.writeObjectList<AiStageHistory>(
-    offsets[7],
+    offsets[10],
     allOffsets,
     AiStageHistorySchema.serialize,
     object.stageHistory,
   );
-  writer.writeDateTime(offsets[8], object.startTime);
-  writer.writeString(offsets[9], object.status);
-  writer.writeLong(offsets[10], object.totalPhrases);
-  writer.writeDateTime(offsets[11], object.translatedAt);
-  writer.writeLong(offsets[12], object.videoId);
+  writer.writeDateTime(offsets[11], object.startTime);
+  writer.writeString(offsets[12], object.status);
+  writer.writeLong(offsets[13], object.totalPhrases);
+  writer.writeDateTime(offsets[14], object.translatedAt);
+  writer.writeLong(offsets[15], object.videoId);
 }
 
 TranslationJob _translationJobDeserialize(
@@ -198,24 +218,27 @@ TranslationJob _translationJobDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = TranslationJob(
-    endTime: reader.readDateTimeOrNull(offsets[0]),
-    errorMessage: reader.readStringOrNull(offsets[1]),
-    errorStage: reader.readStringOrNull(offsets[2]),
-    modelName: reader.readStringOrNull(offsets[3]),
-    phase: reader.readStringOrNull(offsets[4]),
-    pipelineId: reader.readStringOrNull(offsets[5]),
-    processedPhrases: reader.readLongOrNull(offsets[6]),
+    completedSteps: reader.readLongOrNull(offsets[0]),
+    endTime: reader.readDateTimeOrNull(offsets[1]),
+    errorMessage: reader.readStringOrNull(offsets[2]),
+    errorStage: reader.readStringOrNull(offsets[3]),
+    executionPlan: reader.readStringOrNull(offsets[4]),
+    isAuto: reader.readBoolOrNull(offsets[5]),
+    modelName: reader.readStringOrNull(offsets[6]),
+    phase: reader.readStringOrNull(offsets[7]),
+    pipelineId: reader.readStringOrNull(offsets[8]),
+    processedPhrases: reader.readLongOrNull(offsets[9]),
     stageHistory: reader.readObjectList<AiStageHistory>(
-      offsets[7],
+      offsets[10],
       AiStageHistorySchema.deserialize,
       allOffsets,
       AiStageHistory(),
     ),
-    startTime: reader.readDateTimeOrNull(offsets[8]),
-    status: reader.readStringOrNull(offsets[9]),
-    totalPhrases: reader.readLongOrNull(offsets[10]),
-    translatedAt: reader.readDateTimeOrNull(offsets[11]),
-    videoId: reader.readLong(offsets[12]),
+    startTime: reader.readDateTimeOrNull(offsets[11]),
+    status: reader.readStringOrNull(offsets[12]),
+    totalPhrases: reader.readLongOrNull(offsets[13]),
+    translatedAt: reader.readDateTimeOrNull(offsets[14]),
+    videoId: reader.readLong(offsets[15]),
   );
   object.id = id;
   return object;
@@ -229,9 +252,9 @@ P _translationJobDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 1:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 2:
       return (reader.readStringOrNull(offset)) as P;
     case 3:
@@ -239,10 +262,16 @@ P _translationJobDeserializeProp<P>(
     case 4:
       return (reader.readStringOrNull(offset)) as P;
     case 5:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 6:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 7:
+      return (reader.readStringOrNull(offset)) as P;
+    case 8:
+      return (reader.readStringOrNull(offset)) as P;
+    case 9:
+      return (reader.readLongOrNull(offset)) as P;
+    case 10:
       return (reader.readObjectList<AiStageHistory>(
             offset,
             AiStageHistorySchema.deserialize,
@@ -250,15 +279,15 @@ P _translationJobDeserializeProp<P>(
             AiStageHistory(),
           ))
           as P;
-    case 8:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 9:
-      return (reader.readStringOrNull(offset)) as P;
-    case 10:
-      return (reader.readLongOrNull(offset)) as P;
     case 11:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 12:
+      return (reader.readStringOrNull(offset)) as P;
+    case 13:
+      return (reader.readLongOrNull(offset)) as P;
+    case 14:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 15:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -475,6 +504,79 @@ extension TranslationJobQueryWhere
 
 extension TranslationJobQueryFilter
     on QueryBuilder<TranslationJob, TranslationJob, QFilterCondition> {
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  completedStepsIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'completedSteps'),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  completedStepsIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'completedSteps'),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  completedStepsEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'completedSteps', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  completedStepsGreaterThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'completedSteps',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  completedStepsLessThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'completedSteps',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  completedStepsBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'completedSteps',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
   QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
   endTimeIsNull() {
     return QueryBuilder.apply(this, (query) {
@@ -866,6 +968,165 @@ extension TranslationJobQueryFilter
     });
   }
 
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  executionPlanIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'executionPlan'),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  executionPlanIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'executionPlan'),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  executionPlanEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'executionPlan',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  executionPlanGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'executionPlan',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  executionPlanLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'executionPlan',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  executionPlanBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'executionPlan',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  executionPlanStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'executionPlan',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  executionPlanEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'executionPlan',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  executionPlanContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'executionPlan',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  executionPlanMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'executionPlan',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  executionPlanIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'executionPlan', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  executionPlanIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'executionPlan', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition> idEqualTo(
     Id value,
   ) {
@@ -917,6 +1178,33 @@ extension TranslationJobQueryFilter
           upper: upper,
           includeUpper: includeUpper,
         ),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  isAutoIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'isAuto'),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  isAutoIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'isAuto'),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  isAutoEqualTo(bool? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'isAuto', value: value),
       );
     });
   }
@@ -1991,6 +2279,20 @@ extension TranslationJobQueryLinks
 
 extension TranslationJobQuerySortBy
     on QueryBuilder<TranslationJob, TranslationJob, QSortBy> {
+  QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy>
+  sortByCompletedSteps() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'completedSteps', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy>
+  sortByCompletedStepsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'completedSteps', Sort.desc);
+    });
+  }
+
   QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy> sortByEndTime() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'endTime', Sort.asc);
@@ -2029,6 +2331,33 @@ extension TranslationJobQuerySortBy
   sortByErrorStageDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'errorStage', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy>
+  sortByExecutionPlan() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'executionPlan', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy>
+  sortByExecutionPlanDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'executionPlan', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy> sortByIsAuto() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isAuto', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy>
+  sortByIsAutoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isAuto', Sort.desc);
     });
   }
 
@@ -2155,6 +2484,20 @@ extension TranslationJobQuerySortBy
 
 extension TranslationJobQuerySortThenBy
     on QueryBuilder<TranslationJob, TranslationJob, QSortThenBy> {
+  QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy>
+  thenByCompletedSteps() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'completedSteps', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy>
+  thenByCompletedStepsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'completedSteps', Sort.desc);
+    });
+  }
+
   QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy> thenByEndTime() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'endTime', Sort.asc);
@@ -2196,6 +2539,20 @@ extension TranslationJobQuerySortThenBy
     });
   }
 
+  QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy>
+  thenByExecutionPlan() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'executionPlan', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy>
+  thenByExecutionPlanDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'executionPlan', Sort.desc);
+    });
+  }
+
   QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -2205,6 +2562,19 @@ extension TranslationJobQuerySortThenBy
   QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy> thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy> thenByIsAuto() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isAuto', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterSortBy>
+  thenByIsAutoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isAuto', Sort.desc);
     });
   }
 
@@ -2331,6 +2701,13 @@ extension TranslationJobQuerySortThenBy
 
 extension TranslationJobQueryWhereDistinct
     on QueryBuilder<TranslationJob, TranslationJob, QDistinct> {
+  QueryBuilder<TranslationJob, TranslationJob, QDistinct>
+  distinctByCompletedSteps() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'completedSteps');
+    });
+  }
+
   QueryBuilder<TranslationJob, TranslationJob, QDistinct> distinctByEndTime() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'endTime');
@@ -2349,6 +2726,22 @@ extension TranslationJobQueryWhereDistinct
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'errorStage', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QDistinct>
+  distinctByExecutionPlan({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'executionPlan',
+        caseSensitive: caseSensitive,
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QDistinct> distinctByIsAuto() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isAuto');
     });
   }
 
@@ -2427,6 +2820,13 @@ extension TranslationJobQueryProperty
     });
   }
 
+  QueryBuilder<TranslationJob, int?, QQueryOperations>
+  completedStepsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'completedSteps');
+    });
+  }
+
   QueryBuilder<TranslationJob, DateTime?, QQueryOperations> endTimeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'endTime');
@@ -2443,6 +2843,19 @@ extension TranslationJobQueryProperty
   QueryBuilder<TranslationJob, String?, QQueryOperations> errorStageProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'errorStage');
+    });
+  }
+
+  QueryBuilder<TranslationJob, String?, QQueryOperations>
+  executionPlanProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'executionPlan');
+    });
+  }
+
+  QueryBuilder<TranslationJob, bool?, QQueryOperations> isAutoProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isAuto');
     });
   }
 

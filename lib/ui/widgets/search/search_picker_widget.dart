@@ -5,7 +5,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../styles/additional_window_theme.dart';
 import '../../../providers/ui/search_provider.dart';
+import 'package:eiga/backend/database/dto/media_dto.dart';
 import 'package:eiga/ui/widgets/search/search_source_abstract.dart';
+import 'package:eiga/ui/widgets/search/shared/unified_search_entry_card.dart';
 import 'package:eiga/ui/widgets/search/jimaku/jimaku_subtitle_source.dart';
 import 'package:eiga/utils/debounce.dart';
 
@@ -344,7 +346,7 @@ class _SearchPickerWidgetState<TEntry, TFile>
                             crossAxisCount: 3,
                             crossAxisSpacing: 14,
                             mainAxisSpacing: 20,
-                            childAspectRatio: 0.48,
+                            childAspectRatio: 0.44,
                           ),
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
@@ -352,10 +354,10 @@ class _SearchPickerWidgetState<TEntry, TFile>
                               final bool isActive = selectedResult != null && 
                                   widget.source.entryId(entry) == widget.source.entryId(selectedResult as TEntry);
                               
-                              return widget.source.buildEntryCard(
-                                entry,
-                                isActive,
-                                () => _onEntryTap(entry),
+                              return UnifiedSearchEntryCard(
+                                entry: entry as UnifiedMetadataDTO,
+                                isActive: isActive,
+                                onTap: () => _onEntryTap(entry),
                               );
                             },
                             childCount: results.length,
@@ -400,23 +402,34 @@ class _SearchPickerWidgetState<TEntry, TFile>
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: widget.source.buildEntryCard(entry, true, _goBack),
+          child: UnifiedSearchEntryCard(
+            entry: entry as UnifiedMetadataDTO,
+            isActive: true,
+            onTap: _goBack,
+          ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Divider(height: 1, color: theme.dividerColor),
         ),
         Expanded(
-          child: ClipRect(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 350),
+            switchInCurve: Curves.easeIn,
+            switchOutCurve: Curves.easeOut,
             child: isLoadingFiles
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(key: ValueKey('loading'), child: CircularProgressIndicator())
                 : files.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text('Nothing found',
-                            style: TextStyle(color: theme.mutedText)),
+                    ? Center(
+                        key: const ValueKey('empty'),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text('Nothing found',
+                              style: TextStyle(color: theme.mutedText)),
+                        ),
                       )
                     : ListView.builder(
+                        key: const ValueKey('list'),
                         controller: scrollController,
                         physics: const BouncingScrollPhysics(),
                         padding: const EdgeInsets.only(bottom: 24),

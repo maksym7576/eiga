@@ -1,8 +1,8 @@
 enum TranslationPipelineStep {
   research,
   translate,
-  morphemes,
-  fullTranslate;
+  tokenize,
+  morphemes;
 
   String get displayName {
     switch (this) {
@@ -10,10 +10,10 @@ enum TranslationPipelineStep {
         return 'Research';
       case TranslationPipelineStep.translate:
         return 'Translation';
+      case TranslationPipelineStep.tokenize:
+        return 'Tokenization';
       case TranslationPipelineStep.morphemes:
-        return 'Morphemes';
-      case TranslationPipelineStep.fullTranslate:
-        return 'Full Translation';
+        return 'Morphology';
     }
   }
 }

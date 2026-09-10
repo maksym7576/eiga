@@ -6,6 +6,9 @@ import '../../providers/services/app_configs_provider.dart';
 import '../styles/additional_window_theme.dart';
 import '../widgets/settings/control_button_widget.dart';
 import 'settings/reader_preferences_screen.dart';
+import 'settings/general_settings_screen.dart';
+import 'settings/tokenization_settings_screen.dart';
+import 'settings/processing_batch_settings_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -185,6 +188,20 @@ class SettingsScreen extends ConsumerWidget {
       child: Column(
         children: [
           _SettingTile(
+            title: 'General Settings',
+            subtitle: 'AI automation and system behavior',
+            icon: Icons.settings_suggest_rounded,
+            iconColor: Colors.blue.shade700,
+            iconBackground: [Colors.blue.shade50, Colors.blue.shade50],
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const GeneralSettingsScreen()),
+              );
+            },
+          ),
+          Divider(height: 1, color: theme.dividerColor, indent: 64),
+          _SettingTile(
             title: 'Reader Preferences',
             subtitle: 'Choose subtitle text order and display',
             icon: Icons.menu_book_rounded,
@@ -194,6 +211,34 @@ class SettingsScreen extends ConsumerWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const ReaderPreferencesScreen()),
+              );
+            },
+          ),
+          Divider(height: 1, color: theme.dividerColor, indent: 64),
+          _SettingTile(
+            title: 'Tokenization',
+            subtitle: 'Word splitting method (Local/AI)',
+            icon: Icons.extension_rounded,
+            iconColor: Colors.purple.shade700,
+            iconBackground: [Colors.purple.shade50, Colors.purple.shade50],
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const TokenizationSettingsScreen()),
+              );
+            },
+          ),
+          Divider(height: 1, color: theme.dividerColor, indent: 64),
+          _SettingTile(
+            title: 'Batch Sizes',
+            subtitle: 'AI request phrase limits',
+            icon: Icons.layers_rounded,
+            iconColor: Colors.orange.shade700,
+            iconBackground: [Colors.orange.shade50, Colors.orange.shade50],
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProcessingBatchSettingsScreen()),
               );
             },
           ),
@@ -235,15 +280,6 @@ class SettingsScreen extends ConsumerWidget {
     if (confirmed == true) {
       await ref.read(isarServiceProvider).clearAllData();
       await ref.read(appConfigsServiceProvider).resetToDefault();
-      
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('All data has been reset to defaults'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
     }
   }
 }

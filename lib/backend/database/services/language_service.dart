@@ -11,6 +11,16 @@ class LanguageService {
     return await db.languages.where().findAll();
   }
 
+  Future<Language?> getLanguageById(int id) async {
+    return await db.languages.get(id);
+  }
+
+  Future<void> updateLanguage(Language language) async {
+    await db.writeTxn(() async {
+      await db.languages.put(language);
+    });
+  }
+
   Future<Language?> getLanguageByName(String name) async {
     return await db.languages
         .filter()

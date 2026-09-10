@@ -1,4 +1,5 @@
-import 'package:eiga/backend/database/dto/jimaku_dto.dart';
+import 'package:eiga/backend/database/dto/media_dto.dart';
+import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
 
 class JimakuClusteringUtil {
   /// Groups files by similar names (common prefixes before episode/version indicators).

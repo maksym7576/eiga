@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:eiga/backend/database/dto/jimaku_dto.dart';
+import 'package:eiga/backend/database/dto/media_dto.dart';
+import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
 import 'package:eiga/providers/ui/search_provider.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
 import 'package:eiga/providers/ui/jimaku_files_provider.dart';
@@ -8,14 +9,15 @@ import 'package:eiga/ui/styles/additional_window_theme.dart';
 import 'package:eiga/ui/widgets/search/jimaku/jimaku_subtitle_source.dart';
 
 class JimakuFilesSheet extends ConsumerWidget {
-  final JimakuDataDTO entry;
+  final UnifiedMetadataDTO entry;
 
   const JimakuFilesSheet({super.key, required this.entry});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = AdditionalWindowTheme.of(context);
-    final state = ref.watch(jimakuFilesProvider(entry.id));
+    final id = int.parse(entry.sourceId);
+    final state = ref.watch(jimakuFilesProvider(id));
     
     final selectedResult = ref.watch(selectedResultProvider(SearchSourceKeys.jimaku));
     final isResolving = ref.watch(isResolvingProvider(SearchSourceKeys.jimaku));

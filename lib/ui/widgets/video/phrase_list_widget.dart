@@ -93,11 +93,18 @@ class PhraseListWidget extends HookConsumerWidget {
                     });
                   }
                   
-                  // Hide popover on scroll
-                  if (ref.read(selectedBlockIdProvider) != null) {
+                  // Hide popover and clear highlights on scroll
+                  if (ref.read(clickedWordIdProvider) != null || 
+                      ref.read(clickedTranslationWordIdProvider) != null ||
+                      ref.read(highlightedWordIdsProvider).isNotEmpty) {
                     Future.microtask(() {
                       ref.read(selectedBlockIdProvider.notifier).state = null;
                       ref.read(clickedWordIdProvider.notifier).state = null;
+                      ref.read(clickedTranslationWordIdProvider.notifier).state = null;
+                      ref.read(selectionAnchorTypeProvider.notifier).state = null;
+                      ref.read(highlightedWordIdsProvider.notifier).state = {};
+                      ref.read(highlightedTranslationIdsProvider.notifier).state = {};
+                      ref.read(infoPanelTextProvider.notifier).state = null;
                       ref.read(clickedWordPositionProvider.notifier).state = null;
                       ref.read(playerProvider.notifier).setPlaying(true);
                     });

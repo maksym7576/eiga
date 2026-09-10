@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:eiga/backend/database/schemas/translation_job.dart';
 import 'package:eiga/ui/widgets/app_bar/app_app_bar.dart';
 import 'package:eiga/ui/widgets/main_hub/video_library_card.dart';
 import 'package:eiga/ui/widgets/main_hub/vocabulary_feed_item.dart';
-import 'package:eiga/ui/widgets/video/widgets/translation_job_card.dart';
+import 'package:eiga/ui/widgets/video/widgets/detailed_translation_job_card.dart';
 import 'package:eiga/providers/ui/main_hub_providers.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/ui/widgets/shared/app_action_button.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
 
+// The main screen of the application showing the library and learning feed
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
 
@@ -22,7 +25,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final customTheme = AdditionalWindowTheme.of(context);
     final videosAsync = ref.watch(allVideosProvider);
     final activeJobsAsync = ref.watch(activeJobsProvider);
@@ -33,20 +35,21 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       appBar: const AppAppBar(),
       body: CustomScrollView(
         slivers: [
-          // 1. Active Processes Section (Dynamic Vertical List)
           activeJobsAsync.when(
             data: (jobs) {
               if (jobs.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+              
               return SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final job = jobs[index];
-                      return TranslationJobCard(
+                      return DetailedTranslationJobCard(
                         job: job,
                         index: index + 1,
                         total: jobs.length,
+                        isCompact: false, // Use full cards here
                       );
                     },
                     childCount: jobs.length,
@@ -173,11 +176,11 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () => context.push('/vocabulary'),
                     child: Row(
                       children: [
                         Text(
-                          'View Library',
+                          'See All',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -193,7 +196,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             ),
           ),
 
-          // 6. Vocabulary Feed (Real Data)
+          // 6. Vocabulary Feed (Limit to 10)
           vocabularyAsync.when(
             data: (items) {
               if (items.isEmpty) {
@@ -209,24 +212,21 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                   ),
                 );
               }
+
+              final displayItems = items.take(10).toList();
+
               return SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      final item = items[index];
+                      final item = displayItems[index];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: VocabularyFeedItem(
-                          word: item.word.mainText,
-                          reading: '', // We can extract reading if needed
-                          translation: item.block.blockTranslation ?? '',
-                          isKnown: false, // Could be linked to user progress later
-                          style: item.style,
-                        ),
+                        child: VocabularyFeedItem(item: item),
                       );
                     },
-                    childCount: items.length,
+                    childCount: displayItems.length,
                   ),
                 ),
               );
