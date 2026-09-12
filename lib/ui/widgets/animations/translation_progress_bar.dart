@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-class TranslationGlobalBanner extends StatelessWidget implements PreferredSizeWidget {
-  const TranslationGlobalBanner({super.key});
+class TranslationProgressBar extends StatelessWidget implements PreferredSizeWidget {
+  const TranslationProgressBar({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: 4,
-      color: Colors.blueAccent,
+      color: Colors.blueAccent.withValues(alpha: 0.1),
       child: const LinearProgressIndicator(
         backgroundColor: Colors.transparent,
-        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
       ),
     );
   }
