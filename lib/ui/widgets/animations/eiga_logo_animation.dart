@@ -3,8 +3,13 @@ import 'package:flutter/material.dart';
 
 class EigaLogoAnimation extends StatefulWidget {
   final TextStyle style;
+  final bool isFrequent;
 
-  const EigaLogoAnimation({super.key, required this.style});
+  const EigaLogoAnimation({
+    super.key, 
+    required this.style,
+    this.isFrequent = false,
+  });
 
   @override
   State<EigaLogoAnimation> createState() => _EigaLogoAnimationState();
@@ -33,44 +38,59 @@ class _EigaLogoAnimationState extends State<EigaLogoAnimation>
   }
 
   void _startAnimationCycle() {
-    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      _runAnimation();
-    });
-    // Initial run after a short delay
-    Future.delayed(const Duration(seconds: 2), _runAnimation);
+    if (widget.isFrequent) {
+      _timer = Timer.periodic(const Duration(seconds: 6), (timer) {
+        _runFullCycle();
+      });
+      _runFullCycle(); 
+    } else {
+      _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
+        _toggleState();
+      });
+      Future.delayed(const Duration(seconds: 5), _toggleState);
+    }
   }
 
-  void _runAnimation() async {
+  void _toggleState() async {
     if (!mounted) return;
 
-    // 1. Плавне згортання (1.0 -> 0.0)
+    // 1. Collapse
     await _controller.forward();
     if (!mounted) return;
 
-    // 2. Міняємо літеру, поки бокс невидимий
-    setState(() => _currentLetter = 'あ');
+    // 2. Switch
+    setState(() {
+      _currentLetter = _currentLetter == 'a' ? 'あ' : 'a';
+    });
     
-    // Невелика пауза в невидимому стані для плавності
     await Future.delayed(const Duration(milliseconds: 200));
     if (!mounted) return;
 
-    // 3. Розгортання з новою літерою (0.0 -> 1.0)
+    // 3. Expand
+    await _controller.reverse();
+  }
+
+  void _runFullCycle() async {
+    if (!mounted) return;
+
+    // a -> あ
+    await _controller.forward();
+    if (!mounted) return;
+    setState(() => _currentLetter = 'あ');
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
     await _controller.reverse();
 
-    // 4. Пауза з японською літерою
+    // Pause
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
 
-    // 5. Згортання 'あ' (1.0 -> 0.0)
+    // あ -> a
     await _controller.forward();
     if (!mounted) return;
-
-    // 6. Повертаємо 'a'
     setState(() => _currentLetter = 'a');
     await Future.delayed(const Duration(milliseconds: 200));
     if (!mounted) return;
-
-    // 7. Розгортання 'a' (0.0 -> 1.0)
     await _controller.reverse();
   }
 

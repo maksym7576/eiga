@@ -1,44 +1,35 @@
-# Implementation Plan - AI Model Selection UI
+# Implementation Plan - Smart Jimaku Text Cleaning
 
-The goal is to implement a fully functional model selection bottom sheet based on the provided design. This includes method selection (1-step vs 3-step), step selection for the advanced method, and model configuration (active model selection and streaming toggle).
+This plan improves synchronization accuracy by strictly filtering out non-speech elements like music markers, sound effect notes, and technical brackets common in Japanese Jimaku.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> - **Streaming Logic**: The streaming toggle will only be visible when the active step is `morphemes` or `fullTranslate`.
-> - **Persistence**: Toggling the translation method or changing an active model will immediately update `SharedPreferences`. Toggling streaming will update the Isar database.
-> - **Visuals**: I will use custom widgets to match the Material 3 / Tailwind look from the mockup, including the segmented controls and model cards.
+> - **Music Filtering**: Symbols like `♪`, `～`, and `〜` will be completely stripped. If a phrase contains *only* these symbols, it will be treated as silence (0.0 weight).
+> - **Bracket Refinement**:
+>     - Content inside `( )` and `（ ）` (standard/full-width parentheses) is usually a speaker name or sound effect and will be **deleted**.
+>     - Brackets like `《 》`, `「 」`, and `『 』` are markers for thoughts or quotes. We will **keep the text inside** but remove the brackets themselves to get an accurate character count.
+> - **Soft Signals**: Short interjections and breath sounds (e.g., `あっ`, `んっ`, `すぅ`) will be assigned a slightly lower weight (0.8) to prioritize full sentences during correlation.
 
 ## Proposed Changes
 
-### 1. State Management
-
-#### [MODIFY] [ai_models_state_provider.dart](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/providers/ui/ai_models_state_provider.dart)
-- Implement `modelsForStepProvider` to fetch actual models from `AiModelService`.
-- Ensure `AiModelsNotifier` correctly triggers UI updates when the active model changes.
-
-### 2. UI Implementation
-
-#### [MODIFY] [modelsPreviewWidget.dart](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/ui/widgets/appBarWidgets/modelsPreviewWidget.dart)
-- Implement the header with the "Models" title and close button.
-- **Method Selector**: A segmented control to switch between "Advanced (3-step)" and "Standard (1-step)".
-- **Step Selector**: Visible only in Advanced mode, allows switching between "Research", "Translation", and "Morphemes".
-- **Model List**: Renders model cards for the currently selected step.
-- **Model Card**:
-  - Displays model name, provider icon, and description.
-  - Shows "Active" indicator (check mark and border).
-  - Includes a "Streaming" toggle (conditionally visible).
-  - Displays usage counters (`used/dailyMaxLimit`).
-
-### 3. Service Integration
-- Use `AppConfigs` to manage `isThreeStepMethod` and active model names.
-- Use `AiModelService` to update `AiModel` objects in Isar when settings like streaming are changed.
+### Backend Services
+#### [MODIFY] [audio_sync_service.dart](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/backend/services/sync/audio_sync_service.dart)
+- Update `_generateSubtitleActivityMap`:
+    - Implement a multi-stage cleaning logic:
+        1. Remove music/technical symbols.
+        2. Strip content in `()` brackets.
+        3. Strip *only the symbols* for `《》`, `「」`, `『』`.
+        4. Handle stray `((` and `))` memory markers.
+    - Detect "low-value" speech (breaths/sighs) and apply a weight multiplier.
+    - If the final cleaned string is empty or purely non-alphanumeric, set activity to 0.0.
 
 ## Verification Plan
 
+### Automated Verification
+- I will run a logic check on the provided test phrases (e.g., Line 30 `♪～` and Line 43 `(ｷｰﾌﾘｰ)んっ｡`) to ensure they yield the expected weights.
+
 ### Manual Verification
-- Open the bottom sheet and toggle between "Advanced" and "Standard".
-- Switch between steps in "Advanced" mode and verify the model list updates.
-- Select a different model and verify the AppBar updates.
-- Toggle "Streaming" and verify it persists after reopening the sheet.
-- Check that the streaming toggle is hidden for "Research" and "Translation" steps.
+1. **Music Check**: Test with an opening theme. Verify that segments with only `♪～` no longer contribute to the correlation peak.
+2. **Monologue Check**: Verify that internal monologues `《...》` are still correctly synced as speech.
+3. **Accuracy**: Observe the confidence score; it should increase as "noisy" text is removed from the timing map.

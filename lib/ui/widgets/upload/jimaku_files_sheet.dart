@@ -7,6 +7,7 @@ import 'package:eiga/providers/ui/upload_provider.dart';
 import 'package:eiga/providers/ui/jimaku_files_provider.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
 import 'package:eiga/ui/widgets/search/jimaku/jimaku_subtitle_source.dart';
+import 'package:eiga/ui/widgets/dialogs/app_bottom_sheet.dart';
 
 class JimakuFilesSheet extends ConsumerWidget {
   final UnifiedMetadataDTO entry;
@@ -24,62 +25,48 @@ class JimakuFilesSheet extends ConsumerWidget {
     
     final source = JimakuSubtitleSource();
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Select subtitles',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: theme.normalText,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: Icon(Icons.close_rounded, color: theme.mutedText),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (state.isLoading)
-            const Padding(
-              padding: EdgeInsets.all(40.0),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (state.files.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(40.0),
-              child: Center(child: Text('No files found')),
-            )
-          else
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: const EdgeInsets.only(right: 8),
-                itemCount: state.files.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final file = state.files[index];
-                  final bool isActive = selectedResult is JimakuFileOrGroupDTO &&
-                      source.fileId(file) == source.fileId(selectedResult);
-                      
-                  return source.buildFileCard(file, isActive, () {
-                    if (!file.isGroup) {
-                      ref.read(selectedResultProvider(SearchSourceKeys.jimaku).notifier).state = file;
-                    }
-                  });
-                },
-              ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const AppBottomSheetHeader(
+          title: 'Select subtitles',
+        ),
+        const SizedBox(height: 8),
+        if (state.isLoading)
+          const Padding(
+            padding: EdgeInsets.all(40.0),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (state.files.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(40.0),
+            child: Center(child: Text('No files found')),
+          )
+        else
+          Flexible(
+            child: ListView.separated(
+              shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: state.files.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final file = state.files[index];
+                final bool isActive = selectedResult is JimakuFileOrGroupDTO &&
+                    source.fileId(file) == source.fileId(selectedResult);
+                    
+                return source.buildFileCard(file, isActive, () {
+                  if (!file.isGroup) {
+                    ref.read(selectedResultProvider(SearchSourceKeys.jimaku).notifier).state = file;
+                  }
+                });
+              },
             ),
-          const SizedBox(height: 24),
-          Row(
+          ),
+        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
@@ -149,8 +136,8 @@ class JimakuFilesSheet extends ConsumerWidget {
               ),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

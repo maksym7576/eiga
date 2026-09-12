@@ -541,7 +541,7 @@ class WordPopover extends ConsumerWidget {
     ref.read(selectionAnchorTypeProvider.notifier).state = null;
     ref.read(highlightedWordIdsProvider.notifier).state = {};
     ref.read(highlightedTranslationIdsProvider.notifier).state = {};
-    ref.read(playerProvider.notifier).setPlaying(true);
+    ref.read(playerProvider.notifier).resumeFromInteraction();
   }
 
   Future<void> _updateStyle(WidgetRef ref, int? styleId) async {

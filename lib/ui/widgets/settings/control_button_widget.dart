@@ -79,6 +79,37 @@ class ControlButtonWidget extends ConsumerStatefulWidget {
     );
   }
 
+  static void openWyzieKeyDialog(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ApiKeyConfigScreen(
+          type: ApiTokenType.wyzie,
+          title: 'Wyzie API Key',
+          description: 'Auto-search for subtitles on Wyzie Subs',
+          iconGradient: [Color(0xFFEA580C), Color(0xFFF97316)],
+          icon: Icons.vpn_key_rounded,
+          steps: [
+            GuideStep(
+              title: 'Go to Wyzie Subs Login',
+              link: 'https://wyzie.xyz/login',
+              linkLabel: 'Open Wyzie',
+            ),
+            GuideStep(
+              title: 'Sign in to your account',
+            ),
+            GuideStep(
+              title: 'Open "Developer Dashboard"',
+            ),
+            GuideStep(
+              title: 'Generate or copy your API Token',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   static void _openSettingDialogStatic(
     BuildContext context, {
     required String title,
@@ -198,6 +229,14 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
                 context,
                 title: 'Jimaku key',
                 onPressed: () => ControlButtonWidget.openJimakuKeyDialog(context),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _settingsButton(
+                context,
+                title: 'Wyzie key',
+                onPressed: () => ControlButtonWidget.openWyzieKeyDialog(context),
               ),
             ),
           ],

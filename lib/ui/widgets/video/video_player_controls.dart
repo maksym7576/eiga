@@ -17,19 +17,6 @@ class VideoPlayerControls extends ConsumerWidget {
     
     return Stack(
       children: [
-        // 1. Base Interaction Layer
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: () {
-              ref.read(playerProvider.notifier).toggleControls();
-              ref.read(selectedBlockIdProvider.notifier).state = null;
-              ref.read(clickedWordIdProvider.notifier).state = null;
-            },
-            behavior: HitTestBehavior.opaque,
-            child: const SizedBox.expand(),
-          ),
-        ),
-
         // 2. Persistent Center Button
         if (!isLocked)
           Center(

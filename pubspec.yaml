@@ -29,6 +29,9 @@ dependencies:
   # Media & UI
   video_player: ^2.14.0
   flick_video_player: ^0.9.0
+  ffmpeg_kit_flutter_new_audio: ^2.5.2
+  fftea: ^1.1.2
+  vad: ^0.0.8
   scrollable_positioned_list: ^0.3.8
   flutter_svg: ^2.3.0
   cupertino_icons: ^1.0.8
@@ -69,3 +72,5 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/models/silero_vad_v5.onnx

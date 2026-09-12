@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import '../../database/schemas/phrase.dart';
 import '../../database/schemas/video.dart';
 import '../../database/services/phrase_service.dart';
@@ -32,29 +33,48 @@ class SubtitleDepackerService {
     final langConfig = await languageService.getLanguageByName(language);
     final removeAllSpaces = langConfig?.removeAllSpaces ?? false;
 
-    if (filePath.toLowerCase().endsWith('.ass')) {
-      return AssParser(removeAllSpaces: removeAllSpaces).parse(fileContent, videoId);
-    } else {
-      return SrtParser(removeAllSpaces: removeAllSpaces).parse(fileContent, videoId);
-    }
+    return compute(_parseSubtitlesInIsolate, _SubtitleParseInput(
+      content: fileContent,
+      videoId: videoId,
+      removeAllSpaces: removeAllSpaces,
+      isAss: filePath.toLowerCase().endsWith('.ass'),
+    ));
   }
 
-  Future<void> depack(Video video) async {
-    if (video.videoPath == null || video.pathSubtitle == null) return;
-
-    final content = await _readFile(video.pathSubtitle!);
-
-    final langConfig = await languageService.getLanguageByName(video.originalLanguage ?? '');
-    final removeAllSpaces = langConfig?.removeAllSpaces ?? false;
+  Future<void> depack(Video video, {List<Phrase>? preParsedPhrases}) async {
+    if (video.videoPath == null) return;
 
     List<Phrase> phrases;
-    if (video.pathSubtitle!.toLowerCase().endsWith('.ass')) {
-      phrases = AssParser(removeAllSpaces: removeAllSpaces).parse(content, video.id);
+
+    if (preParsedPhrases != null && preParsedPhrases.isNotEmpty) {
+      phrases = preParsedPhrases.map((p) {
+        p.videoId = video.id;
+        return p;
+      }).toList();
     } else {
-      phrases = SrtParser(removeAllSpaces: removeAllSpaces).parse(content, video.id);
+      if (video.pathSubtitle == null) return;
+      final content = await _readFile(video.pathSubtitle!);
+
+      final langConfig = await languageService.getLanguageByName(video.originalLanguage ?? '');
+      final removeAllSpaces = langConfig?.removeAllSpaces ?? false;
+
+      phrases = await compute(_parseSubtitlesInIsolate, _SubtitleParseInput(
+        content: content,
+        videoId: video.id,
+        removeAllSpaces: removeAllSpaces,
+        isAss: video.pathSubtitle!.toLowerCase().endsWith('.ass'),
+      ));
     }
 
     await phraseService.addPhrasesList(phrases);
+  }
+
+  static List<Phrase> _parseSubtitlesInIsolate(_SubtitleParseInput input) {
+    if (input.isAss) {
+      return AssParser(removeAllSpaces: input.removeAllSpaces).parse(input.content, input.videoId);
+    } else {
+      return SrtParser(removeAllSpaces: input.removeAllSpaces).parse(input.content, input.videoId);
+    }
   }
 
   Future<String> _readFile(String path) async {
@@ -71,3 +91,18 @@ class SubtitleDepackerService {
     }
   }
 }
+
+class _SubtitleParseInput {
+  final String content;
+  final int videoId;
+  final bool removeAllSpaces;
+  final bool isAss;
+
+  _SubtitleParseInput({
+    required this.content,
+    required this.videoId,
+    required this.removeAllSpaces,
+    required this.isAss,
+  });
+}
+

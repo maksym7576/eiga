@@ -1,39 +1,33 @@
-# Walkthrough - Phased AI Model Integration (Foundation)
+# Walkthrough - UI Refresh & Navigation Improvements
 
-I have implemented the foundational components for AI model management, including database schema updates, seeding, CRUD services, and the initial AppBar UI.
+I have updated the AppBar design, refactored the "How to Use" guide, and moved the full library view to a dedicated screen.
 
 ## Changes Made
 
-### 1. Database & Models
-- **[AiModel Schema](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/backend/database/schemas/ai_model.dart)**: Added fields for tracking usage (`used`, `dailyUsed`), customizable limits (`currentMaxLimit`, `currentDailyMaxLimit`), and streaming toggles.
-- **[AiModel Seeds](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/backend/database/seeds/ai_model_seeds.dart)**: Updated seed data to initialize these new fields and define supported translation steps for each model.
-- **[AiModelService](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/backend/database/services/ai_model_service.dart)**: Created a service to handle CRUD operations, usage incrementing, and resetting to defaults.
+### 1. AppBar Refresh
+- **Logo Style**: Updated the `logoStyle` in `AppAppBarTheme` to use `AppColors.brandBlue` for better brand consistency.
+- **Icons**: Changed the settings navigation icon from a hamburger menu to a gear icon (`Icons.settings_rounded`) in `AppAppBar`.
+- **Progress Refactoring**: Created `TranslationProgressBar` in the `animations/` folder and updated `AppAppBar` to use it, replacing the old banner.
 
-### 2. Configs & State
-- **[TranslationPipelineStep Enum](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/config/models_url/TranslationPipelineStep.dart)**: Defined the steps: `research`, `translate`, `morphemes`, and `fullTranslate`.
-- **[AppConfigs](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/config/AppConfigs.dart)**: Added a SharedPreferences wrapper to store user preferences like the translation method (1-step vs 3-step).
-- **Direct Database Usage**: Removed DTOs in favor of using the `AiModel` Isar schema directly in the UI to ensure data consistency.
+### 2. Main Screen & Guide
+- **Repositioning**: The "How to Use" guide was moved from the bottom of the `MainScreen` to a primary position directly below the "Add Video" button.
+- **English Localization**: Updated the manual steps to English, describing the video upload process:
+    1. Tap the "Add Video" button.
+    2. Add your video file.
+    3. Select source (Local or Jimaku).
+    4. Choose metadata provider (Shikimori, AniList, etc.).
+    5. Enter the video title.
+    6. Select the language to finish.
 
-### 3. UI Components
-- **[AppAppBar](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/ui/widgets/appBarWidgets/app_app_bar.dart)**: Implemented the new AppBar with a cycling animation that shows the current translation step and active model. (Renamed from `AppBarWidget` for consistency).
-- **[EigaLogoAnimation](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/ui/widgets/animations/eiga_logo_animation.dart)**: Added the "Accent Box" animation to the logo. The letter 'a' inside a blue box periodically scales down, swaps to 'あ', pauses, and swaps back to 'a'. I also increased the font size of the letters within the box for better visibility.
-- **[MainScreen Integration](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/ui/screens/main_screen.dart)**: Replaced the default `AppBar` with the custom `AppAppBar` in the main library screen.
-- **[ModelPreviewWidget](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/ui/widgets/appBarWidgets/modelsPreviewWidget.dart)**: Created a placeholder bottom sheet content that will be expanded in future phases.
-- **[AppAppBarTheme](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/ui/styles/AppAppBarTheme.dart)**: Defined the visual styles for the new AppBar components.
+### 3. Library Navigation
+- **Dedicated Screen**: Created `LibraryScreen` to display the full grid of videos.
+- **Navigation**: Updated the "See All" button in the Library section of `MainScreen` to navigate to `/library` instead of opening a bottom sheet.
 
-## Verification Results
+## Bug Fixes
+- **LibraryScreen**: Fixed a compilation error caused by a missing import for `allVideosProvider`. Added `import 'package:eiga/providers/ui/main_hub_providers.dart';` to the file.
 
-### Database Seeding
-- The `standardAiModels()` function now correctly initializes all new fields.
-- `IsarService` will automatically populate the database with these enhanced models on the first run.
+## Verification
 
-### AppBar UI
-- The `AppBarWidget` includes a timer that cycles through translation steps every 3 seconds with a slide animation.
-- Tapping the selector opens the `AppBottomSheet` with the `ModelPreviewWidget`.
-
-### 9. Data Management & Reset
-- **[SettingsScreen](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/ui/screens/settings_screen.dart)**: Added a "Danger Zone" section with a **Clear All Data** button. This button:
-  - Wipes the Isar database.
-  - Resets all `SharedPreferences` to factory defaults.
-  - Invalidates providers to force a fresh UI reload.
-- **[AppConfigs](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/backend/services/app_configs.dart)**: Fixed an issue where default model names were set to 'none'. They now correctly point to standard Gemini models defined in seeds.
+- **AppBar**: Verified the new logo color and gear icon.
+- **Guide**: Confirmed the "How to Use" section is visible under the "Add Video" button with the new English text.
+- **Navigation**: Verified that clicking "See All" correctly opens the new full-screen library view.

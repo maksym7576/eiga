@@ -408,13 +408,22 @@ class JimakuSubtitleSource
       season: season,
       bestFormat: srtCount >= assCount ? 'srt' : 'ass',
       episodes: episodes,
+      totalFileCount: allFiles.length,
     );
 
     // Default selection: select the first found episode if none is selected
-    if (episodes.isNotEmpty && ref.read(uploadProvider).episode == null) {
-      Future.microtask(() {
-        selectEpisodeSubtitle(entry, episodes.first, ref);
-      });
+    final currentEp = ref.read(uploadProvider).episode;
+    if (episodes.isNotEmpty) {
+      if (currentEp == null) {
+        Future.microtask(() {
+          selectEpisodeSubtitle(entry, episodes.first, ref);
+        });
+      } else {
+        // Episode already exists (e.g. from filename), trigger evaluation immediately
+        Future.microtask(() {
+          ref.read(uploadProvider.notifier).evaluateAllEpisodeSubtitles();
+        });
+      }
     }
   }
 
@@ -496,8 +505,11 @@ class JimakuSubtitleSource
     int episode,
     WidgetRef ref,
   ) async {
+    final current = ref.read(uploadProvider);
+    if (current.episode == episode.toString() && current.isEvaluatingBatch) return;
+
     ref.read(uploadProvider.notifier).setEpisode(episode.toString());
-    await autoSelectSubtitle(entry, ref, targetEpisode: episode.toString());
+    ref.read(uploadProvider.notifier).evaluateAllEpisodeSubtitles();
   }
 
   @override
@@ -522,7 +534,39 @@ class JimakuSubtitleSource
 
   @override
   Widget buildFilterBar(BuildContext context, WidgetRef ref) {
-    return const SizedBox.shrink();
+    final entry = ref.watch(selectedEntryProvider(key)) as UnifiedMetadataDTO?;
+    if (entry == null) return const SizedBox.shrink();
+
+    final id = int.tryParse(entry.sourceId);
+    if (id == null) return const SizedBox.shrink();
+
+    final summary = ref.watch(jimakuSummaryProvider(id));
+    if (summary == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AdditionalWindowTheme.of(context).cardBackground.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline_rounded, size: 14, color: AdditionalWindowTheme.of(context).mutedText),
+            const SizedBox(width: 8),
+            Text(
+              'Found ${summary.totalFileCount} files across ${summary.episodeCount} episodes',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AdditionalWindowTheme.of(context).mutedText,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -643,24 +687,6 @@ class _JimakuGroupTile extends StatelessWidget {
                       color: theme.normalText,
                       height: 1.35,
                     ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isExpanded ? Colors.transparent : theme.cardBackground,
-                  borderRadius: BorderRadius.circular(6),
-                  border: isExpanded ? null : Border.all(color: theme.cardBorder),
-                ),
-                child: Text(
-                  '${group.files.length}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isExpanded
-                        ? theme.selectionAccentColor
-                        : theme.subtitleColor,
                   ),
                 ),
               ),

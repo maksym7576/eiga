@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
+import 'package:eiga/providers/ui/main_hub_providers.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/ui/widgets/main_hub/video_library_card.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';

@@ -4,7 +4,8 @@ enum ApiTokenType {
   gemini('gemini_api_key'),
   openai('openai_api_key'),
   anthropic('anthropic_api_key'),
-  jimaku('jimaku_api_key');
+  jimaku('jimaku_api_key'),
+  wyzie('wyzie_api_key');
 
   final String key;
   const ApiTokenType(this.key);

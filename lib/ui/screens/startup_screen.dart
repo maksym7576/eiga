@@ -1,18 +1,29 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../widgets/shared/loading_splash.dart';
+import '../../providers/ui/redirect_providers.dart';
 
-class StartupScreen extends StatefulWidget {
+class StartupScreen extends ConsumerStatefulWidget {
   const StartupScreen({super.key});
 
   @override
-  State<StartupScreen> createState() => _StartupScreenState();
+  ConsumerState<StartupScreen> createState() => _StartupScreenState();
 }
 
-class _StartupScreenState extends State<StartupScreen> {
+class _StartupScreenState extends ConsumerState<StartupScreen> {
   @override
   void initState() {
     super.initState();
+    // Reinforce status bar visibility
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    
+    // Initialize session-wide logo style
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(useAlternativeLogoProvider.notifier).state = Random().nextBool();
+    });
     _startTransition();
   }
 
@@ -26,6 +37,7 @@ class _StartupScreenState extends State<StartupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const LoadingSplash();
+    final useAlternative = ref.watch(useAlternativeLogoProvider);
+    return LoadingSplash(useAlternativeLogo: useAlternative);
   }
 }

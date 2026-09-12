@@ -15,8 +15,8 @@ import '../widgets/upload/video_source_selector.dart';
 import '../widgets/upload/video_input_section.dart';
 import '../widgets/upload/language_selection_section.dart';
 import '../widgets/upload/media_search_section.dart';
-import '../widgets/upload/subtitle_source_selector.dart';
 import '../widgets/upload/subtitle_input_section.dart';
+import '../widgets/upload/subtitle_version_section.dart';
 import '../widgets/upload/phrases_preview_section.dart';
 import '../widgets/upload/upload_action_buttons.dart';
 import '../widgets/upload/episode_selection_section.dart';
@@ -27,7 +27,9 @@ class UploadScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = AdditionalWindowTheme.of(context);
-    final isInitialized = ref.watch(uploadProvider.select((s) => s.isInitialized));
+    final isInitialized = ref.watch(
+      uploadProvider.select((s) => s.isInitialized),
+    );
     final selectedProvider = ref.watch(selectedMetadataProvider);
 
     useEffect(() {
@@ -42,11 +44,18 @@ class UploadScreen extends HookConsumerWidget {
     }, []);
 
     // Trigger health check for the currently selected provider on screen entry
-    developer.log('UploadScreen build: triggering health check for $selectedProvider', name: 'UI');
+    developer.log(
+      'UploadScreen build: triggering health check for $selectedProvider',
+      name: 'UI',
+    );
     ref.watch(checkServiceProviderStatus(selectedProvider));
 
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
+        developer.log(
+          'UploadScreen: onPopInvoked (didPop: $didPop)',
+          name: 'UI',
+        );
         if (didPop) {
           ref.read(uploadProvider.notifier).reset();
         }
@@ -55,9 +64,9 @@ class UploadScreen extends HookConsumerWidget {
         duration: const Duration(milliseconds: 600),
         switchInCurve: Curves.easeIn,
         switchOutCurve: Curves.easeOut,
-        child: !isInitialized 
-          ? const LoadingSplash(key: ValueKey('splash'))
-          : _UploadContent(key: const ValueKey('content'), theme: theme),
+        child: !isInitialized
+            ? const LoadingSplash(key: ValueKey('splash'))
+            : _UploadContent(key: const ValueKey('content'), theme: theme),
       ),
     );
   }
@@ -65,15 +74,46 @@ class UploadScreen extends HookConsumerWidget {
 
 class _UploadContent extends ConsumerWidget {
   final AdditionalWindowTheme theme;
+
   const _UploadContent({super.key, required this.theme});
+
+  Widget _buildSection({
+    required String title,
+    required int step,
+    required Widget child,
+    bool isLast = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SectionTitle(title: title, step: step, bottomPadding: 16),
+              child,
+            ],
+          ),
+        ),
+        if (!isLast)
+          Container(color: theme.dividerColor, height: 1),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: theme.backgroundColor,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Create Video', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        backgroundColor: Colors.white.withValues(alpha: 0.9),
+        title: const Text(
+          'Create Video',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -93,70 +133,56 @@ class _UploadContent extends ConsumerWidget {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Video Source
-            const SectionTitle(
-              title: 'Video Source', 
+            // 1. Video Source & Input
+            _buildSection(
+              title: 'Video Source',
               step: 1,
+              child: const Column(
+                children: [
+                  VideoSourceSelector(),
+                  SizedBox(height: 20),
+                  VideoInputSection(),
+                ],
+              ),
             ),
-            const VideoSourceSelector(),
-            const SizedBox(height: 12),
-            const VideoInputSection(),
-            const SizedBox(height: 28),
 
-            // 2. Subtitles Source
-            const SectionTitle(
-              title: 'Subtitles Source', 
+            // 2. Media Match (Integrated Subtitles Source)
+            _buildSection(
+              title: 'Media Match',
               step: 2,
+              child: const MediaSearchSection(),
             ),
-            const SubtitleSourceSelector(),
-            const SizedBox(height: 28),
 
-            // 3. Media Match
-            const SectionTitle(
-              title: 'Media Match', 
+            // 3. Sync & Subtitles
+            _buildSection(
+              title: 'Sync & Subtitles',
               step: 3,
+              child: const Column(
+                children: [
+                  EpisodeSelectionSection(),
+                  SubtitleVersionSection(),
+                  SizedBox(height: 10),
+                  SubtitleInputSection(),
+                  SizedBox(height: 16),
+                  PhrasesPreviewSection(),
+                ],
+              ),
             ),
-            const MediaSearchSection(),
-            const _ConditionalSpacer(height: 28),
 
-            // 4. Sync & Subtitles
-            const SectionTitle(
-              title: 'Sync & Subtitles', 
+            // 4. Language & Translation
+            _buildSection(
+              title: 'Language & Translation',
               step: 4,
+              isLast: true,
+              child: const LanguageSelectionSection(),
             ),
-            const EpisodeSelectionSection(),
-            const SizedBox(height: 16),
-            const SubtitleInputSection(),
-            const SizedBox(height: 16),
-            const PhrasesPreviewSection(),
-            const _ConditionalSpacer(height: 28),
-
-            // 5. Language & Translation
-            const SectionTitle(
-              title: 'Language & Translation', 
-              step: 5,
-            ),
-            const LanguageSelectionSection(),
-            
-            const SizedBox(height: 24), 
           ],
         ),
       ),
       bottomNavigationBar: const UploadActionButtons(),
     );
-  }
-}
-
-class _ConditionalSpacer extends ConsumerWidget {
-  final double height;
-  const _ConditionalSpacer({required this.height});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return SizedBox(height: height);
   }
 }

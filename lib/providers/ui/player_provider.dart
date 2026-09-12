@@ -49,6 +49,15 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   Timer? _hideTimer;
   VideoPlayerController? _controller;
   bool _isManuallyChangingPlaying = false;
+  bool _isPlayingBeforeInteraction = false;
+
+  void _updateSystemUI() {
+    if (state.isFullscreen || state.isLocked) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } else {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+  }
 
   @override
   PlayerState build() {
@@ -239,6 +248,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     final nextLockState = !state.isLocked;
     state = state.copyWith(isLocked: nextLockState);
 
+    _updateSystemUI();
+
     if (nextLockState) {
       // Hard lock to current orientation
       if (currentOrientation == Orientation.landscape) {
@@ -273,14 +284,13 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     state = state.copyWith(isFullscreen: value);
 
     if (updateSystem) {
+      _updateSystemUI();
       if (value) {
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.landscapeLeft,
           DeviceOrientation.landscapeRight,
         ]);
       } else {
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
         // Allow all orientations to return control to the sensor
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.portraitUp,
@@ -293,6 +303,17 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   void toggleFullscreen() {
     setFullscreen(!state.isFullscreen);
+  }
+
+  void pauseForInteraction() {
+    _isPlayingBeforeInteraction = ref.read(isPlayingProvider);
+    setPlaying(false);
+  }
+
+  void resumeFromInteraction() {
+    if (_isPlayingBeforeInteraction) {
+      setPlaying(true);
+    }
   }
 }
 

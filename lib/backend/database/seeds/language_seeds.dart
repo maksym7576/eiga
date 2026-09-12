@@ -5,7 +5,7 @@ Future<List<Language>> standardLanguages() async {
     Language(
       name: 'Japanese',
       code: 'ja',
-      subtitle: 'Jpn / 日本語',
+      subtitle: '日本語',
       iconLabel: 'JA',
       isSupported: true,
       removeAllSpaces: true,
@@ -17,7 +17,7 @@ Future<List<Language>> standardLanguages() async {
     Language(
       name: 'English',
       code: 'en',
-      subtitle: 'Eng / United States',
+      subtitle: 'United States',
       iconLabel: 'EN',
       isSupported: false,
       removeAllSpaces: false,
@@ -29,7 +29,7 @@ Future<List<Language>> standardLanguages() async {
     Language(
       name: 'Spanish',
       code: 'es',
-      subtitle: 'Spain / Español',
+      subtitle: 'Español',
       iconLabel: 'ES',
       isSupported: false,
       removeAllSpaces: false,
@@ -41,7 +41,7 @@ Future<List<Language>> standardLanguages() async {
     Language(
       name: 'Ukrainian',
       code: 'uk',
-      subtitle: 'Ukr / Українська',
+      subtitle: 'Українська',
       iconLabel: 'UA',
       isSupported: false,
       removeAllSpaces: false,
@@ -53,7 +53,7 @@ Future<List<Language>> standardLanguages() async {
     Language(
       name: 'Russian',
       code: 'ru',
-      subtitle: 'Ru / Русский',
+      subtitle: 'Русский',
       iconLabel: 'RU',
       isSupported: false,
       removeAllSpaces: false,
@@ -65,7 +65,7 @@ Future<List<Language>> standardLanguages() async {
     Language(
       name: 'German',
       code: 'de',
-      subtitle: 'Ger / Deutsch',
+      subtitle: 'Deutsch',
       iconLabel: 'DE',
       isSupported: false,
       removeAllSpaces: false,
@@ -77,7 +77,7 @@ Future<List<Language>> standardLanguages() async {
     Language(
       name: 'French',
       code: 'fr',
-      subtitle: 'Fra / Français',
+      subtitle: 'Français',
       iconLabel: 'FR',
       isSupported: false,
       removeAllSpaces: false,
@@ -89,7 +89,7 @@ Future<List<Language>> standardLanguages() async {
     Language(
       name: 'Italian',
       code: 'it',
-      subtitle: 'Ita / Italiano',
+      subtitle: 'Italiano',
       iconLabel: 'IT',
       isSupported: false,
       removeAllSpaces: false,
@@ -101,7 +101,7 @@ Future<List<Language>> standardLanguages() async {
     Language(
       name: 'Chinese',
       code: 'zh',
-      subtitle: 'Chi / 中文',
+      subtitle: '中文',
       iconLabel: 'ZH',
       isSupported: false,
       removeAllSpaces: true,
@@ -113,7 +113,7 @@ Future<List<Language>> standardLanguages() async {
     Language(
       name: 'Korean',
       code: 'ko',
-      subtitle: 'Kor / 한국어',
+      subtitle: '한국어',
       iconLabel: 'KO',
       isSupported: false,
       removeAllSpaces: true,

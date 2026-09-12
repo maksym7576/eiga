@@ -42,6 +42,8 @@ class AniListService {
         seasonYear
         episodes
         format
+        status
+        averageScore
         coverImage {
           extraLarge
           large
@@ -67,6 +69,8 @@ class AniListService {
           season
           seasonYear
           episodes
+          status
+          averageScore
           coverImage {
             extraLarge
             large
@@ -93,6 +97,8 @@ class AniListService {
           season
           seasonYear
           episodes
+          status
+          averageScore
           coverImage {
             extraLarge
             large
@@ -188,6 +194,9 @@ class AniListService {
       colorValue = int.tryParse('FF$hex', radix: 16);
     }
 
+    final scoreRaw = json['averageScore'] as num?;
+    final normalizedScore = scoreRaw != null ? scoreRaw / 10.0 : null;
+
     return UnifiedMetadataDTO(
       sourceId: id?.toString() ?? '',
       anilistId: id,
@@ -203,7 +212,8 @@ class AniListService {
       colorThemeValue: colorValue,
       episodes: json['episodes'] as int?,
       type: json['format'] as String?,
-      status: json['status'] as String?, // status is not in the query but good to have if added
+      status: json['status'] as String?,
+      score: normalizedScore,
       linkUrl: id != null ? 'https://anilist.co/anime/$id' : null,
       extras: {
         'season': json['season'],

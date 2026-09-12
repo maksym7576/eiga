@@ -1,210 +1,143 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../providers/ui/upload_provider.dart';
-import '../../../providers/ui/redirect_providers.dart';
-import '../../../providers/services/token_provider.dart';
 import '../../../config/secure_storage.dart';
+import '../../../providers/ui/upload_provider.dart';
+import '../../../providers/ui/search_provider.dart';
+import '../../../providers/services/token_provider.dart';
+import '../../../providers/ui/redirect_providers.dart';
 import '../../styles/additional_window_theme.dart';
-import '../../styles/app_colors.dart';
+import '../settings/control_button_widget.dart';
+import '../shared/app_selection_tile.dart';
+import '../shared/app_warning_banner.dart';
 
 class SubtitleSourceSelector extends ConsumerWidget {
-  const SubtitleSourceSelector({super.key});
+  final bool useCard;
+  const SubtitleSourceSelector({super.key, this.useCard = true});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = AdditionalWindowTheme.of(context);
+    final isExpanded = ref.watch(isSubtitleSelectorExpandedProvider);
     final subtitleSource = ref.watch(uploadProvider.select((s) => s.subtitleSource));
-    final notifier = ref.read(uploadProvider.notifier);
     
     final jimakuToken = ref.watch(tokenProvider(ApiTokenType.jimaku)).value ?? '';
     final hasToken = jimakuToken.isNotEmpty;
+    
+    final wyzieToken = ref.watch(tokenProvider(ApiTokenType.wyzie)).value ?? '';
+    final hasWyzieToken = wyzieToken.isNotEmpty;
 
-    return Column(
+    final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // More compact padding
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: theme.cardBorder),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              )
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Subtitles:',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: theme.normalText,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppColors.slate100,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildToggleButton(
-                      context, 
-                      label: 'Local', 
-                      icon: Icons.folder_open, 
-                      isActive: subtitleSource == SubtitleSource.local,
-                      onTap: () => notifier.setSubtitleSource(SubtitleSource.local),
-                    ),
-                    const SizedBox(width: 2),
-                    _buildToggleButton(
-                      context, 
-                      label: 'Jimaku', 
-                      icon: Icons.cloud_outlined, 
-                      isActive: subtitleSource == SubtitleSource.jimaku,
-                      onTap: hasToken ? () => notifier.setSubtitleSource(SubtitleSource.jimaku) : () {},
-                      opacity: hasToken ? 1.0 : 0.6,
-                      trailing: !hasToken ? Container(
-                        margin: const EdgeInsets.only(left: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
-                        decoration: BoxDecoration(
-                          color: AppColors.warningAmberBg,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: AppColors.warningAmberBorder),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.warning_amber_rounded, size: 8, color: AppColors.warningAmberText),
-                            SizedBox(width: 1),
-                            Text(
-                              'NO TOKEN',
-                              style: TextStyle(
-                                fontSize: 7,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.warningAmberText,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ) : null,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            'Subtitles Source:',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: theme.normalText,
+              letterSpacing: -0.2,
+            ),
           ),
         ),
-        if (!hasToken) ...[
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline_rounded, size: 14, color: theme.mutedText),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Jimaku requires API token in Settings',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: theme.mutedText,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => context.push('/settings'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: theme.primaryAccent,
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-                  ),
-                  child: const Text('Configure'),
-                ),
-              ],
-            ),
+
+        AnimatedSize(
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeInOut,
+          alignment: Alignment.topCenter,
+          child: isExpanded
+              ? Column(
+                  key: const ValueKey('expanded'),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildTile(ref, SubtitleSource.local, isExpanded),
+                    const SizedBox(height: 10),
+                    _buildTile(ref, SubtitleSource.jimaku, isExpanded),
+                    const SizedBox(height: 10),
+                    _buildTile(ref, SubtitleSource.wyzie, isExpanded),
+                  ],
+                )
+              : _buildTile(ref, subtitleSource, isExpanded, showToggle: true),
+        ),
+        
+        if (subtitleSource == SubtitleSource.jimaku && !hasToken) ...[
+          const SizedBox(height: 12),
+          AppWarningBanner(
+            message: 'Jimaku requires API token in Settings',
+            actionLabel: 'Configure',
+            onAction: () {
+              ref.read(openJimakuDialogProvider.notifier).state = true;
+              context.push('/settings');
+            },
+          ),
+        ],
+        if (subtitleSource == SubtitleSource.wyzie && !hasWyzieToken) ...[
+          const SizedBox(height: 12),
+          AppWarningBanner(
+            message: 'Wyzie requires API token in Settings',
+            actionLabel: 'Configure',
+            onAction: () {
+              context.push('/settings');
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                ControlButtonWidget.openWyzieKeyDialog(context);
+              });
+            },
           ),
         ],
       ],
     );
+
+    if (!useCard) return content;
+
+    return content;
   }
 
-  Widget _buildToggleButton(
-    BuildContext context, {
-    required String label,
-    required IconData icon,
-    required bool isActive,
-    required VoidCallback onTap,
-    Widget? trailing,
-    double opacity = 1.0,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Opacity(
-        opacity: opacity,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            color: isActive ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: isActive ? [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              )
-            ] : null,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 13,
-                color: isActive ? AppColors.brandBlue : AppColors.slate500,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: isActive ? AppColors.brandBlue : AppColors.slate500,
-                ),
-              ),
-              if (trailing != null) trailing,
-            ],
-          ),
-        ),
-      ),
+  Widget _buildTile(WidgetRef ref, SubtitleSource type, bool isExpanded, {bool showToggle = false}) {
+    final selected = ref.watch(uploadProvider.select((s) => s.subtitleSource));
+    final isSelected = selected == type;
+
+    return AppSelectionTile(
+      title: _getTitle(type),
+      subtitle: _getSubtitle(type),
+      icon: _getIcon(type),
+      isSelected: isSelected,
+      isExpanded: isExpanded,
+      showToggle: showToggle,
+      onTap: () {
+        if (!isExpanded) {
+          ref.read(isSubtitleSelectorExpandedProvider.notifier).state = true;
+        } else {
+          ref.read(uploadProvider.notifier).setSubtitleSource(type);
+          ref.read(isSubtitleSelectorExpandedProvider.notifier).state = false;
+        }
+      },
     );
   }
 
-  void _handleJimakuTap(BuildContext context, WidgetRef ref, UploadNotifier notifier) async {
-    final token = await SecureTokenStorage.getToken(ApiTokenType.jimaku);
-    if (token.isEmpty) {
-      ref.read(openJimakuDialogProvider.notifier).state = true;
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter Jimaku API key first')),
-        );
-        context.push('/settings');
-      }
-    } else {
-      notifier.setSubtitleSource(SubtitleSource.jimaku);
+  String _getTitle(SubtitleSource type) {
+    switch (type) {
+      case SubtitleSource.local: return 'Local';
+      case SubtitleSource.jimaku: return 'Jimaku';
+      case SubtitleSource.wyzie: return 'Wyzie';
+    }
+  }
+
+  String _getSubtitle(SubtitleSource type) {
+    switch (type) {
+      case SubtitleSource.local: return 'From device storage';
+      case SubtitleSource.jimaku: return 'Community cloud';
+      case SubtitleSource.wyzie: return 'Alternative cloud';
+    }
+  }
+
+  IconData _getIcon(SubtitleSource type) {
+    switch (type) {
+      case SubtitleSource.local: return Icons.folder_open_rounded;
+      case SubtitleSource.jimaku: return Icons.cloud_outlined;
+      case SubtitleSource.wyzie: return Icons.cloud_circle_outlined;
     }
   }
 }
+

@@ -150,11 +150,15 @@ class RubyText extends HookConsumerWidget {
             ],
           );
 
+    final playerState = ref.watch(playerProvider);
+    final bool canTap = word.isClickable && (!playerState.isFullscreen || playerState.isLocked);
+
     final Widget gestureContent = GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: word.isClickable ? () async {
+      onTap: canTap ? () async {
         final currentHighlighted = ref.read(highlightedWordIdsProvider);
         final selectionAnchor = ref.read(selectionAnchorTypeProvider);
+        final playerNotifier = ref.read(playerProvider.notifier);
         
         if (currentHighlighted.contains(word.id) && selectionAnchor == SelectionAnchor.word) {
           // Deselect
@@ -163,10 +167,10 @@ class RubyText extends HookConsumerWidget {
           ref.read(clickedWordIdProvider.notifier).state = null;
           ref.read(clickedTranslationWordIdProvider.notifier).state = null;
           ref.read(selectionAnchorTypeProvider.notifier).state = null;
-          ref.read(playerProvider.notifier).setPlaying(true);
+          playerNotifier.resumeFromInteraction();
         } else {
           // Select
-          ref.read(playerProvider.notifier).setPlaying(false);
+          playerNotifier.pauseForInteraction();
           ref.read(clickedWordIdProvider.notifier).state = word.id;
           ref.read(selectionAnchorTypeProvider.notifier).state = SelectionAnchor.word;
           

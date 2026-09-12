@@ -38,8 +38,9 @@ class VideoScreen extends HookConsumerWidget {
       final playerTimeSetter = ref.read(playerTimeProvider.notifier);
       final isPlayingSetter = ref.read(isPlayingProvider.notifier);
 
-      // Enter immersive mode on screen entry
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      // Default to edge-to-edge on entry. The provider will manage
+      // switching to immersive mode if needed (fullscreen/locked).
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
       // Allow all orientations when entering the screen
       SystemChrome.setPreferredOrientations([
@@ -107,13 +108,10 @@ class VideoScreen extends HookConsumerWidget {
                     if (isFullscreen) ...[
                       Stack(
                         children: [
-                          Stack(
-                            children: [
-                              const VideoPlayerWidget(),
-                              const Positioned.fill(child: SubtitleOverlay()),
-                              const Positioned.fill(child: VideoPlayerControls()),
-                            ],
-                          ),
+                          const VideoPlayerWidget(),
+                          const Positioned.fill(child: _VideoPlayerBackgroundLayer()),
+                          const Positioned.fill(child: SubtitleOverlay()),
+                          const Positioned.fill(child: VideoPlayerControls()),
                           const WordPopover(),
                         ],
                       ),
@@ -125,6 +123,7 @@ class VideoScreen extends HookConsumerWidget {
                             child: Stack(
                               children: [
                                 const VideoPlayerWidget(),
+                                const Positioned.fill(child: _VideoPlayerBackgroundLayer()),
                                 const Positioned.fill(child: SubtitleOverlay()),
                                 const Positioned.fill(child: VideoPlayerControls()),
                               ],
@@ -153,6 +152,23 @@ class VideoScreen extends HookConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _VideoPlayerBackgroundLayer extends ConsumerWidget {
+  const _VideoPlayerBackgroundLayer();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GestureDetector(
+      onTap: () {
+        ref.read(playerProvider.notifier).toggleControls();
+        ref.read(selectedBlockIdProvider.notifier).state = null;
+        ref.read(clickedWordIdProvider.notifier).state = null;
+      },
+      behavior: HitTestBehavior.opaque,
+      child: const SizedBox.expand(),
     );
   }
 }

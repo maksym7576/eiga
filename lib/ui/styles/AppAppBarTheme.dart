@@ -49,7 +49,7 @@ class AppAppBarTheme {
       logoStyle: TextStyle(
         fontSize: 22,
         fontWeight: FontWeight.w900,
-        color: theme.colorScheme.primary,
+        color: AppColors.brandBlue,
         letterSpacing: -0.5,
       ),
       selectorBackground: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),

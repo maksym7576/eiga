@@ -29,19 +29,16 @@ class UploadDropBox extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         width: double.infinity,
         decoration: BoxDecoration(
-          color: theme.cardBackground,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: hasPath ? theme.primaryAccent.withValues(alpha: 0.4) : theme.cardBorder, 
-            width: hasPath ? 2.0 : 1.5
-          ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: theme.cardBorder, width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
+              color: Colors.black.withValues(alpha: 0.01),
+              blurRadius: 4,
               offset: const Offset(0, 2),
             )
           ],
@@ -53,8 +50,9 @@ class UploadDropBox extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: theme.brandBlue50,
+                color: theme.primaryAccent.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: theme.primaryAccent.withValues(alpha: 0.1)),
               ),
               child: Icon(
                 icon,
@@ -62,24 +60,29 @@ class UploadDropBox extends StatelessWidget {
                 color: theme.primaryAccent,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Text(
               hasPath ? p.basename(filePath!) : title,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: FontWeight.w800,
                 color: theme.normalText,
+                letterSpacing: -0.3,
               ),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
-              hasPath ? 'Local video file ready for translation' : (subtitle ?? 'Select a file to begin'),
+              hasPath ? 'Local file ready for processing' : (subtitle ?? 'Select a file to begin'),
               style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
                 color: theme.mutedText,
+                height: 1.1,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),

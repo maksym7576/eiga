@@ -28,10 +28,13 @@ class WyzieFilesState {
   }
 }
 
-class WyzieFilesNotifier extends FamilyNotifier<WyzieFilesState, String> {
+class WyzieFilesNotifier extends Notifier<WyzieFilesState> {
+  final String arg;
+  WyzieFilesNotifier(this.arg);
+
   @override
-  WyzieFilesState build(String arg) {
-    _loadFiles();
+  WyzieFilesState build() {
+    Future.microtask(() => _loadFiles());
     return WyzieFilesState(isLoading: true);
   }
 

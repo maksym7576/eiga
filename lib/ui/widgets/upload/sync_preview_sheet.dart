@@ -4,6 +4,7 @@ import 'package:video_player/video_player.dart';
 import '../../../backend/database/schemas/phrase.dart';
 import '../../styles/app_colors.dart';
 import '../../styles/additional_window_theme.dart';
+import '../dialogs/app_bottom_sheet.dart';
 
 class SyncPreviewSheet extends StatefulWidget {
   final String videoPath;
@@ -111,61 +112,65 @@ class _SyncPreviewSheetState extends State<SyncPreviewSheet> {
   Widget build(BuildContext context) {
     final theme = AdditionalWindowTheme.of(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.backgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const AppBottomSheetHeader(
+          title: 'Sync Preview',
+        ),
+
+        // Video & Subtitle Area
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 8, 8),
-            child: Row(
-              children: [
-                Icon(Icons.preview_rounded, color: theme.primaryAccent, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Sync Preview',
-                    style: TextStyle(color: theme.titleColor, fontWeight: FontWeight.w800, fontSize: 16),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(Icons.close_rounded, color: theme.mutedText),
-                ),
-              ],
-            ),
-          ),
-
-          // Video Area
-          Container(
-            width: double.infinity,
-            height: 240,
-            color: Colors.black,
-            child: _isInitialized
-                ? AspectRatio(
-                    aspectRatio: _controller.value.aspectRatio,
-                    child: VideoPlayer(_controller),
-                  )
-                : const Center(child: CircularProgressIndicator()),
-          ),
-
-          // Subtitle Display
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            color: theme.isDark ? Colors.white.withOpacity(0.05) : AppColors.slate50,
-            child: Text(
-              _activeSubtitle.isEmpty ? '(No audio detected here)' : _activeSubtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: _activeSubtitle.isEmpty ? theme.mutedText : theme.normalText,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                fontStyle: _activeSubtitle.isEmpty ? FontStyle.italic : FontStyle.normal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                width: double.infinity,
+                color: Colors.black,
+                child: _isInitialized
+                    ? AspectRatio(
+                        aspectRatio: _controller.value.aspectRatio,
+                        child: Stack(
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            VideoPlayer(_controller),
+                            // Subtitle Overlay
+                            if (_activeSubtitle.isNotEmpty)
+                              Positioned(
+                                bottom: 20,
+                                left: 20,
+                                right: 20,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.6),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    _activeSubtitle,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      shadows: [
+                                        Shadow(
+                                          blurRadius: 4,
+                                          color: Colors.black,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      )
+                    : const AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
               ),
             ),
           ),
@@ -230,8 +235,7 @@ class _SyncPreviewSheetState extends State<SyncPreviewSheet> {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }
 

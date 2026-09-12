@@ -26,7 +26,7 @@ class UploadActionButtons extends ConsumerWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.95),
+        color: Colors.white,
         border: Border(top: BorderSide(color: theme.dividerColor)),
       ),
       child: Column(
@@ -55,16 +55,6 @@ class UploadActionButtons extends ConsumerWidget {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 10),
-          // iOS Home Indicator simulation
-          Container(
-            width: 120,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.slate200,
-              borderRadius: BorderRadius.circular(99),
-            ),
           ),
         ],
       ),

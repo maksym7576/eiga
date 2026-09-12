@@ -11,6 +11,10 @@ import 'package:eiga/providers/ui/main_hub_providers.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/ui/widgets/shared/app_action_button.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
+import 'package:eiga/providers/services/token_provider.dart';
+import 'package:eiga/config/secure_storage.dart';
+import 'package:eiga/providers/ui/redirect_providers.dart';
+import 'package:eiga/ui/styles/app_colors.dart';
 
 // The main screen of the application showing the library and learning feed
 class MainScreen extends ConsumerStatefulWidget {
@@ -29,6 +33,8 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     final videosAsync = ref.watch(allVideosProvider);
     final activeJobsAsync = ref.watch(activeJobsProvider);
     final vocabularyAsync = ref.watch(styledVocabularyProvider);
+    final geminiToken = ref.watch(tokenProvider(ApiTokenType.gemini)).value ?? '';
+    final hasGeminiToken = geminiToken.isNotEmpty;
 
     return Scaffold(
       backgroundColor: customTheme.backgroundColor,
@@ -84,6 +90,138 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             ),
           ),
 
+          // 2.3 Gemini Token Warning
+          if (!hasGeminiToken)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              sliver: SliverToBoxAdapter(
+                child: GestureDetector(
+                  onTap: () {
+                    ref.read(openGeminiDialogProvider.notifier).state = true;
+                    context.push('/settings');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.warningAmberBg.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.warningAmberBorder.withValues(alpha: 0.5)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: AppColors.warningAmberText),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Gemini API Key missing',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.warningAmberText,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Tap to configure in Settings to enable AI features',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.warningAmberText.withValues(alpha: 0.8),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, color: AppColors.warningAmberText, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          // 2.5 Manual Section (Moved here)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            sliver: SliverToBoxAdapter(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: customTheme.selectionBoxBackground,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: customTheme.selectionAccentColor.withValues(alpha: 0.1)),
+                ),
+                child: Column(
+                  children: [
+                    InkWell(
+                      onTap: () => setState(() => _isManualExpanded = !_isManualExpanded),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Icon(Icons.help_outline, color: customTheme.primaryAccent, size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'How to use',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: customTheme.titleColor,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              _isManualExpanded ? Icons.expand_less : Icons.expand_more,
+                              color: customTheme.primaryAccent,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (_isManualExpanded)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: Column(
+                          children: [
+                            _ManualItem(
+                              icon: Icons.add_circle_outline,
+                              text: '1. Tap the "Add Video" button.',
+                            ),
+                            const SizedBox(height: 8),
+                            _ManualItem(
+                              icon: Icons.video_file_outlined,
+                              text: '2. Add your video file.',
+                            ),
+                            const SizedBox(height: 8),
+                            _ManualItem(
+                              icon: Icons.source_outlined,
+                              text: '3. Select source (Local or Jimaku).',
+                            ),
+                            const SizedBox(height: 8),
+                            _ManualItem(
+                              icon: Icons.travel_explore_outlined,
+                              text: '4. Choose metadata provider (Shikimori, AniList, etc.).',
+                            ),
+                            const SizedBox(height: 8),
+                            _ManualItem(
+                              icon: Icons.edit_note_rounded,
+                              text: '5. Enter the video title.',
+                            ),
+                            const SizedBox(height: 8),
+                            _ManualItem(
+                              icon: Icons.language_rounded,
+                              text: '6. Select the language to finish.',
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
           // 3. Library Section Header
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
@@ -101,7 +239,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                     ),
                   ),
                   TextButton(
-                    onPressed: () => _showFullLibrary(context),
+                    onPressed: () => context.push('/library'),
                     child: Row(
                       children: [
                         Text(
@@ -235,163 +373,12 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             error: (err, stack) => SliverToBoxAdapter(child: Center(child: Text('Error: $err'))),
           ),
 
-          // 7. Manual Section
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 32, 16, 40),
-            sliver: SliverToBoxAdapter(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: customTheme.selectionBoxBackground,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: customTheme.selectionAccentColor.withValues(alpha: 0.1)),
-                ),
-                child: Column(
-                  children: [
-                    InkWell(
-                      onTap: () => setState(() => _isManualExpanded = !_isManualExpanded),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Icon(Icons.help_outline, color: customTheme.primaryAccent),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Як користуватись',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: customTheme.titleColor,
-                                ),
-                              ),
-                            ),
-                            Icon(
-                              _isManualExpanded ? Icons.expand_less : Icons.expand_more,
-                              color: customTheme.primaryAccent,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (_isManualExpanded)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        child: Column(
-                          children: [
-                            _ManualItem(
-                              icon: Icons.add_circle_outline,
-                              text: '1. Додайте відео через кнопку "Add Video" або "+" у меню.',
-                            ),
-                            const SizedBox(height: 8),
-                            _ManualItem(
-                              icon: Icons.translate,
-                              text: '2. Оберіть мову оригіналу та цільову мову.',
-                            ),
-                            const SizedBox(height: 8),
-                            _ManualItem(
-                              icon: Icons.psychology_outlined,
-                              text: '3. Запустіть аналіз та дочекайтесь завершення.',
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
+          // Bottom Spacer
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 40),
           ),
         ],
       ),
-    );
-  }
-
-  void _showFullLibrary(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const _FullLibrarySheet(),
-    );
-  }
-}
-
-class _FullLibrarySheet extends ConsumerWidget {
-  const _FullLibrarySheet();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final videosAsync = ref.watch(allVideosProvider);
-    final theme = Theme.of(context);
-
-    return DraggableScrollableSheet(
-      initialChildSize: 0.9,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            color: theme.scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Full Library',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: videosAsync.when(
-                  data: (videos) => GridView.builder(
-                    controller: scrollController,
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 0.7,
-                    ),
-                    itemCount: videos.length,
-                    itemBuilder: (context, index) {
-                      final video = videos[index];
-                      return VideoLibraryCard(
-                        video: video,
-                        onTap: () {
-                          ref.read(playerIdProvider.notifier).state = video.id;
-                          Navigator.pop(context);
-                          context.push('/player');
-                        },
-                      );
-                    },
-                  ),
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (err, stack) => Center(child: Text('Error: $err')),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

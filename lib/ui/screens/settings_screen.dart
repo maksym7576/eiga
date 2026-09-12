@@ -9,12 +9,33 @@ import 'settings/reader_preferences_screen.dart';
 import 'settings/general_settings_screen.dart';
 import 'settings/tokenization_settings_screen.dart';
 import 'settings/processing_batch_settings_screen.dart';
+import '../../providers/ui/redirect_providers.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ref.read(openGeminiDialogProvider)) {
+        ref.read(openGeminiDialogProvider.notifier).state = false;
+        ControlButtonWidget.openGeminiKeyDialog(context);
+      }
+      if (ref.read(openJimakuDialogProvider)) {
+        ref.read(openJimakuDialogProvider.notifier).state = false;
+        ControlButtonWidget.openJimakuKeyDialog(context);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = AdditionalWindowTheme.of(context);
 
     return Scaffold(
@@ -47,7 +68,7 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             _buildSectionHeader(context, 'Services', showVersion: true),
             const SizedBox(height: 8),
-            _buildServicesCard(context, ref),
+            _buildServicesCard(context),
             const SizedBox(height: 28),
             _buildSectionHeader(context, 'General'),
             const SizedBox(height: 8),
@@ -114,7 +135,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildServicesCard(BuildContext context, WidgetRef ref) {
+  Widget _buildServicesCard(BuildContext context) {
     final theme = AdditionalWindowTheme.of(context);
 
     return Container(
@@ -155,6 +176,17 @@ class SettingsScreen extends ConsumerWidget {
           ),
           Divider(height: 1, color: theme.dividerColor, indent: 64),
           _SettingTile(
+            title: 'Wyzie API Key',
+            subtitle: 'Auto-search for subtitles on Wyzie Subs',
+            icon: Icons.vpn_key_rounded,
+            iconColor: Colors.white,
+            iconBackground: const [Color(0xFFEA580C), Color(0xFFF97316)],
+            badgeText: 'Has key',
+            badgeColor: Colors.teal,
+            onTap: () => ControlButtonWidget.openWyzieKeyDialog(context),
+          ),
+          Divider(height: 1, color: theme.dividerColor, indent: 64),
+          _SettingTile(
             title: 'Clear All Data',
             subtitle: 'Permanently delete all videos, phrases, and progress.',
             icon: Icons.delete_forever_rounded,
@@ -162,7 +194,7 @@ class SettingsScreen extends ConsumerWidget {
             iconBackground: [Colors.redAccent.withValues(alpha: 0.1), Colors.redAccent.withValues(alpha: 0.1)],
             isDestructive: true,
             actionLabel: 'Delete',
-            onTap: () => _handleFullReset(context, ref),
+            onTap: () => _handleFullReset(context),
           ),
         ],
       ),
@@ -247,7 +279,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _handleFullReset(BuildContext context, WidgetRef ref) async {
+  Future<void> _handleFullReset(BuildContext context) async {
     final theme = AdditionalWindowTheme.of(context);
     final confirmed = await showDialog<bool>(
       context: context,

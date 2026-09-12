@@ -19,18 +19,16 @@ class SubtitleVersionSection extends HookConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return Column(
-      children: [
-        buildVersionSelectorCard(
-          context,
-          state,
-          theme,
-          notifier,
-          isExpanded: isExpanded,
-          showTechDetails: true,
-        ),
-        const SizedBox(height: 16),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: buildVersionSelectorCard(
+        context,
+        state,
+        theme,
+        notifier,
+        isExpanded: isExpanded,
+        showTechDetails: true,
+      ),
     );
   }
 }

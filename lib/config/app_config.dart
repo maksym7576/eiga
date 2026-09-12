@@ -9,6 +9,7 @@ class AppConfig {
   // --- API Constants ---
   static const String aniListEndpoint = 'https://graphql.anilist.co';
   static const String jimakuBaseUrl = 'https://jimaku.cc/api';
+  static const String wyzieBaseUrl = 'https://api.wyzie.xyz/v1';
   static const String tvMazeEndpoint = 'https://api.tvmaze.com';
   static const String shikimoriBaseUrl = 'https://shikimori.one/api';
   static const Duration defaultTimeout = Duration(seconds: 15);
@@ -17,6 +18,8 @@ class AppConfig {
   static const int defaultPhrasesPerRequest = 40;
   static const int defaultSecondsAhead = 100;
   static const int defaultMaxConcurrentProcesses = 2;
+  static const int defaultSyncSkipMinutes = 5;
+  static const int defaultSyncPointDurationMinutes = 2;
   
   static const Map<TranslationPipelineStep, String> defaultModels = {
     TranslationPipelineStep.research: 'gemini-3.5-flash-lite',
@@ -35,6 +38,8 @@ class AppConfig {
   static const _keyBatchSizeTranslate = 'batch_size_translate';
   static const _keyBatchSizeTokenize = 'batch_size_tokenize';
   static const _keyBatchSizeMorphemes = 'batch_size_morphemes';
+  static const _keySyncSkipMinutes = 'sync_skip_minutes';
+  static const _keySyncPointDurationMinutes = 'sync_point_duration_minutes';
   
   static String _modelKey(TranslationPipelineStep step) => 'active_model_${step.name}';
 
@@ -64,6 +69,14 @@ class AppConfig {
     await _prefs.setInt(_keyBatchSizeMorphemes, value);
   }
 
+  Future<void> setSyncSkipMinutes(int value) async {
+    await _prefs.setInt(_keySyncSkipMinutes, value);
+  }
+
+  Future<void> setSyncPointDurationMinutes(int value) async {
+    await _prefs.setInt(_keySyncPointDurationMinutes, value);
+  }
+
   Future<void> setIsAutomaticModelSwitch(bool value) async {
     await _prefs.setBool(_keyIsAutomaticModelSwitch, value);
   }
@@ -81,6 +94,9 @@ class AppConfig {
   int get getBatchSizeTranslate => _prefs.getInt(_keyBatchSizeTranslate) ?? 40;
   int get getBatchSizeTokenize => _prefs.getInt(_keyBatchSizeTokenize) ?? 40;
   int get getBatchSizeMorphemes => _prefs.getInt(_keyBatchSizeMorphemes) ?? 40;
+
+  int get getSyncSkipMinutes => _prefs.getInt(_keySyncSkipMinutes) ?? defaultSyncSkipMinutes;
+  int get getSyncPointDurationMinutes => _prefs.getInt(_keySyncPointDurationMinutes) ?? defaultSyncPointDurationMinutes;
 
   bool get getIsAutomaticModelSwitch => _prefs.getBool(_keyIsAutomaticModelSwitch) ?? true;
 

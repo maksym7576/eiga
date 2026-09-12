@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
+import '../animations/eiga_logo_animation.dart';
 import 'eiga_logo.dart';
+import '../../styles/app_colors.dart';
 
 class LoadingSplash extends StatelessWidget {
-  const LoadingSplash({super.key});
+  final bool useAlternativeLogo;
+
+  const LoadingSplash({
+    super.key,
+    this.useAlternativeLogo = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,8 +22,23 @@ class LoadingSplash extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const EigaLogo(size: 64),
-            const SizedBox(height: 24),
+            if (useAlternativeLogo)
+              EigaLogo(
+                size: 64,
+                color: AppColors.brandBlue,
+                isFrequent: true,
+              )
+            else
+              EigaLogoAnimation(
+                isFrequent: true,
+                style: TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.brandBlue,
+                  letterSpacing: -1.0,
+                ),
+              ),
+            const SizedBox(height: 32),
             Text(
               'Preparing your experience...',
               style: TextStyle(

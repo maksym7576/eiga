@@ -4,7 +4,6 @@ import '../../../providers/ui/upload_provider.dart';
 import '../../styles/additional_window_theme.dart';
 import '../../styles/app_colors.dart';
 import '../dialogs/app_bottom_sheet.dart';
-import '../shared/app_section_card.dart';
 import '../shared/app_text_button.dart';
 
 class PhrasesPreviewSection extends ConsumerWidget {
@@ -23,14 +22,12 @@ class PhrasesPreviewSection extends ConsumerWidget {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       alignment: Alignment.topCenter,
-      child: AppSectionCard(
-        padding: EdgeInsets.zero,
-        child: Column(
-          children: [
-            Container(
+      child: Column(
+        children: [
+          Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: theme.isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.slate50,
+              color: Colors.white,
               border: Border(bottom: BorderSide(color: theme.dividerColor)),
             ),
             child: Row(
@@ -61,7 +58,6 @@ class PhrasesPreviewSection extends ConsumerWidget {
           const SizedBox(height: 12),
         ],
       ),
-    ),
     );
   }
 
@@ -130,57 +126,37 @@ class _PhrasesFullView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'All Phrases',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: theme.normalText),
-                    ),
-                    Text(
-                      '${phrases.length} lines detected',
-                      style: TextStyle(fontSize: 12, color: theme.mutedText),
-                    ),
-                  ],
+    return Column(
+      children: [
+        AppBottomSheetHeader(
+          title: 'All Phrases',
+          subtitle: '${phrases.length} lines detected',
+        ),
+        const SizedBox(height: 4),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            itemCount: phrases.length,
+            separatorBuilder: (context, index) => Divider(height: 1, color: theme.dividerColor),
+            itemBuilder: (context, index) {
+              final phrase = phrases[index];
+              return ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: Text(
+                  PhrasesPreviewSection._formatTime(phrase.startTime), 
+                  style: TextStyle(fontFamily: 'monospace', fontSize: 11, color: theme.mutedText)
                 ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: Icon(Icons.close_rounded, color: theme.mutedText),
-              ),
-            ],
+                title: Text(
+                  phrase.originalPhrase ?? '', 
+                  style: TextStyle(fontSize: 14, color: theme.normalText, fontWeight: FontWeight.w500)
+                ),
+              );
+            },
           ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.only(right: 8),
-              itemCount: phrases.length,
-              separatorBuilder: (context, index) => Divider(height: 1, color: theme.dividerColor),
-              itemBuilder: (context, index) {
-                final phrase = phrases[index];
-                return ListTile(
-                  dense: true,
-                  leading: Text(
-                    PhrasesPreviewSection._formatTime(phrase.startTime), 
-                    style: TextStyle(fontFamily: 'monospace', fontSize: 11, color: theme.mutedText)
-                  ),
-                  title: Text(
-                    phrase.originalPhrase ?? '', 
-                    style: TextStyle(fontSize: 14, color: theme.normalText, fontWeight: FontWeight.w500)
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+      ],
     );
   }
 }

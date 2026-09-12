@@ -8,6 +8,7 @@ import '../../backend/database/services/specific_word_style_service.dart';
 import '../../backend/database/services/translation_job_service.dart';
 import '../../backend/database/services/translation_word_service.dart';
 import '../../backend/database/services/known_word_status_service.dart';
+import '../../backend/services/sync/audio_sync_service.dart';
 import '../database/database_providers.dart';
 export '../database/database_providers.dart';
 
@@ -49,4 +50,8 @@ final translationWordServiceProvider = Provider<TranslationWordService>((ref) {
 final knownWordStatusServiceProvider = Provider<KnownWordStatusService>((ref) {
   final isar = ref.watch(isarProvider);
   return KnownWordStatusService(isar);
+});
+
+final audioSyncServiceProvider = Provider<AudioSyncService>((ref) {
+  return AudioSyncService();
 });

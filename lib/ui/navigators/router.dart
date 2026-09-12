@@ -6,13 +6,19 @@ import 'package:eiga/ui/screens/upload_screen.dart';
 import 'package:eiga/ui/screens/settings_screen.dart';
 import 'package:eiga/ui/screens/video_screen.dart';
 import 'package:eiga/ui/screens/full_vocabulary_screen.dart';
+import 'package:eiga/ui/screens/library_screen.dart';
+import 'package:eiga/ui/screens/startup_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouter = GoRouter(
-  initialLocation: '/main',
+  initialLocation: '/',
   navigatorKey: _rootNavigatorKey,
   routes: [
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const StartupScreen(),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return AppNavigator(navigationShell: navigationShell);
@@ -54,6 +60,11 @@ final appRouter = GoRouter(
       path: '/vocabulary',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const FullVocabularyScreen(),
+    ),
+    GoRoute(
+      path: '/library',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const LibraryScreen(),
     ),
   ],
 );

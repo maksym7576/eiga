@@ -3,13 +3,16 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  ffmpeg_kit_flutter_new_audio
   flutter_secure_storage_linux
   isar_community_flutter_libs
+  record_linux
   url_launcher_linux
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
   jni
+  vad
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

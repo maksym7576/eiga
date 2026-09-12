@@ -5,21 +5,23 @@ import '../../styles/app_colors.dart';
 class AppSelectionTile extends StatelessWidget {
   final String title;
   final String subtitle;
-  final IconData icon;
+  final IconData? icon;
   final bool isSelected;
   final bool isExpanded;
   final VoidCallback onTap;
   final bool showToggle;
+  final Widget? trailing;
 
   const AppSelectionTile({
     super.key,
     required this.title,
     required this.subtitle,
-    required this.icon,
+    this.icon,
     required this.isSelected,
     required this.isExpanded,
     required this.onTap,
     this.showToggle = false,
+    this.trailing,
   });
 
   @override
@@ -55,22 +57,24 @@ class AppSelectionTile extends StatelessWidget {
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? theme.primaryAccent
-                    : AppColors.slate200.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(8),
+            if (icon != null) ...[
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? theme.primaryAccent
+                      : AppColors.slate200.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: isSelected ? Colors.white : AppColors.slate500,
+                ),
               ),
-              child: Icon(
-                icon,
-                size: 18,
-                color: isSelected ? Colors.white : AppColors.slate500,
-              ),
-            ),
-            const SizedBox(width: 12),
+              const SizedBox(width: 12),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,7 +89,7 @@ class AppSelectionTile extends StatelessWidget {
                       letterSpacing: -0.4,
                     ),
                     maxLines: 1,
-                    overflow: TextOverflow.visible,
+                    overflow: TextOverflow.ellipsis,
                     softWrap: false,
                   ),
                   if (subtitle.isNotEmpty) ...[
@@ -100,13 +104,17 @@ class AppSelectionTile extends StatelessWidget {
                         height: 1.0,
                       ),
                       maxLines: 1,
-                      overflow: TextOverflow.visible, softWrap: false,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
                     ),
                   ],
                 ],
               ),
             ),
-            if (showToggle) ...[
+            if (trailing != null) ...[
+              const SizedBox(width: 8),
+              trailing!,
+            ] else if (showToggle) ...[
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

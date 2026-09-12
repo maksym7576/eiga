@@ -176,13 +176,17 @@ class _TranslationTokenWidget extends HookConsumerWidget {
       return null;
     }, [isAnchor]);
 
+    final playerState = ref.watch(playerProvider);
+    final bool canTap = !playerState.isFullscreen || playerState.isLocked;
+
     return TapRegion(
       groupId: 'word_selection_group',
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: isPunctuation ? null : () async {
+        onTap: (isPunctuation || !canTap) ? null : () async {
           final currentAnchorType = ref.read(selectionAnchorTypeProvider);
           final currentClickedId = ref.read(clickedTranslationWordIdProvider);
+          final playerNotifier = ref.read(playerProvider.notifier);
           
           if (currentClickedId == ts.token.id && currentAnchorType == SelectionAnchor.translation) {
             // Deselect
@@ -191,10 +195,10 @@ class _TranslationTokenWidget extends HookConsumerWidget {
             ref.read(clickedWordIdProvider.notifier).state = null;
             ref.read(clickedTranslationWordIdProvider.notifier).state = null;
             ref.read(selectionAnchorTypeProvider.notifier).state = null;
-            ref.read(playerProvider.notifier).setPlaying(true);
+            playerNotifier.resumeFromInteraction();
           } else {
             // Select
-            ref.read(playerProvider.notifier).setPlaying(false);
+            playerNotifier.pauseForInteraction();
             
             final index = await ref.read(phraseLinkIndexProvider(phraseId).future);
 

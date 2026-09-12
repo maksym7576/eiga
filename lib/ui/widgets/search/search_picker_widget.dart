@@ -264,15 +264,31 @@ class _SearchPickerWidgetState<TEntry, TFile>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (showDetails)
-                            Text(
-                              widget.source.title,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: theme.mutedText,
-                              ),
-                            ),
+                          Consumer(
+                            builder: (context, ref, child) {
+                              String? subtitle;
+                              if (showDetails && widget.source is JimakuSubtitleSource) {
+                                final id = int.tryParse(widget.source.entryId(selectedEntry as TEntry));
+                                if (id != null) {
+                                  final summary = ref.watch(jimakuSummaryProvider(id));
+                                  if (summary != null) {
+                                    subtitle = '${summary.totalFileCount} Files • ${summary.episodeCount} Episodes';
+                                  }
+                                }
+                              }
+
+                              return Text(
+                                showDetails
+                                    ? (subtitle ?? widget.source.title)
+                                    : widget.source.title,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.mutedText,
+                                ),
+                              );
+                            },
+                          ),
                           Text(
                             showDetails
                                 ? widget.source.entryLabel(selectedEntry as TEntry)
@@ -451,6 +467,11 @@ class _SearchPickerWidgetState<TEntry, TFile>
         ),
       ],
     );
+  }
+
+  @Deprecated('Use buildFilterBar in source instead')
+  Widget _buildFileListSummary(AdditionalWindowTheme theme) {
+    return const SizedBox.shrink();
   }
 
   @override

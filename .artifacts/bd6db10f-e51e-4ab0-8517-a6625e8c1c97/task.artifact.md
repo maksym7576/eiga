@@ -1,28 +1,8 @@
-- [x] `AiModel` Schema & Seeds Update
-    - [x] Update `AiModel` schema with usage and customization fields
-    - [x] Update `AiModel` seeds with initial data for new fields
-- [x] Backend Services
-    - [x] Create `AiModelService` for CRUD operations
-    - [x] Update `IsarService` for robust seeding
-- [x] Configs & State
-    - [x] Create `TranslationPipelineStep` enum
-    - [x] Create `AppConfigs` (SharedPreferences)
-- [x] UI Components
-    - [x] Create `AppAppBarTheme`
-    - [x] Create `AppAppBar` (formerly `AppBarWidget`)
-    - [x] Create `EigaLogoAnimation` in `animations/` folder
-    - [x] Create `ModelPreviewWidget` (Detailed with active model selection)
-    - [x] Create `ModelWidget` (Cards with usage limits and streaming)
-    - [x] Create `EqualToggleButtons`
-- [x] Integration & State
-    - [x] Update `ai_models_state_provider` to handle persistence and streaming
-- [x] Data Management
-    - [x] Implement "Clear All Data" in `SettingsScreen`
-    - [x] Fix default model names in `AppConfigs`
-- [x] Translation Pipelines Migration
-    - [x] Create `PipelineStepType` and mapping
-    - [x] Create `PipelineAbstract` with `Video` support
-    - [x] Create `TotalPipeline` (1-step)
-    - [x] Create `ContextTranslationPipeline` (3-step)
-    - [x] Create `PipelineManager` with Registry
-    - [x] Create `VideoService` and providers
+- [ ] **Background Sync & Memory Optimization**
+    - [ ] Update `AudioSyncService` to support background VAD with `RootIsolateToken`
+    - [ ] Optimize `AudioSyncService` to allow external `VadIterator` passing
+    - [ ] Update `evaluateAllEpisodeSubtitles` in `UploadNotifier` to reuse `VadIterator`
+    - [ ] Ensure full background execution using `compute` or manual Isolate
+    - [ ] Automate batch evaluation trigger on episode selection
+    - [ ] Fix state persistence to prevent results from clearing
+    - [ ] Verify UI smoothness and result persistence
