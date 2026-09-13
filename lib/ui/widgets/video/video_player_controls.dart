@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../providers/ui/player_provider.dart';
 import '../../../providers/ui/video_data_providers.dart';
 import '../../styles/app_colors.dart';
+import 'subtitle_settings_side_panel.dart';
 
 class VideoPlayerControls extends ConsumerWidget {
   const VideoPlayerControls({super.key});
@@ -83,25 +84,53 @@ class _TopOverlay extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLocked = ref.watch(playerProvider.select((s) => s.isLocked));
+    final isFullscreen = ref.watch(playerProvider.select((s) => s.isFullscreen));
 
-    return GestureDetector(
-      onTap: () {
-        ref.read(playerProvider.notifier).toggleLock(MediaQuery.of(context).orientation);
-        ref.read(playerProvider.notifier).resetHideTimer();
-      },
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.45),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: () {
+            ref.read(playerProvider.notifier).toggleLock(MediaQuery.of(context).orientation);
+            ref.read(playerProvider.notifier).resetHideTimer();
+          },
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.45),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1),
+            ),
+            child: Icon(
+              isLocked ? Icons.lock : Icons.lock_open,
+              color: Colors.white,
+              size: 16,
+            ),
+          ),
         ),
-        child: Icon(
-          isLocked ? Icons.lock : Icons.lock_open,
-          color: Colors.white,
-          size: 16,
-        ),
-      ),
+        if (isFullscreen && !isLocked) ...[
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () {
+              SubtitleSettingsSidePanel.show(context);
+              ref.read(playerProvider.notifier).resetHideTimer();
+            },
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.45),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1),
+              ),
+              child: const Icon(
+                Icons.subtitles_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

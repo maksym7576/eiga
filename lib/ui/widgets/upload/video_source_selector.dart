@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../providers/ui/upload_provider.dart';
 import '../../../providers/ui/search_provider.dart';
-import '../../styles/additional_window_theme.dart';
+import 'package:eiga/ui/styles/additional_window_theme.dart';
 import '../shared/app_selection_tile.dart';
 
 class VideoSourceSelector extends ConsumerWidget {
@@ -40,10 +40,6 @@ class VideoSourceSelector extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildTile(ref, VideoSource.file, isExpanded),
-                    const SizedBox(height: 10),
-                    _buildTile(ref, VideoSource.url, isExpanded),
-                    const SizedBox(height: 10),
-                    _buildTile(ref, VideoSource.youtube, isExpanded),
                   ],
                 )
               : _buildTile(ref, selected, isExpanded, showToggle: true),
@@ -77,24 +73,18 @@ class VideoSourceSelector extends ConsumerWidget {
   String _getSourceTitle(VideoSource type) {
     switch (type) {
       case VideoSource.file: return 'Local File';
-      case VideoSource.url: return 'Direct URL';
-      case VideoSource.youtube: return 'YouTube';
     }
   }
 
   String _getSourceSubtitle(VideoSource type) {
     switch (type) {
       case VideoSource.file: return '';
-      case VideoSource.url: return 'External link';
-      case VideoSource.youtube: return 'Video sharing service';
     }
   }
 
   IconData _getSourceIcon(VideoSource type) {
     switch (type) {
       case VideoSource.file: return Icons.file_present_rounded;
-      case VideoSource.url: return Icons.link_rounded;
-      case VideoSource.youtube: return Icons.play_circle_outline_rounded;
     }
   }
 }

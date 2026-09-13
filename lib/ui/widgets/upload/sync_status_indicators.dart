@@ -62,11 +62,33 @@ Widget buildBatchProgress(UploadState state, AdditionalWindowTheme theme) {
         if (isBatch) ...[
           const SizedBox(height: 8),
           Text(
-            'Processing version ${state.currentEvaluationIndex} of ${state.totalEvaluationCount}...',
+            'Processing version ${state.currentEvaluationIndex} of ${state.totalEvaluationCount}: ${state.subtitleFileName ?? "subtitles"}',
             style: TextStyle(
               fontSize: 10, 
               fontWeight: FontWeight.w600, 
               color: theme.mutedText,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Extracting audio features, running Silero VAD neural analysis & cross-correlation...',
+            style: TextStyle(
+              fontSize: 9, 
+              fontStyle: FontStyle.italic, 
+              color: AppColors.slate500,
+            ),
+            maxLines: 2,
+          ),
+        ] else if (state.isCheckingSync) ...[
+          const SizedBox(height: 8),
+          const Text(
+            'Analyzing video segments & synchronizing time markers...',
+            style: TextStyle(
+              fontSize: 10, 
+              fontWeight: FontWeight.w600, 
+              color: AppColors.slate500,
             ),
           ),
         ],

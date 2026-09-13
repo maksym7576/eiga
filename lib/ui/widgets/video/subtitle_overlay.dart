@@ -4,6 +4,7 @@ import '../../../backend/database/schemas/phrase.dart';
 import '../../../providers/ui/video_data_providers.dart';
 import '../../../providers/ui/player_provider.dart';
 import '../../../providers/services/reading_type_provider.dart';
+import '../../../providers/ui/subtitle_settings_provider.dart';
 import 'subtitle_text_content.dart';
 
 class SubtitleOverlay extends ConsumerWidget {
@@ -32,19 +33,82 @@ class SubtitleOverlay extends ConsumerWidget {
     final addOpt = readingState?.additionalOption;
     final showTranslation = readingState?.showTranslation ?? true;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-      alignment: Alignment.bottomCenter,
-      child: SubtitleTextContent(
-        phrase: phrase,
-        mainOption: mainOpt,
-        additionalOption: addOpt,
-        showTranslation: showTranslation,
-        baseFontSize: 22,
-        textAlign: TextAlign.center,
-        textColor: Colors.white,
-        useShadows: true,
+    final settings = ref.watch(subtitleSettingsProvider);
+    
+    final highlightedWords = ref.watch(highlightedWordIdsProvider);
+    final highlightedTranslations = ref.watch(highlightedTranslationIdsProvider);
+    final bool isBlockSelected = highlightedWords.isNotEmpty || highlightedTranslations.isNotEmpty;
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: settings.verticalOffset, // Pure offset from the bottom
+      child: Center(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 150),
+          reverseDuration: const Duration(milliseconds: 100),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+            return Stack(
+              alignment: Alignment.center,
+              children: <Widget>[
+                ...previousChildren,
+                if (currentChild != null) currentChild,
+              ],
+            );
+          },
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            final isEntering = child.key == ValueKey('phrase_${phrase?.id}');
+            
+            return FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween<double>(
+                  begin: isEntering ? 0.96 : 1.0,
+                  end: isEntering ? 1.0 : 1.04,
+                ).animate(animation),
+                child: child,
+              ),
+            );
+          },
+          child: phrase == null 
+              ? const SizedBox.shrink(key: ValueKey('empty_subtitle'))
+              : GestureDetector(
+                  key: ValueKey('phrase_${phrase.id}'),
+                  onTap: isBlockSelected ? () {
+                    // Deselect and resume playback
+                    ref.read(selectedBlockIdProvider.notifier).state = null;
+                    ref.read(clickedWordIdProvider.notifier).state = null;
+                    ref.read(clickedTranslationWordIdProvider.notifier).state = null;
+                    ref.read(clickedWordPositionProvider.notifier).state = null;
+                    ref.read(selectionAnchorTypeProvider.notifier).state = null;
+                    ref.read(highlightedWordIdsProvider.notifier).state = {};
+                    ref.read(highlightedTranslationIdsProvider.notifier).state = {};
+                    ref.read(playerProvider.notifier).resumeFromInteraction();
+                  } : null,
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    padding: EdgeInsets.all(settings.backdropPadding),
+                    decoration: BoxDecoration(
+                      color: settings.showBackdrop
+                          ? Colors.black.withOpacity(settings.backdropOpacity)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: SubtitleTextContent(
+                      phrase: phrase,
+                      mainOption: mainOpt,
+                      additionalOption: addOpt,
+                      showTranslation: showTranslation,
+                      baseFontSize: settings.baseFontSize,
+                      textAlign: TextAlign.center,
+                      textColor: Colors.white,
+                      useShadows: settings.outlineWidth > 0,
+                    ),
+                  ),
+                ),
+        ),
       ),
     );
   }

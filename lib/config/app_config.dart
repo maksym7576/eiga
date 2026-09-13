@@ -32,8 +32,17 @@ class AppConfig {
   static const _keySecondsAhead = 'seconds_before_send';
   static const _keyNumberOfPhrases = 'number_of_phrases';
   static const _keyIsAutomaticModelSwitch = 'is_automatic_model_switch';
+  static const _keyIsAutoLockEnabled = 'is_auto_lock_enabled';
   static const _keyLastResetDate = 'last_reset_date_utc';
   static const _keyMaxConcurrentProcesses = 'max_concurrent_processes';
+  
+  // Subtitle Settings Keys
+  static const _keySubFontSize = 'sub_font_size';
+  static const _keySubOutlineWidth = 'sub_outline_width';
+  static const _keySubBackdropOpacity = 'sub_backdrop_opacity';
+  static const _keySubBackdropPadding = 'sub_backdrop_padding';
+  static const _keySubShowBackdrop = 'sub_show_backdrop';
+  static const _keySubVerticalOffset = 'sub_vertical_offset';
   
   static const _keyBatchSizeTranslate = 'batch_size_translate';
   static const _keyBatchSizeTokenize = 'batch_size_tokenize';
@@ -81,6 +90,34 @@ class AppConfig {
     await _prefs.setBool(_keyIsAutomaticModelSwitch, value);
   }
 
+  Future<void> setIsAutoLockEnabled(bool value) async {
+    await _prefs.setBool(_keyIsAutoLockEnabled, value);
+  }
+
+  Future<void> setSubFontSize(double value) async {
+    await _prefs.setDouble(_keySubFontSize, value);
+  }
+
+  Future<void> setSubOutlineWidth(double value) async {
+    await _prefs.setDouble(_keySubOutlineWidth, value);
+  }
+
+  Future<void> setSubBackdropOpacity(double value) async {
+    await _prefs.setDouble(_keySubBackdropOpacity, value);
+  }
+
+  Future<void> setSubBackdropPadding(double value) async {
+    await _prefs.setDouble(_keySubBackdropPadding, value);
+  }
+
+  Future<void> setSubShowBackdrop(bool value) async {
+    await _prefs.setBool(_keySubShowBackdrop, value);
+  }
+
+  Future<void> setSubVerticalOffset(double value) async {
+    await _prefs.setDouble(_keySubVerticalOffset, value);
+  }
+
   Future<void> setActiveModelForStep(TranslationPipelineStep step, String modelName) async {
     await _prefs.setString(_modelKey(step), modelName);
   }
@@ -99,6 +136,15 @@ class AppConfig {
   int get getSyncPointDurationMinutes => _prefs.getInt(_keySyncPointDurationMinutes) ?? defaultSyncPointDurationMinutes;
 
   bool get getIsAutomaticModelSwitch => _prefs.getBool(_keyIsAutomaticModelSwitch) ?? true;
+
+  bool get getIsAutoLockEnabled => _prefs.getBool(_keyIsAutoLockEnabled) ?? true;
+
+  double get getSubFontSize => _prefs.getDouble(_keySubFontSize) ?? 22.0;
+  double get getSubOutlineWidth => _prefs.getDouble(_keySubOutlineWidth) ?? 1.0;
+  double get getSubBackdropOpacity => _prefs.getDouble(_keySubBackdropOpacity) ?? 0.6;
+  double get getSubBackdropPadding => _prefs.getDouble(_keySubBackdropPadding) ?? 8.0;
+  bool get getSubShowBackdrop => _prefs.getBool(_keySubShowBackdrop) ?? true;
+  double get getSubVerticalOffset => _prefs.getDouble(_keySubVerticalOffset) ?? 0.0;
 
   String? get getLastResetDate => _prefs.getString(_keyLastResetDate);
 

@@ -5,6 +5,7 @@ import '../../../backend/database/schemas/word.dart';
 import '../../../backend/database/schemas/specific_word_style.dart';
 import '../../../providers/ui/player_provider.dart';
 import '../../../providers/ui/video_data_providers.dart';
+import '../../styles/app_colors.dart';
 
 class RubyText extends HookConsumerWidget {
   final Word word;
@@ -91,6 +92,12 @@ class RubyText extends HookConsumerWidget {
         // Filter: Keep only Letters (\p{L}), Numbers (\p{N}), and Whitespace (\s).
         final pattern = RegExp(r'[^\p{L}\p{N}\s]', unicode: true);
         annotationText = annotationText.replaceAll(pattern, '');
+
+        // Fix: Skip rendering the annotation if it's identical to the base text
+        // (common with Japanese particles like 'wa' or 'kara')
+        if (annotationText.trim() == baseText.trim()) {
+          annotationText = null;
+        }
       }
     }
 
@@ -106,7 +113,7 @@ class RubyText extends HookConsumerWidget {
 
     final effectiveBaseStyle = (baseStyle ?? const TextStyle(fontSize: 17.5, color: Color(0xFF0F172A), fontFamily: 'Noto Serif JP')).copyWith(
       color: customColor ?? (baseStyle?.color),
-      fontWeight: isSelected ? FontWeight.bold : (customWeight ?? baseStyle?.fontWeight),
+      fontWeight: isSelected ? FontWeight.w900 : (customWeight ?? baseStyle?.fontWeight),
     );
 
     final effectiveAnnotationStyle = (annotationStyle ?? 
@@ -116,17 +123,26 @@ class RubyText extends HookConsumerWidget {
 
     final bool isPunctuation = RegExp(r'^[\p{P}\p{S}]+$', unicode: true).hasMatch(baseText.trim());
 
-    final Widget baseTextWidget = AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+    final Widget baseTextWidget = Container(
       padding: EdgeInsets.symmetric(
-        horizontal: (isSelected && word.isClickable && !isPunctuation) ? 2 : 0, 
+        horizontal: (isSelected && word.isClickable && !isPunctuation) ? 3 : 0, 
         vertical: 1
       ),
       decoration: BoxDecoration(
         color: (isSelected && word.isClickable && !isPunctuation) 
-            ? (hasNoTranslation ? const Color(0xFFE2E8F0) : const Color(0xFF3B66F5).withValues(alpha: 0.12))
+            ? (hasNoTranslation 
+                ? const Color(0xFFE2E8F0).withValues(alpha: 0.8) 
+                : AppColors.brandBlue.withValues(alpha: 0.35))
             : Colors.transparent,
         borderRadius: BorderRadius.circular(6),
+        border: (isSelected && word.isClickable && !isPunctuation)
+            ? Border.all(
+                color: hasNoTranslation 
+                    ? Colors.black12 
+                    : AppColors.brandBlue.withValues(alpha: 0.5),
+                width: 1.2,
+              )
+            : null,
       ),
       child: Text(baseText, style: effectiveBaseStyle),
     );

@@ -118,7 +118,7 @@ Widget buildTechDetails(
                 ],
               ),
             ),
-            if (currentOffset != null && currentOffset.inMilliseconds.abs() > 50) ...[
+            if (currentOffset != null && currentOffset.inMilliseconds != 0) ...[
               const SizedBox(height: 14),
 
               SizedBox(

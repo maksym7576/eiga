@@ -61,6 +61,19 @@ class _GeneralSettingsScreenState extends ConsumerState<GeneralSettingsScreen> {
               },
             ),
             const SizedBox(height: 24),
+            _buildSectionHeader(context, 'PLAYER AUTOMATION'),
+            const SizedBox(height: 8),
+            _buildSwitchCard(
+              context,
+              title: 'Full-screen Auto-Lock',
+              subtitle: 'Automatically lock screen controls after 10 seconds in full-screen.',
+              value: config.getIsAutoLockEnabled,
+              onChanged: (val) async {
+                await config.setIsAutoLockEnabled(val);
+                setState(() {});
+              },
+            ),
+            const SizedBox(height: 24),
             _buildSectionHeader(context, 'STAGE MODELS'),
             const SizedBox(height: 8),
             _buildModelButtonsGrid(context),

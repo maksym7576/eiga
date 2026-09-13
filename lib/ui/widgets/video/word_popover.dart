@@ -609,7 +609,9 @@ class WordPopover extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
                       icon: const Icon(Icons.close_rounded, color: AppColors.slate400),
                     ),
                   ],
@@ -628,7 +630,10 @@ class WordPopover extends ConsumerWidget {
           ),
         ),
       ),
-    );
+    ).then((_) {
+      // Resume playback when the dialog is dismissed
+      ref.read(playerProvider.notifier).resumeFromInteraction();
+    });
   }
 }
 

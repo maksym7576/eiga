@@ -19,6 +19,27 @@ final playerIdProvider = StateProvider<int?>((ref) {
   return null;
 });
 
+final phraseDataPrefetcherProvider = Provider<void>((ref) {
+  final phrases = ref.watch(phrasesStreamProvider).value ?? [];
+  final currentTime = ref.watch(playerTimeProvider);
+  if (phrases.isEmpty) return;
+
+  final startBase = DateTime(1970, 1, 1);
+  final prefetchWindow = const Duration(seconds: 15);
+  
+  final upcomingPhrases = phrases.where((p) {
+    if (p.startTime == null) return false;
+    final start = p.startTime!.difference(startBase);
+    return start > currentTime && start < currentTime + prefetchWindow;
+  });
+
+  for (final p in upcomingPhrases) {
+    // Warm up the providers for the next phrases
+    ref.watch(phraseWordsProvider(p.id));
+    ref.watch(phraseTranslationTokensProvider(p.id));
+  }
+});
+
 final selectedBlockIdProvider = StateProvider<int?>((ref) => null);
 
 final clickedWordIdProvider = StateProvider<int?>((ref) => null);

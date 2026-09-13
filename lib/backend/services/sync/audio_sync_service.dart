@@ -100,8 +100,10 @@ class AudioSyncService {
 
   final Map<int, List<double>> _cachedAudioSignals = {};
   String? _lastVideoPath;
+  int? _cachedVideoDuration;
   
   VadIterator? _persistentVad;
+  Future<void>? _syncLock;
 
   Future<void> _ensureVadInitialized() async {
     if (_persistentVad != null) return;
@@ -136,12 +138,45 @@ class AudioSyncService {
   void clearCache() {
     _cachedAudioSignals.clear();
     _lastVideoPath = null;
+    _cachedVideoDuration = null;
     _persistentVad?.release();
     _persistentVad = null;
     developer.log('Sync cache cleared', name: 'AudioSync');
   }
 
+  Future<T> _runLocked<T>(Future<T> Function() action) async {
+    while (_syncLock != null) {
+      await _syncLock;
+    }
+    final completer = Completer<void>();
+    _syncLock = completer.future;
+    try {
+      return await action();
+    } finally {
+      _syncLock = null;
+      completer.complete();
+    }
+  }
+
   Future<SyncResult> analyzeSync({
+    required String videoPath,
+    required List<Phrase> phrases,
+    VadIterator? externalVad,
+    int? durationS,
+    int? skipMinutes,
+    int? pointDurationMinutes,
+  }) async {
+    return _runLocked(() => _analyzeSyncInternal(
+      videoPath: videoPath,
+      phrases: phrases,
+      externalVad: externalVad,
+      durationS: durationS,
+      skipMinutes: skipMinutes,
+      pointDurationMinutes: pointDurationMinutes,
+    ));
+  }
+
+  Future<SyncResult> _analyzeSyncInternal({
     required String videoPath,
     required List<Phrase> phrases,
     VadIterator? externalVad,
@@ -270,37 +305,43 @@ class AudioSyncService {
 
   /// Pre-generates voice maps for a video to speed up batch processing.
   Future<void> preheatVoiceMaps(String videoPath, {int? durationS}) async {
-    if (_lastVideoPath == videoPath && _cachedAudioSignals.isNotEmpty) return;
-    
-    clearCache();
-    _lastVideoPath = videoPath;
+    await _runLocked(() async {
+      if (_lastVideoPath == videoPath && _cachedAudioSignals.isNotEmpty) return;
+      
+      clearCache();
+      _lastVideoPath = videoPath;
 
-    int effectiveDuration = durationS ?? 0;
-    if (effectiveDuration <= 0) {
-      effectiveDuration = await _getVideoDuration(videoPath);
-    }
-
-    final segments = _generateDynamicSegments(effectiveDuration);
-    developer.log('Pre-heating ${segments.length} segments for video ($effectiveDuration s)', name: 'AudioSync');
-
-    try {
-      await _ensureVadInitialized();
-      final vadIterator = _persistentVad;
-      if (vadIterator == null) return;
-
-      for (var seg in segments) {
-        developer.log('Pre-heating segment at ${seg.startS}s', name: 'AudioSync');
-        final signal = await _extractAndGenerateVoiceMap(videoPath, seg, vadIterator);
-        if (signal != null) {
-          _cachedAudioSignals[seg.startS] = signal;
-        }
+      int effectiveDuration = durationS ?? 0;
+      if (effectiveDuration <= 0) {
+        effectiveDuration = await _getVideoDuration(videoPath);
       }
-    } catch (e, st) {
-      developer.log('Pre-heat failed', name: 'AudioSync', error: e, stackTrace: st);
-    }
+
+      final segments = _generateDynamicSegments(effectiveDuration);
+      developer.log('Pre-heating ${segments.length} segments for video ($effectiveDuration s)', name: 'AudioSync');
+
+      try {
+        await _ensureVadInitialized();
+        final vadIterator = _persistentVad;
+        if (vadIterator == null) return;
+
+        for (var seg in segments) {
+          developer.log('Pre-heating segment at ${seg.startS}s', name: 'AudioSync');
+          final signal = await _extractAndGenerateVoiceMap(videoPath, seg, vadIterator);
+          if (signal != null) {
+            _cachedAudioSignals[seg.startS] = signal;
+          }
+        }
+      } catch (e, st) {
+        developer.log('Pre-heat failed', name: 'AudioSync', error: e, stackTrace: st);
+      }
+    });
   }
 
   Future<int> _getVideoDuration(String videoPath) async {
+    if (_lastVideoPath == videoPath && _cachedVideoDuration != null) {
+      return _cachedVideoDuration!;
+    }
+
     try {
       // Using FFmpeg to get duration if FFprobe is not directly exposed
       // ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 input.mp4
@@ -320,7 +361,8 @@ class AudioSyncService {
         final h = int.parse(match.group(1)!);
         final m = int.parse(match.group(2)!);
         final s = int.parse(match.group(3)!);
-        return h * 3600 + m * 60 + s;
+        _cachedVideoDuration = h * 3600 + m * 60 + s;
+        return _cachedVideoDuration!;
       }
     } catch (e) {
       developer.log('Failed to get video duration: $e', name: 'AudioSync');

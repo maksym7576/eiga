@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../backend/database/schemas/translation_job.dart';
+import '../../../providers/ui/player_provider.dart';
 import '../../../providers/ui/video_data_providers.dart';
 import '../../../providers/ui/main_hub_providers.dart';
 import '../../styles/app_colors.dart';
@@ -15,6 +16,9 @@ class VideoBottomDock extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isFullscreen = ref.watch(playerProvider.select((s) => s.isFullscreen));
+    if (isFullscreen) return const SizedBox.shrink();
+
     final phrasesAsync = ref.watch(phrasesStreamProvider);
     final isAutoScrollEnabled = ref.watch(isAutoScrollEnabledProvider);
     

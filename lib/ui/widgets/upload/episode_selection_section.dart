@@ -173,14 +173,33 @@ class EpisodeSelectionSection extends ConsumerWidget {
                 ),
               ),
               const Spacer(),
+              if (!state.isEvaluatingBatch && !state.isCheckingSync && state.episode != null && (state.subtitleSource == SubtitleSource.jimaku || state.subtitleSource == SubtitleSource.wyzie)) ...[
+                ElevatedButton(
+                  onPressed: () {
+                    final sourceKey = state.subtitleSource == SubtitleSource.jimaku ? SearchSourceKeys.jimaku : SearchSourceKeys.wyzie;
+                    final entry = ref.read(selectedEntryProvider(sourceKey));
+                    if (entry is UnifiedMetadataDTO) {
+                      ref.read(uploadProvider.notifier).evaluateAllEpisodeSubtitles();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.primaryAccent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Start Analysis', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 8),
+              ],
               if (state.previewPhrases.isNotEmpty)
                 AppTextButton(
                   onPressed: () => _showPreview(context, state),
                   text: 'Manual Preview',
                 ),
-              if (state.isCheckingSync || state.isEvaluatingBatch) ...[
-                const SizedBox(width: 8),
-              ],
             ],
           ),
           if (state.isEvaluatingBatch || state.isCheckingSync) ...[

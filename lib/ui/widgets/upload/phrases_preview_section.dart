@@ -13,8 +13,9 @@ class PhrasesPreviewSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = AdditionalWindowTheme.of(context);
     final state = ref.watch(uploadProvider);
+    final notifier = ref.read(uploadProvider.notifier);
 
-    if (!state.isParsing && state.previewPhrases.isEmpty) {
+    if (!state.isParsing && state.previewPhrases.isEmpty && state.availableStreams.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -30,27 +31,58 @@ class PhrasesPreviewSection extends ConsumerWidget {
               color: Colors.white,
               border: Border(bottom: BorderSide(color: theme.dividerColor)),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Phrases Preview',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: theme.normalText),
+                    Row(
+                      children: [
+                        Text(
+                          'Phrases Preview',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: theme.normalText),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '(${state.previewPhrases.length} lines)',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: theme.mutedText),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '(${state.previewPhrases.length} lines)',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: theme.mutedText),
-                    ),
+                    if (state.previewPhrases.length > 5)
+                      AppTextButton(
+                        onPressed: () => _showAllPhrases(context, state, theme),
+                        text: 'See all phrases',
+                      ),
                   ],
                 ),
-                if (state.previewPhrases.length > 5)
-                  AppTextButton(
-                    onPressed: () => _showAllPhrases(context, state, theme),
-                    text: 'See all phrases',
+                if (state.availableStreams.keys.length > 1) ...[
+                  const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: state.availableStreams.keys.map((streamKey) {
+                        final isSelected = state.selectedStreamKey == streamKey;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text('$streamKey (${state.availableStreams[streamKey]?.length ?? 0})', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              if (selected) {
+                                notifier.selectSubtitleStream(streamKey);
+                              }
+                            },
+                            selectedColor: theme.primaryAccent.withValues(alpha: 0.2),
+                            backgroundColor: AppColors.slate100,
+                            labelStyle: TextStyle(color: isSelected ? theme.primaryAccent : AppColors.slate700),
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ),
+                ],
               ],
             ),
           ),

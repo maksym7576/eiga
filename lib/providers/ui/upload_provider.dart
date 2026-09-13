@@ -23,7 +23,7 @@ import '../../config/secure_storage.dart';
 
 final videoPathProvider = StateProvider<String?>((ref) => null);
 
-enum VideoSource { url, youtube, file }
+enum VideoSource { file }
 enum SubtitleSource { local, jimaku, wyzie }
 enum SyncMatchStatus { idle, analyzing, perfect, offset, mismatch, error }
 
@@ -87,6 +87,9 @@ class UploadState {
   final int currentEvaluationIndex;
   final int totalEvaluationCount;
 
+  final Map<String, List<Phrase>> availableStreams;
+  final String? selectedStreamKey;
+
   UploadState({
     this.videoSource = VideoSource.file,
     this.subtitleSource = SubtitleSource.local,
@@ -98,6 +101,8 @@ class UploadState {
     this.episode,
     this.season,
     this.previewPhrases = const [],
+    this.availableStreams = const {},
+    this.selectedStreamKey,
     this.isParsing = false,
     this.isSaving = false,
     this.isInitialized = false,
@@ -129,6 +134,8 @@ class UploadState {
     String? episode,
     String? season,
     List<Phrase>? previewPhrases,
+    Map<String, List<Phrase>>? availableStreams,
+    String? selectedStreamKey,
     bool? isParsing,
     bool? isSaving,
     bool? isInitialized,
@@ -159,6 +166,8 @@ class UploadState {
       episode: episode ?? this.episode,
       season: season ?? this.season,
       previewPhrases: previewPhrases ?? this.previewPhrases,
+      availableStreams: availableStreams ?? this.availableStreams,
+      selectedStreamKey: selectedStreamKey ?? this.selectedStreamKey,
       isParsing: isParsing ?? this.isParsing,
       isSaving: isSaving ?? this.isSaving,
       isInitialized: isInitialized ?? this.isInitialized,
@@ -262,18 +271,6 @@ class UploadNotifier extends Notifier<UploadState> {
     ref.invalidate(searchMetadataProvider(SearchSourceKeys.jimaku));
     ref.invalidate(searchMetadataProvider(SearchSourceKeys.wyzie));
     ref.invalidate(searchMetadataProvider(SearchSourceKeys.anilist));
-    ref.invalidate(languageProvider);
-
-    state = state.copyWith(
-      analyzedVersions: [], 
-      isEvaluatingBatch: false,
-      syncPnr: 0.0,
-      syncUniqueness: 0.0,
-      syncConsensus: 0,
-      syncTotalSegments: 0,
-      syncExplanation: null,
-      syncCheckpoints: [],
-    );
   }
 
   Future<void> pickVideo() async {
@@ -314,25 +311,45 @@ class UploadNotifier extends Notifier<UploadState> {
       subtitleFileName: p.basename(path),
       isParsing: true,
       previewPhrases: [],
+      availableStreams: {},
+      selectedStreamKey: null,
       episode: episode ?? state.episode ?? info.episode,
       season: season ?? state.season ?? info.season,
     );
 
     final depacker = ref.read(subtitleDepackerServiceProvider);
     try {
-      final phrases = await depacker.parseSrtPreview(
+      final streams = await depacker.parseMultiStreamPreview(
         filePath: path,
         language: 'Japanese', 
       );
-      state = state.copyWith(previewPhrases: phrases, isParsing: false);
+      
+      final defaultKey = streams.keys.isNotEmpty ? streams.keys.first : null;
+      final phrases = defaultKey != null ? (streams[defaultKey] ?? []) : <Phrase>[];
+
+      state = state.copyWith(
+        availableStreams: streams,
+        selectedStreamKey: defaultKey,
+        previewPhrases: phrases,
+        isParsing: false,
+      );
       checkSynchronization();
     } catch (e) {
       state = state.copyWith(isParsing: false);
     }
   }
 
+  void selectSubtitleStream(String streamKey) {
+    final phrases = state.availableStreams[streamKey] ?? [];
+    state = state.copyWith(
+      selectedStreamKey: streamKey,
+      previewPhrases: phrases,
+    );
+    checkSynchronization();
+  }
+
   Future<void> checkSynchronization() async {
-    if (state.videoPath == null || state.previewPhrases.isEmpty) return;
+    if (state.videoPath == null || state.previewPhrases.isEmpty || state.isCheckingSync) return;
 
     developer.log('Triggering synchronization check...', name: 'UploadProvider');
     state = state.copyWith(
@@ -417,17 +434,17 @@ class UploadNotifier extends Notifier<UploadState> {
       previewPhrases: updatedPhrases,
       syncStatus: SyncMatchStatus.analyzing,
       suggestedOffset: null,
-      syncCheckpoints: [], 
-      // Reset the current version's offset in the list so the UI reflects the pending re-analysis
+      syncCheckpoints: [],
+      // Update the current version in the list so switches don't revert the shift
       analyzedVersions: state.analyzedVersions.map((v) {
         if (v.fileName == state.subtitleFileName) {
           return AnalyzedSubtitle(
             fileName: v.fileName,
             path: v.path,
             confidence: v.confidence,
-            offset: Duration.zero, // Temporary zero to hide button
+            offset: Duration.zero, 
             phrases: updatedPhrases,
-            explanation: v.explanation,
+            explanation: 'Applied ${offset.inMilliseconds}ms shift. Re-analyzing...',
             pnr: v.pnr,
             uniqueness: v.uniqueness,
             consensusCount: v.consensusCount,
@@ -471,7 +488,7 @@ class UploadNotifier extends Notifier<UploadState> {
             confidence: v.confidence,
             offset: Duration.zero,
             phrases: updatedPhrases,
-            explanation: v.explanation,
+            explanation: 'Manual shift applied. Re-analyzing...',
             pnr: v.pnr,
             uniqueness: v.uniqueness,
             consensusCount: v.consensusCount,
@@ -552,12 +569,18 @@ class UploadNotifier extends Notifier<UploadState> {
       }
 
       final targetEpInt = int.tryParse(state.episode ?? '');
-      final List<FileJimakuDTO> episodeFiles = rawFiles.where((f) {
+      List<FileJimakuDTO> episodeFiles = rawFiles.where((f) {
         final parsedInfo = parseSeasonEpisode(f.name);
         if (parsedInfo.episode == null) return false;
         final parsedEpInt = int.tryParse(parsedInfo.episode!);
-        return parsedEpInt != null && parsedEpInt == targetEpInt;
+        return parsedEpInt != null && targetEpInt != null && parsedEpInt == targetEpInt;
       }).toList();
+
+      // Fallback: if strict filtering returned nothing, but we have raw files, use all files or lenient match
+      if (episodeFiles.isEmpty && rawFiles.isNotEmpty) {
+        developer.log('Strict episode filtering yielded 0 files for ep $targetEpInt. Falling back to all raw files.', name: 'UploadProvider');
+        episodeFiles = rawFiles;
+      }
 
       if (episodeFiles.isEmpty) {
         state = state.copyWith(isEvaluatingBatch: false, syncStatus: SyncMatchStatus.mismatch);
@@ -573,12 +596,22 @@ class UploadNotifier extends Notifier<UploadState> {
         
         try {
           developer.log('Batch sync: Evaluating ${file.name}', name: 'UploadProvider');
+          
+          // Add a small delay between file downloads to avoid rate limits
+          if (i > 0) {
+            await Future.delayed(const Duration(milliseconds: 800));
+          }
+
           final path = isJimaku
               ? await (await ref.read(jimakuServiceProvider.future)).downloadAndCacheFile(file.url, preferredName: file.name)
               : await (await ref.read(wyzieServiceProvider.future)).downloadAndCacheFile(file.url, preferredName: file.name);
           
           final depacker = ref.read(subtitleDepackerServiceProvider);
           final phrases = await depacker.parseSrtPreview(filePath: path, language: 'Japanese');
+          
+          // Re-check if batch evaluation was cancelled or changed
+          if (!state.isEvaluatingBatch) return;
+
           final result = await syncService.analyzeSync(
             videoPath: state.videoPath!, 
             phrases: phrases,

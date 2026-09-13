@@ -69,6 +69,19 @@ const TranslationWordSchema = CollectionSchema(
         ),
       ],
     ),
+    r'text': IndexSchema(
+      id: 5145922347574273553,
+      name: r'text',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'text',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+      ],
+    ),
   },
   links: {},
   embeddedSchemas: {},
@@ -506,6 +519,82 @@ extension TranslationWordQueryWhere
           includeUpper: includeUpper,
         ),
       );
+    });
+  }
+
+  QueryBuilder<TranslationWord, TranslationWord, QAfterWhereClause>
+  textIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'text', value: [null]),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationWord, TranslationWord, QAfterWhereClause>
+  textIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'text',
+          lower: [null],
+          includeLower: false,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationWord, TranslationWord, QAfterWhereClause> textEqualTo(
+    String? text,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'text', value: [text]),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationWord, TranslationWord, QAfterWhereClause>
+  textNotEqualTo(String? text) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'text',
+                lower: [],
+                upper: [text],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'text',
+                lower: [text],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'text',
+                lower: [text],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'text',
+                lower: [],
+                upper: [text],
+                includeUpper: false,
+              ),
+            );
+      }
     });
   }
 }

@@ -48,13 +48,13 @@ Widget buildVersionSelectorCard(
         showToggle: true,
         onTap: onTap ?? () => showVersionSelectionDialog(context, state, theme, notifier),
       ),
-      if (showTechDetails && selectedVersion != null && isExpanded != null) ...[
+      if (showTechDetails && isExpanded != null) ...[
         buildTechDetails(
           state,
           theme,
           notifier,
           isExpanded,
-          currentOffset: selectedVersion.offset,
+          currentOffset: state.suggestedOffset ?? selectedVersion?.offset,
         ),
       ],
     ],

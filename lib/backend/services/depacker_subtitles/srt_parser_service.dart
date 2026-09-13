@@ -5,6 +5,13 @@ class SrtParser {
 
   SrtParser({this.removeAllSpaces = false});
 
+  Map<String, List<Phrase>> parseMultiStream(String content, int videoId) {
+    // For SRT, usually single stream, but we can check if lines contain dual language separated by newline or slash
+    final phrases = parse(content, videoId);
+    if (phrases.isEmpty) return {};
+    return {'Default SRT': phrases};
+  }
+
   List<Phrase> parse(String content, int videoId) {
     final phrases = <Phrase>[];
     int order = 1;

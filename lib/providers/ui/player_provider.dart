@@ -8,6 +8,7 @@ import '../../backend/database/schemas/video.dart';
 import '../services/database_services_providers.dart';
 import 'video_data_providers.dart';
 import 'package:isar_community/isar.dart';
+import '../services/app_configs_provider.dart';
 
 class PlayerState {
   final VideoPlayerController? controller;
@@ -47,15 +48,18 @@ class PlayerState {
 
 class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   Timer? _hideTimer;
+  Timer? _autoLockTimer;
   VideoPlayerController? _controller;
   bool _isManuallyChangingPlaying = false;
   bool _isPlayingBeforeInteraction = false;
 
-  void _updateSystemUI() {
+  void updateSystemUI() {
     if (state.isFullscreen || state.isLocked) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     } else {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      // Force status bar and navigation bar to be visible
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
     }
   }
 
@@ -108,6 +112,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       WidgetsBinding.instance.removeObserver(this);
       _disposeController();
       _hideTimer?.cancel();
+      _autoLockTimer?.cancel();
     });
 
     return initialState;
@@ -248,7 +253,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     final nextLockState = !state.isLocked;
     state = state.copyWith(isLocked: nextLockState);
 
-    _updateSystemUI();
+    updateSystemUI();
 
     if (nextLockState) {
       // Hard lock to current orientation
@@ -282,9 +287,18 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     if (state.isFullscreen == value) return;
     
     state = state.copyWith(isFullscreen: value);
+    updateSystemUI();
+
+    _autoLockTimer?.cancel();
+    if (value && ref.read(appConfigsServiceProvider).getIsAutoLockEnabled) {
+      _autoLockTimer = Timer(const Duration(seconds: 10), () {
+        if (state.isFullscreen && !state.isLocked) {
+          toggleLock(Orientation.landscape);
+        }
+      });
+    }
 
     if (updateSystem) {
-      _updateSystemUI();
       if (value) {
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.landscapeLeft,
@@ -305,14 +319,27 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     setFullscreen(!state.isFullscreen);
   }
 
+  void resetLockAndFullscreen() {
+    state = state.copyWith(isLocked: false, isFullscreen: false);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    updateSystemUI();
+  }
+
   void pauseForInteraction() {
-    _isPlayingBeforeInteraction = ref.read(isPlayingProvider);
-    setPlaying(false);
+    if (_controller != null && _controller!.value.isPlaying) {
+      _isPlayingBeforeInteraction = true;
+      ref.read(isPlayingProvider.notifier).state = false;
+    }
   }
 
   void resumeFromInteraction() {
     if (_isPlayingBeforeInteraction) {
-      setPlaying(true);
+      _isPlayingBeforeInteraction = false;
+      ref.read(isPlayingProvider.notifier).state = true;
     }
   }
 }

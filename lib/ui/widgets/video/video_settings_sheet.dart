@@ -3,6 +3,8 @@ import '../../styles/app_colors.dart';
 import '../dialogs/app_bottom_sheet.dart';
 import 'reading_type_selector_widget.dart';
 
+import 'subtitle_settings_side_panel.dart';
+
 enum _SettingsView { main, readingType }
 
 class VideoSettingsSheet extends StatefulWidget {
@@ -102,10 +104,16 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
             ),
           ),
           const SizedBox(height: 8),
-          _buildSettingsItem(
-            icon: Icons.closed_caption_rounded,
-            title: 'Subtitle Display & Size',
-            subtitle: 'Font size, line height, contrast settings',
+          GestureDetector(
+            onTap: () {
+              Navigator.pop(context); // Close the settings sheet first
+              SubtitleSettingsSidePanel.show(context);
+            },
+            child: _buildSettingsItem(
+              icon: Icons.closed_caption_rounded,
+              title: 'Subtitle Display & Size',
+              subtitle: 'Font size, line height, contrast settings',
+            ),
           ),
           const SizedBox(height: 8),
           _buildSettingsItem(

@@ -21,8 +21,9 @@ class VideoScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Warm up the translation service
+    // Warm up the translation service and prefetcher
     ref.watch(translationProvider);
+    ref.watch(phraseDataPrefetcherProvider);
     
     final videoAsync = ref.watch(currentVideoProvider);
     final isFullscreen = ref.watch(playerProvider.select((s) => s.isFullscreen));
@@ -41,6 +42,7 @@ class VideoScreen extends HookConsumerWidget {
       // Default to edge-to-edge on entry. The provider will manage
       // switching to immersive mode if needed (fullscreen/locked).
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
 
       // Allow all orientations when entering the screen
       SystemChrome.setPreferredOrientations([
@@ -55,103 +57,106 @@ class VideoScreen extends HookConsumerWidget {
       return () {
         // Restore system UI when leaving the screen
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
         SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
         
         // Allow screen to sleep again
         WakelockPlus.disable();
 
-        // Stop playback explicitly using captured notifier
-        playerNotifier.setPlaying(false);
-
-        // Clean up providers using captured setters
-        playerIdSetter.state = null;
-        selectedBlockSetter.state = null;
-        clickedWordSetter.state = null;
-        ref.read(clickedTranslationWordIdProvider.notifier).state = null;
-        ref.read(selectionAnchorTypeProvider.notifier).state = null;
-        ref.read(highlightedWordIdsProvider.notifier).state = {};
-        ref.read(highlightedTranslationIdsProvider.notifier).state = {};
-        ref.read(infoPanelTextProvider.notifier).state = null;
-        clickedWordPosSetter.state = null;
-        playerTimeSetter.state = Duration.zero;
-        isPlayingSetter.state = false;
+        // Clean up providers using captured setters in a microtask to avoid "modify while building" error
+        Future.microtask(() {
+          playerNotifier.setPlaying(false);
+          playerIdSetter.state = null;
+          selectedBlockSetter.state = null;
+          clickedWordSetter.state = null;
+          ref.read(clickedTranslationWordIdProvider.notifier).state = null;
+          ref.read(selectionAnchorTypeProvider.notifier).state = null;
+          ref.read(highlightedWordIdsProvider.notifier).state = {};
+          ref.read(highlightedTranslationIdsProvider.notifier).state = {};
+          ref.read(infoPanelTextProvider.notifier).state = null;
+          clickedWordPosSetter.state = null;
+          playerTimeSetter.state = Duration.zero;
+          isPlayingSetter.state = false;
+        });
       };
     }, []);
 
-    return OrientationBuilder(
-      builder: (context, orientation) {
-        // Sync physical orientation with provider (without forcing system rotation)
-        final bool physicalFullscreen = orientation == Orientation.landscape;
-        
-        // Use Future.microtask to avoid state update during build
-        if (physicalFullscreen != isFullscreen) {
-          Future.microtask(() {
-            ref.read(playerProvider.notifier).setFullscreen(physicalFullscreen, updateSystem: false);
-          });
-        }
+    final orientation = MediaQuery.of(context).orientation;
+    final bool isLandscape = orientation == Orientation.landscape;
 
-        return Scaffold(
-          backgroundColor: isFullscreen ? Colors.black : const Color(0xFFF8FAFC),
-          body: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 600),
-            switchInCurve: Curves.easeIn,
-            switchOutCurve: Curves.easeOut,
-            child: videoAsync.when(
-              data: (video) {
-                if (video == null || !isInitialized) {
-                  return const LoadingSplash(key: ValueKey('splash'));
-                }
+    useEffect(() {
+      final playerState = ref.read(playerProvider);
+      if (!playerState.isLocked) {
+        Future.microtask(() {
+          ref.read(playerProvider.notifier).setFullscreen(isLandscape, updateSystem: false);
+        });
+      }
+      return null;
+    }, [isLandscape]);
 
-                return Stack(
-                  key: const ValueKey('content'),
+    return Scaffold(
+      backgroundColor: isFullscreen ? Colors.black : const Color(0xFFF8FAFC),
+      body: videoAsync.when(
+        data: (video) {
+          if (video == null || !isInitialized) {
+            return const LoadingSplash(key: ValueKey('splash'));
+          }
+
+          return Stack(
+            key: const ValueKey('content'),
+            children: [
+              if (isFullscreen)
+                GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () {
+                    final playerState = ref.read(playerProvider);
+                    if (playerState.isLocked && orientation == Orientation.portrait) {
+                      ref.read(playerProvider.notifier).resetLockAndFullscreen();
+                    }
+                  },
+                  child: Stack(
+                    children: [
+                      const VideoPlayerWidget(),
+                      const Positioned.fill(child: _VideoPlayerBackgroundLayer()),
+                      const SubtitleOverlay(),
+                      const Positioned.fill(child: VideoPlayerControls()),
+                    ],
+                  ),
+                )
+              else
+                Column(
                   children: [
-                    if (isFullscreen) ...[
-                      Stack(
+                    const VideoScreenHeader(),
+                    ResizablePlayerContainer(
+                      child: Stack(
                         children: [
                           const VideoPlayerWidget(),
                           const Positioned.fill(child: _VideoPlayerBackgroundLayer()),
-                          const Positioned.fill(child: SubtitleOverlay()),
+                          const SubtitleOverlay(),
                           const Positioned.fill(child: VideoPlayerControls()),
-                          const WordPopover(),
                         ],
                       ),
-                    ] else ...[
-                      Column(
-                        children: [
-                          const VideoScreenHeader(),
-                          ResizablePlayerContainer(
-                            child: Stack(
-                              children: [
-                                const VideoPlayerWidget(),
-                                const Positioned.fill(child: _VideoPlayerBackgroundLayer()),
-                                const Positioned.fill(child: SubtitleOverlay()),
-                                const Positioned.fill(child: VideoPlayerControls()),
-                              ],
-                            ),
-                          ),
-                          const Expanded(child: PhraseListWidget()),
-                        ],
-                      ),
-                      const Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: VideoBottomDock(),
-                      ),
-                      const WordPopover(),
-                    ],
+                    ),
+                    const Expanded(child: PhraseListWidget()),
                   ],
-                );
-              },
-              loading: () => const LoadingSplash(key: ValueKey('splash')),
-              error: (err, stack) => Center(
-                key: const ValueKey('error'),
-                child: Text('Error: $err', style: const TextStyle(color: Colors.red)),
-              ),
-            ),
-          ),
-        );
-      },
+                ),
+              if (!isFullscreen)
+                const Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: VideoBottomDock(),
+                ),
+              const WordPopover(),
+            ],
+          );
+        },
+        loading: () => const LoadingSplash(key: ValueKey('splash')),
+        error: (err, stack) => Center(
+          key: const ValueKey('error'),
+          child: Text('Error: $err', style: const TextStyle(color: Colors.red)),
+        ),
+      ),
     );
   }
 }

@@ -18,11 +18,7 @@ class VideoInputSection extends ConsumerWidget {
       title: 'Upload Video File',
       subtitle: 'Tap to add the video',
       filePath: state.videoPath,
-      icon: state.videoSource == VideoSource.file 
-          ? Icons.movie_outlined 
-          : state.videoSource == VideoSource.url 
-              ? Icons.link 
-              : Icons.search,
+      icon: Icons.movie_outlined,
     );
   }
 }

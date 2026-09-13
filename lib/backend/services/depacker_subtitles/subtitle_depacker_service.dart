@@ -26,19 +26,47 @@ class SubtitleDepackerService {
     required String language,
     int videoId = 0,
   }) async {
-    String fileContent = await _readFile(filePath);
+    final streams = await parseMultiStreamPreview(filePath: filePath, language: language, videoId: videoId);
+    if (streams.isEmpty) return [];
+    return streams.values.first;
+  }
 
-    if (fileContent.isEmpty) return [];
+  Future<Map<String, List<Phrase>>> parseMultiStreamPreview({
+    required String filePath,
+    required String language,
+    int videoId = 0,
+  }) async {
+    String fileContent = await _readFile(filePath);
+    if (fileContent.isEmpty) return {};
 
     final langConfig = await languageService.getLanguageByName(language);
     final removeAllSpaces = langConfig?.removeAllSpaces ?? false;
+    final isAss = filePath.toLowerCase().endsWith('.ass');
 
-    return compute(_parseSubtitlesInIsolate, _SubtitleParseInput(
-      content: fileContent,
-      videoId: videoId,
-      removeAllSpaces: removeAllSpaces,
-      isAss: filePath.toLowerCase().endsWith('.ass'),
-    ));
+    if (isAss) {
+      return compute(_parseAssMultiStreamInIsolate, _SubtitleParseInput(
+        content: fileContent,
+        videoId: videoId,
+        removeAllSpaces: removeAllSpaces,
+        isAss: true,
+      ));
+    } else {
+      final phrases = await compute(_parseSrtInIsolate, _SubtitleParseInput(
+        content: fileContent,
+        videoId: videoId,
+        removeAllSpaces: removeAllSpaces,
+        isAss: false,
+      ));
+      return {'Default SRT': phrases};
+    }
+  }
+
+  static Map<String, List<Phrase>> _parseAssMultiStreamInIsolate(_SubtitleParseInput input) {
+    return AssParser(removeAllSpaces: input.removeAllSpaces).parseMultiStream(input.content, input.videoId);
+  }
+
+  static List<Phrase> _parseSrtInIsolate(_SubtitleParseInput input) {
+    return SrtParser(removeAllSpaces: input.removeAllSpaces).parse(input.content, input.videoId);
   }
 
   Future<void> depack(Video video, {List<Phrase>? preParsedPhrases}) async {

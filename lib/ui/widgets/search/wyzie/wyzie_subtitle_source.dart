@@ -149,10 +149,7 @@ class WyzieSubtitleSource
     final currentEp = ref.read(uploadProvider).episode;
     if (episodes.isNotEmpty) {
       if (currentEp == null) {
-        Future.microtask(() => selectEpisodeSubtitle(entry, episodes.first, ref));
-      } else {
-        // Episode already exists (e.g. from filename), trigger evaluation immediately
-        Future.microtask(() => ref.read(uploadProvider.notifier).evaluateAllEpisodeSubtitles());
+        Future.microtask(() => ref.read(uploadProvider.notifier).setEpisode(episodes.first.toString()));
       }
     }
   }
@@ -221,7 +218,8 @@ class WyzieSubtitleSource
     if (current.episode == episode.toString() && current.isEvaluatingBatch) return;
 
     ref.read(uploadProvider.notifier).setEpisode(episode.toString());
-    ref.read(uploadProvider.notifier).evaluateAllEpisodeSubtitles();
+    // Do not automatically trigger evaluateAllEpisodeSubtitles() anymore. 
+    // The user will click start manually.
   }
 
   @override

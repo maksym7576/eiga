@@ -108,6 +108,8 @@ class JimakuService {
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       return data.map((item) => FileJimakuDTO.fromJson(item)).toList();
+    } else if (response.statusCode == 429) {
+      throw Exception('Jimaku API rate limit exceeded. Please wait a moment and try again.');
     } else {
       throw Exception(
         'Error to get files: ${response.statusCode} - ${response.body}',
@@ -145,6 +147,9 @@ class JimakuService {
 
     final response = await http.get(Uri.parse(url), headers: headers).timeout(AppConfig.defaultTimeout);
 
+    if (response.statusCode == 429) {
+      throw Exception('Jimaku download rate limit exceeded.');
+    }
     if (response.statusCode != 200) {
       throw Exception('Error: ${response.statusCode}');
     }

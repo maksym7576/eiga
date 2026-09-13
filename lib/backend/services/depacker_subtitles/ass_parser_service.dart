@@ -3,13 +3,13 @@ import '../../database/schemas/phrase.dart';
 class AssParser {
   final bool removeAllSpaces;
 
-  static const _skipStyles = {'Title', 'Screen', 'AN7', 'Dial-CNI'};
+  static const _skipStyles = {'Title', 'Screen', 'AN7', 'Dial-CNI', 'STAFF', 'OP-JP', 'OP-CN'};
 
   AssParser({this.removeAllSpaces = false});
 
-  List<Phrase> parse(String content, int videoId) {
-    final phrases = <Phrase>[];
-    int order = 1;
+  /// Parses ASS content and groups phrases by individual style/stream (e.g. TEXT-JP, TEXT-CN)
+  Map<String, List<Phrase>> parseMultiStream(String content, int videoId) {
+    final Map<String, List<_DialogueGroup>> styleGroupsMap = {};
 
     final lines = content
         .split(RegExp(r'\r?\n'))
@@ -17,36 +17,56 @@ class AssParser {
         .where((l) => l.startsWith('Dialogue:'))
         .toList();
 
-    _DialogueGroup? group;
-
     for (final line in lines) {
       final raw = _parseDialogueLine(line);
       if (raw == null || _skipStyles.contains(raw.style)) continue;
 
-      if (group != null &&
-          group.start == raw.start &&
-          group.end == raw.end &&
-          group.style == raw.style) {
-        group.texts.add(raw.text);
-        continue;
-      }
+      styleGroupsMap.putIfAbsent(raw.style, () => []);
+      final groups = styleGroupsMap[raw.style]!;
 
-      if (group != null) {
+      if (groups.isNotEmpty &&
+          groups.last.start == raw.start &&
+          groups.last.end == raw.end) {
+        groups.last.texts.add(raw.text);
+      } else {
+        groups.add(_DialogueGroup(raw.style, raw.start, raw.end, [raw.text]));
+      }
+    }
+
+    final Map<String, List<Phrase>> result = {};
+    for (final entry in styleGroupsMap.entries) {
+      final style = entry.key;
+      final groups = entry.value;
+      final phrases = <Phrase>[];
+      int order = 1;
+
+      for (final group in groups) {
         final phrase = _toPhrase(group, videoId, order);
         if (phrase != null) {
           phrases.add(phrase);
           order++;
         }
       }
-      group = _DialogueGroup(raw.style, raw.start, raw.end, [raw.text]);
+
+      if (phrases.isNotEmpty) {
+        result[style] = phrases;
+      }
     }
 
-    if (group != null) {
-      final phrase = _toPhrase(group, videoId, order);
-      if (phrase != null) phrases.add(phrase);
-    }
+    return result;
+  }
 
-    return phrases;
+  List<Phrase> parse(String content, int videoId) {
+    final multi = parseMultiStream(content, videoId);
+    if (multi.isEmpty) return [];
+    
+    // Prefer styles with JP, TEXT, or default to the first available stream
+    final preferredKey = multi.keys.firstWhere(
+      (k) => k.toUpperCase().contains('JP') || k.toUpperCase().contains('TEXT'),
+      orElse: () => multi.keys.first,
+    );
+
+    return multi[preferredKey] ?? multi.values.first;
   }
 
   _RawDialogue? _parseDialogueLine(String line) {
