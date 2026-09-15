@@ -63,8 +63,10 @@ class SrtParser {
   }
 
   String _processText(String text) {
-    if (removeAllSpaces) return text.replaceAll(RegExp(r'\s+'), '');
-    return text.replaceAll(RegExp(r'\s+'), ' ').trim();
+    // Strip ASS/SRT override tags like {\an8}, {\pos(...)}, etc.
+    var cleanText = text.replaceAll(RegExp(r'\{[^}]*\}'), '');
+    if (removeAllSpaces) return cleanText.replaceAll(RegExp(r'\s+'), '');
+    return cleanText.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
   DateTime _parseTime(String raw) {

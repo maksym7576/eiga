@@ -1,4 +1,4 @@
-import '../../database/schemas/word.dart';
+import '../../database/schemas/phrase.dart';
 import 'tokenizer_base.dart';
 
 /// Fallback tokenizer used when no language-specific tokenizer exists.

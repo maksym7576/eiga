@@ -19,12 +19,14 @@ enum TaskPriority { high, normal }
 class TranslationTask {
   final int videoId;
   final List<int> phraseIds;
+  final List<int> phraseOrders;
   final TaskPriority priority;
   final DateTime createdAt;
 
   TranslationTask({
     required this.videoId,
     required this.phraseIds,
+    required this.phraseOrders,
     this.priority = TaskPriority.normal,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -60,9 +62,18 @@ class TranslationBackgroundManager {
 
   TranslationBackgroundManager(this.ref);
 
-  void addTask(TranslationTask task) {
-    // Deduplication
-    if (_queue.any((t) => t == task)) return;
+  void addTask(TranslationTask task, {bool force = false}) {
+    // Deduplication - check if task is identical or if phrase IDs are already in queue
+    if (!force && _queue.any((t) => t == task)) return;
+    
+    final existingIdsInQueue = _queue.expand((t) => t.phraseIds).toSet();
+    final existingIdsActive = _activeTaskList.expand((t) => t.phraseIds).toSet();
+    
+    // If ALL phrase IDs in the new task are already covered, skip it
+    if (!force && task.phraseIds.every((id) => existingIdsInQueue.contains(id) || existingIdsActive.contains(id))) {
+      logger.d('[Queue] Task skipped: all phrases already in queue/processing');
+      return;
+    }
 
     _queue.add(task);
     _sortQueue();
@@ -145,8 +156,10 @@ class TranslationBackgroundManager {
 
       if (phrases.isEmpty) return;
 
-      // Mark as translating
-      await phraseService.markPhrasesAsTranslatingByPhraseList(phrases);
+      // Mark as processing
+      for (var p in phrases) {
+        await phraseService.setStage(p.id, StageKey.translation, StageState.processing);
+      }
 
       logger.d('[Task] Starting background task for video ${task.videoId} (${task.phraseIds.length} phrases)');
       final result = await aiService.runTranslationForVideo(
@@ -163,12 +176,14 @@ class TranslationBackgroundManager {
           if (stepType != null) {
              final fallback = await ref.read(aiModelServiceProvider).getBestFallbackModel(stepType, result.failedModel!.name);
              if (fallback != null) {
-               logger.i('[Manager] Attempt failed. Switching model to ${fallback.name} and retrying with a NEW card.');
+               logger.i('[Manager] Attempt failed. Switching model to ${fallback.name}. Waiting 3s before retry...');
                await ref.read(aiModelServiceProvider).incrementErrorCount(result.failedModel!.name);
                await ref.read(aiModelsProvider.notifier).updateActiveModel(stepType, fallback.name);
                
-               // Re-add task to queue (it will create a NEW TranslationJob in runTranslationForVideo)
-               addTask(task);
+               // Delay to prevent rapid-fire spamming on failures
+               Future.delayed(const Duration(seconds: 3), () {
+                 addTask(task, force: true);
+               });
              }
           }
         }
@@ -231,11 +246,16 @@ class TranslationBackgroundManager {
   int get queueLength => _queue.length;
   int get activeTasks => _activeTasks;
 
-  void cancelTask(int videoId) {
+  void cancelTask(int videoId) async {
     _queue.removeWhere((t) => t.videoId == videoId);
     ref.read(translationQueueProvider.notifier).state = List.from(_queue);
     logger.i('[Manager] Translation tasks for video $videoId cancelled from queue.');
-    // Note: Active tasks are harder to stop immediately without abort signals,
-    // but clearing the queue prevents next batches from starting.
+
+    try {
+      final jobService = ref.read(translationJobServiceProvider);
+      await jobService.cancelJobsForVideo(videoId);
+    } catch (e) {
+      logger.e('[Manager] Failed to mark jobs as stopped for video $videoId', error: e);
+    }
   }
 }

@@ -1,33 +1,48 @@
 import 'package:isar_community/isar.dart';
-import 'word.dart';
 
 part 'phrase.g.dart';
+
+class PhraseUiStatus {
+  final String? activeStageKey; // null = all steps completed
+  final StageState state;
+
+  bool get isProcessing => state == StageState.processing;
+  bool get isError => state == StageState.error;
+  bool get isDone => activeStageKey == null && state == StageState.completed;
+
+  const PhraseUiStatus(this.activeStageKey, this.state);
+}
 
 @collection
 class Phrase {
   Id id = Isar.autoIncrement;
 
-  @Index(type: IndexType.value)
+  @Index(composite: [CompositeIndex('phraseOrder')], type: IndexType.value)
   int? videoId;
 
   int? phraseOrder;
 
+  @Index(type: IndexType.value)
   String? originalPhrase;
 
+  @Index(type: IndexType.value)
   String? translatedPhrase;
 
+  @Index()
   DateTime? startTime;
 
+  @Index()
   DateTime? endTime;
-
-  bool isTranslated = false;
-
-  bool isTranslating = false;
 
   bool isActive = false;
 
+  // Раніше окремі колекції Word / TranslationWord / Block —
+  // тепер повністю embedded, приходять разом із Phrase в одному запиті.
   List<TokenEntry>? originalTokens;
-  List<TokenEntry>? translatedTokens;
+  List<TranslationTokenEntry>? translatedWords;
+
+  List<String> stageKeys = [];
+  List<String> stageValues = [];
 
   Phrase({
     this.videoId,
@@ -36,31 +51,170 @@ class Phrase {
     this.translatedPhrase,
     this.startTime,
     this.endTime,
-    this.isTranslated = false,
-    this.isTranslating = false,
     this.isActive = false,
     this.originalTokens,
-    this.translatedTokens,
+    this.translatedWords,
+    Map<String, String>? stageStatuses,
+  }) {
+    if (stageStatuses != null) {
+      stageKeys = stageStatuses.keys.toList();
+      stageValues = stageStatuses.values.toList();
+    }
+  }
+
+  @ignore
+  Map<String, String> get stageStatuses {
+    final map = <String, String>{};
+    for (int i = 0; i < stageKeys.length && i < stageValues.length; i++) {
+      map[stageKeys[i]] = stageValues[i];
+    }
+    return map;
+  }
+
+  set stageStatuses(Map<String, String> statuses) {
+    stageKeys = statuses.keys.toList();
+    stageValues = statuses.values.toList();
+  }
+
+  @ignore
+  PhraseUiStatus get uiStatus {
+    for (final key in StageKey.order) {
+      final raw = stageStatuses[key] ?? 'pending';
+      final state = StageState.values.asNameMap()[raw] ?? StageState.pending;
+
+      if (state != StageState.completed) {
+        return PhraseUiStatus(key, state);
+      }
+    }
+    return const PhraseUiStatus(null, StageState.completed);
+  }
+
+  @ignore
+  bool get isTranslated => uiStatus.isDone;
+
+  @ignore
+  bool get isTranslating => uiStatus.isProcessing;
+
+  @ignore
+  String get activeStageName {
+    final key = uiStatus.activeStageKey;
+    if (key == null) return '';
+    switch (key) {
+      case StageKey.context: return 'Researching context';
+      case StageKey.translation: return 'Translating';
+      case StageKey.tokenizeSource: return 'Analyzing source';
+      case StageKey.tokenizeTranslation: return 'Analyzing translation';
+      case StageKey.morphology: return 'Building links';
+      default: return 'Processing';
+    }
+  }
+}
+
+enum WordPos { v, i, d, n, p, x, s, o, unknown }
+
+enum GrammarFunction {
+  obj, subj, top, loc, dir, tim, mns, src, rsn, cnd, q, quo, emp, ctr, dep, tgt, cmp, cnj, oth, none
+}
+
+// Слово оригіналу (колишня колекція Word) — тепер embedded у Phrase.originalTokens
+@embedded
+class TokenEntry {
+  int? wordPosition;
+  
+  @enumerated
+  WordPos pos = WordPos.unknown;
+  
+  @enumerated
+  GrammarFunction grammarFunction = GrammarFunction.none;
+
+  String? lemma;
+  int? blockId; // групування в межах ЦІЄЇ фрази, не глобальний FK
+
+  List<ReadingItem> versions = [];
+
+  bool isClickable = true;
+
+  @ignore
+  int get id => wordPosition ?? 0;
+
+  @ignore
+  String get mainText => versions.firstWhere(
+        (v) => v.key == 'original',
+        orElse: () => versions.isNotEmpty ? versions.first : ReadingItem(),
+      ).text ?? '';
+
+  TokenEntry({
+    this.wordPosition,
+    this.pos = WordPos.unknown,
+    this.grammarFunction = GrammarFunction.none,
+    this.lemma,
+    this.blockId,
+    this.versions = const [],
+    this.isClickable = true,
+  });
+}
+
+// Слово перекладу (колишня колекція TranslationWord) — тепер embedded у Phrase.translatedWords
+@embedded
+class TranslationTokenEntry {
+  int? blockId; // групування в межах ЦІЄЇ фрази, не глобальний FK
+  int? translatedWordPosition;
+  String? text;
+  bool isInferred = false;
+  List<int> sourceWordPositions = [];
+
+  @ignore
+  int get id => translatedWordPosition ?? 0;
+
+  TranslationTokenEntry({
+    this.blockId,
+    this.translatedWordPosition,
+    this.text,
+    this.isInferred = false,
+    this.sourceWordPositions = const [],
   });
 }
 
 @embedded
-class TokenEntry {
-  int? wordPosition;
-  String? pos;
-  String? lemma;
-  int? blockId;
+class ReadingItem {
+  String? key;
+  String? text;
 
-  List<ReadingItem> versions = [];
+  ReadingItem({this.key, this.text});
+}
 
-  @ignore
-  String get text => versions.firstWhere((v) => v.key == 'original', orElse: () => versions.isNotEmpty ? versions.first : ReadingItem()).text ?? '';
+class StageKey {
+  static const context = 'context';
+  static const translation = 'translation';
+  static const tokenizeSource = 'tokenize_source';
+  static const tokenizeTranslation = 'tokenize_translation';
+  static const morphology = 'morphology';
 
-  TokenEntry({
-    this.wordPosition,
-    this.pos,
-    this.lemma,
-    this.blockId,
-    this.versions = const [],
-  });
+  static const List<String> order = [
+    context,
+    translation,
+    tokenizeSource,
+    tokenizeTranslation,
+    morphology,
+  ];
+}
+
+enum StageState {
+  pending,
+  processing,
+  completed,
+  error;
+
+  String get displayName {
+    switch (this) {
+      case StageState.pending:
+        return 'Pending';
+      case StageState.processing:
+        return 'Processing';
+      case StageState.completed:
+        return 'Completed';
+      case StageState.error:
+        return 'Error';
+    }
+  }
 }

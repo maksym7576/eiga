@@ -30,39 +30,25 @@ class PlayerPhraseList extends HookConsumerWidget {
     final itemScrollController = useMemoized(() => ItemScrollController());
     final itemPositionsListener = useMemoized(() => ItemPositionsListener.create());
 
-    // Auto-scroll when active phrase changes OR when auto-scroll is re-enabled
+    // Auto-scroll logic: triggers ONLY when activePhraseId changes
     useEffect(() {
-      void scroll() {
-        if (!isAutoScrollEnabled) return;
-        
-        final phrases = phrasesAsync.value ?? [];
-        final next = ref.read(stickyActivePhraseIdProvider);
-        if (next == null) return;
-        
-        final index = phrases.indexWhere((p) => p.id == next);
-        if (index != -1 && itemScrollController.isAttached) {
-          itemScrollController.scrollTo(
-            index: index,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOutCubic,
-            alignment: 0.3,
-          );
-        }
+      if (!isAutoScrollEnabled) return;
+      
+      final phrases = phrasesAsync.value ?? [];
+      if (phrases.isEmpty || activePhraseId == null) return;
+      
+      final index = phrases.indexWhere((p) => p.id == activePhraseId);
+      if (index != -1 && itemScrollController.isAttached) {
+        // Use a slightly longer duration for smoothness
+        itemScrollController.scrollTo(
+          index: index,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOutCubic,
+          alignment: 0.3,
+        );
       }
-
-      // Initial scroll - wait for the list to be attached
-      WidgetsBinding.instance.addPostFrameCallback((_) => scroll());
-
-      final activeSub = ref.listenManual(stickyActivePhraseIdProvider, (prev, next) => scroll());
-      final enabledSub = ref.listenManual(isAutoScrollEnabledProvider, (prev, next) {
-        if (next == true) scroll();
-      });
-
-      return () {
-        activeSub.close();
-        enabledSub.close();
-      };
-    }, [isAutoScrollEnabled, phrasesAsync.value]);
+      return null;
+    }, [activePhraseId, isAutoScrollEnabled]); // Only depend on these two
 
     return phrasesAsync.when(
       data: (phrases) {
@@ -74,6 +60,10 @@ class PlayerPhraseList extends HookConsumerWidget {
             ),
           );
         }
+
+        final activeIndex = activePhraseId != null 
+            ? phrases.indexWhere((p) => p.id == activePhraseId) 
+            : -1;
 
         return Container(
           color: Colors.white,
@@ -108,12 +98,21 @@ class PlayerPhraseList extends HookConsumerWidget {
                 itemScrollController: itemScrollController,
                 itemPositionsListener: itemPositionsListener,
                 addAutomaticKeepAlives: true,
+                physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                 padding: const EdgeInsets.only(bottom: 120), // Ensure bottom dock doesn't cover last item
                 itemBuilder: (context, index) {
                   final phrase = phrases[index];
+                  
+                  final bool isActive = index == activeIndex;
+                  final bool isPast = activeIndex != -1 && index < activeIndex;
+                  final bool isFuture = activeIndex != -1 && index > activeIndex;
+
                   return PlayerPhraseItem(
+                    key: ValueKey('phrase_${phrase.id}'),
                     phrase: phrase,
-                    isActive: phrase.id == activePhraseId,
+                    isActive: isActive,
+                    isPast: isPast,
+                    isFuture: isFuture,
                   );
                 },
               ),

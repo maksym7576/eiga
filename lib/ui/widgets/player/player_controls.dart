@@ -298,25 +298,27 @@ class _ProgressBar extends StatelessWidget {
         ? position.inMilliseconds / duration.inMilliseconds 
         : 0.0;
 
-    return SliderTheme(
-      data: SliderTheme.of(context).copyWith(
-        trackHeight: 2,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4, elevation: 2),
-        overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
-        activeTrackColor: AppColors.brandBlue,
-        inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
-        thumbColor: Colors.white,
-        trackShape: const RectangularSliderTrackShape(),
-      ),
-      child: Container(
-        height: 20,
-        alignment: Alignment.center,
-        child: Slider(
-          value: value.clamp(0.0, 1.0),
-          onChanged: (val) {
-            final newPos = Duration(milliseconds: (val * duration.inMilliseconds).toInt());
-            onSeek(newPos);
-          },
+    return RepaintBoundary(
+      child: SliderTheme(
+        data: SliderTheme.of(context).copyWith(
+          trackHeight: 2,
+          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4, elevation: 2),
+          overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
+          activeTrackColor: AppColors.brandBlue,
+          inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
+          thumbColor: Colors.white,
+          trackShape: const RectangularSliderTrackShape(),
+        ),
+        child: Container(
+          height: 20,
+          alignment: Alignment.center,
+          child: Slider(
+            value: value.clamp(0.0, 1.0),
+            onChanged: (val) {
+              final newPos = Duration(milliseconds: (val * duration.inMilliseconds).toInt());
+              onSeek(newPos);
+            },
+          ),
         ),
       ),
     );

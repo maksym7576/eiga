@@ -49,40 +49,45 @@ const TranslationJobSchema = CollectionSchema(
       type: IsarType.string,
     ),
     r'phase': PropertySchema(id: 7, name: r'phase', type: IsarType.string),
-    r'pipelineId': PropertySchema(
+    r'phraseOrders': PropertySchema(
       id: 8,
+      name: r'phraseOrders',
+      type: IsarType.longList,
+    ),
+    r'pipelineId': PropertySchema(
+      id: 9,
       name: r'pipelineId',
       type: IsarType.string,
     ),
     r'processedPhrases': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'processedPhrases',
       type: IsarType.long,
     ),
     r'stageHistory': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'stageHistory',
       type: IsarType.objectList,
 
       target: r'AiStageHistory',
     ),
     r'startTime': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'startTime',
       type: IsarType.dateTime,
     ),
-    r'status': PropertySchema(id: 12, name: r'status', type: IsarType.string),
+    r'status': PropertySchema(id: 13, name: r'status', type: IsarType.string),
     r'totalPhrases': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'totalPhrases',
       type: IsarType.long,
     ),
     r'translatedAt': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'translatedAt',
       type: IsarType.dateTime,
     ),
-    r'videoId': PropertySchema(id: 15, name: r'videoId', type: IsarType.long),
+    r'videoId': PropertySchema(id: 16, name: r'videoId', type: IsarType.long),
   },
 
   estimateSize: _translationJobEstimateSize,
@@ -151,6 +156,12 @@ int _translationJobEstimateSize(
     }
   }
   {
+    final value = object.phraseOrders;
+    if (value != null) {
+      bytesCount += 3 + value.length * 8;
+    }
+  }
+  {
     final value = object.pipelineId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -196,19 +207,20 @@ void _translationJobSerialize(
   writer.writeBool(offsets[5], object.isAuto);
   writer.writeString(offsets[6], object.modelName);
   writer.writeString(offsets[7], object.phase);
-  writer.writeString(offsets[8], object.pipelineId);
-  writer.writeLong(offsets[9], object.processedPhrases);
+  writer.writeLongList(offsets[8], object.phraseOrders);
+  writer.writeString(offsets[9], object.pipelineId);
+  writer.writeLong(offsets[10], object.processedPhrases);
   writer.writeObjectList<AiStageHistory>(
-    offsets[10],
+    offsets[11],
     allOffsets,
     AiStageHistorySchema.serialize,
     object.stageHistory,
   );
-  writer.writeDateTime(offsets[11], object.startTime);
-  writer.writeString(offsets[12], object.status);
-  writer.writeLong(offsets[13], object.totalPhrases);
-  writer.writeDateTime(offsets[14], object.translatedAt);
-  writer.writeLong(offsets[15], object.videoId);
+  writer.writeDateTime(offsets[12], object.startTime);
+  writer.writeString(offsets[13], object.status);
+  writer.writeLong(offsets[14], object.totalPhrases);
+  writer.writeDateTime(offsets[15], object.translatedAt);
+  writer.writeLong(offsets[16], object.videoId);
 }
 
 TranslationJob _translationJobDeserialize(
@@ -226,19 +238,20 @@ TranslationJob _translationJobDeserialize(
     isAuto: reader.readBoolOrNull(offsets[5]),
     modelName: reader.readStringOrNull(offsets[6]),
     phase: reader.readStringOrNull(offsets[7]),
-    pipelineId: reader.readStringOrNull(offsets[8]),
-    processedPhrases: reader.readLongOrNull(offsets[9]),
+    phraseOrders: reader.readLongList(offsets[8]),
+    pipelineId: reader.readStringOrNull(offsets[9]),
+    processedPhrases: reader.readLongOrNull(offsets[10]),
     stageHistory: reader.readObjectList<AiStageHistory>(
-      offsets[10],
+      offsets[11],
       AiStageHistorySchema.deserialize,
       allOffsets,
       AiStageHistory(),
     ),
-    startTime: reader.readDateTimeOrNull(offsets[11]),
-    status: reader.readStringOrNull(offsets[12]),
-    totalPhrases: reader.readLongOrNull(offsets[13]),
-    translatedAt: reader.readDateTimeOrNull(offsets[14]),
-    videoId: reader.readLong(offsets[15]),
+    startTime: reader.readDateTimeOrNull(offsets[12]),
+    status: reader.readStringOrNull(offsets[13]),
+    totalPhrases: reader.readLongOrNull(offsets[14]),
+    translatedAt: reader.readDateTimeOrNull(offsets[15]),
+    videoId: reader.readLong(offsets[16]),
   );
   object.id = id;
   return object;
@@ -268,10 +281,12 @@ P _translationJobDeserializeProp<P>(
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongList(offset)) as P;
     case 9:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
+      return (reader.readLongOrNull(offset)) as P;
+    case 11:
       return (reader.readObjectList<AiStageHistory>(
             offset,
             AiStageHistorySchema.deserialize,
@@ -279,15 +294,15 @@ P _translationJobDeserializeProp<P>(
             AiStageHistory(),
           ))
           as P;
-    case 11:
-      return (reader.readDateTimeOrNull(offset)) as P;
     case 12:
-      return (reader.readStringOrNull(offset)) as P;
-    case 13:
-      return (reader.readLongOrNull(offset)) as P;
-    case 14:
       return (reader.readDateTimeOrNull(offset)) as P;
+    case 13:
+      return (reader.readStringOrNull(offset)) as P;
+    case 14:
+      return (reader.readLongOrNull(offset)) as P;
     case 15:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 16:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1528,6 +1543,132 @@ extension TranslationJobQueryFilter
   }
 
   QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  phraseOrdersIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'phraseOrders'),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  phraseOrdersIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'phraseOrders'),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  phraseOrdersElementEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'phraseOrders', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  phraseOrdersElementGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'phraseOrders',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  phraseOrdersElementLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'phraseOrders',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  phraseOrdersElementBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'phraseOrders',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  phraseOrdersLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'phraseOrders', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  phraseOrdersIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'phraseOrders', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  phraseOrdersIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'phraseOrders', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  phraseOrdersLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'phraseOrders', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  phraseOrdersLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'phraseOrders', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
+  phraseOrdersLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'phraseOrders',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<TranslationJob, TranslationJob, QAfterFilterCondition>
   pipelineIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -2761,6 +2902,13 @@ extension TranslationJobQueryWhereDistinct
     });
   }
 
+  QueryBuilder<TranslationJob, TranslationJob, QDistinct>
+  distinctByPhraseOrders() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'phraseOrders');
+    });
+  }
+
   QueryBuilder<TranslationJob, TranslationJob, QDistinct> distinctByPipelineId({
     bool caseSensitive = true,
   }) {
@@ -2871,6 +3019,13 @@ extension TranslationJobQueryProperty
     });
   }
 
+  QueryBuilder<TranslationJob, List<int>?, QQueryOperations>
+  phraseOrdersProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'phraseOrders');
+    });
+  }
+
   QueryBuilder<TranslationJob, String?, QQueryOperations> pipelineIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'pipelineId');
@@ -2923,3 +3078,668 @@ extension TranslationJobQueryProperty
     });
   }
 }
+
+// **************************************************************************
+// IsarEmbeddedGenerator
+// **************************************************************************
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const AiStageHistorySchema = Schema(
+  name: r'AiStageHistory',
+  id: -2286225573989994230,
+  properties: {
+    r'durationMs': PropertySchema(
+      id: 0,
+      name: r'durationMs',
+      type: IsarType.long,
+    ),
+    r'modelName': PropertySchema(
+      id: 1,
+      name: r'modelName',
+      type: IsarType.string,
+    ),
+    r'stageName': PropertySchema(
+      id: 2,
+      name: r'stageName',
+      type: IsarType.string,
+    ),
+    r'status': PropertySchema(id: 3, name: r'status', type: IsarType.string),
+  },
+
+  estimateSize: _aiStageHistoryEstimateSize,
+  serialize: _aiStageHistorySerialize,
+  deserialize: _aiStageHistoryDeserialize,
+  deserializeProp: _aiStageHistoryDeserializeProp,
+);
+
+int _aiStageHistoryEstimateSize(
+  AiStageHistory object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  {
+    final value = object.modelName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.stageName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.status;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  return bytesCount;
+}
+
+void _aiStageHistorySerialize(
+  AiStageHistory object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeLong(offsets[0], object.durationMs);
+  writer.writeString(offsets[1], object.modelName);
+  writer.writeString(offsets[2], object.stageName);
+  writer.writeString(offsets[3], object.status);
+}
+
+AiStageHistory _aiStageHistoryDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = AiStageHistory(
+    durationMs: reader.readLongOrNull(offsets[0]),
+    modelName: reader.readStringOrNull(offsets[1]),
+    stageName: reader.readStringOrNull(offsets[2]),
+    status: reader.readStringOrNull(offsets[3]),
+  );
+  return object;
+}
+
+P _aiStageHistoryDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readLongOrNull(offset)) as P;
+    case 1:
+      return (reader.readStringOrNull(offset)) as P;
+    case 2:
+      return (reader.readStringOrNull(offset)) as P;
+    case 3:
+      return (reader.readStringOrNull(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension AiStageHistoryQueryFilter
+    on QueryBuilder<AiStageHistory, AiStageHistory, QFilterCondition> {
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  durationMsIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'durationMs'),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  durationMsIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'durationMs'),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  durationMsEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'durationMs', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  durationMsGreaterThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'durationMs',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  durationMsLessThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'durationMs',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  durationMsBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'durationMs',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  modelNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'modelName'),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  modelNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'modelName'),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  modelNameEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'modelName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  modelNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'modelName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  modelNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'modelName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  modelNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'modelName',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  modelNameStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'modelName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  modelNameEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'modelName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  modelNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'modelName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  modelNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'modelName',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  modelNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'modelName', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  modelNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'modelName', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'stageName'),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'stageName'),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'stageName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'stageName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'stageName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'stageName',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'stageName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'stageName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'stageName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'stageName',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'stageName', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  stageNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'stageName', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'status'),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'status'),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'status',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'status',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'status',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'status',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'status',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'status',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'status',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'status',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'status', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AiStageHistory, AiStageHistory, QAfterFilterCondition>
+  statusIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'status', value: ''),
+      );
+    });
+  }
+}
+
+extension AiStageHistoryQueryObject
+    on QueryBuilder<AiStageHistory, AiStageHistory, QFilterCondition> {}

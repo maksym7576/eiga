@@ -1,37 +1,41 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/legacy.dart';
 import 'package:isar_community/isar.dart';
-import '../../backend/database/schemas/translation_word.dart';
-import '../../backend/database/schemas/block.dart';
-import '../../backend/database/schemas/word.dart';
+import '../../backend/database/schemas/phrase.dart';
+import '../../backend/database/schemas/word_index.dart';
 import '../../backend/database/schemas/known_word_status.dart';
 import '../../backend/database/schemas/specific_word_style.dart';
 import '../services/isar_services_providers.dart';
+import 'video_data_providers.dart';
 
 class StyledVocabularyItem {
-  final Block block;
-  final List<Word> words;
-  final List<TranslationWord> translationWords;
-  final List<Word> variations;
-  final List<TranslationWord> translationVariations;
+  final EmbeddedBlock block;
+  final List<TokenEntry> words;
+  final List<TranslationTokenEntry> translationWords;
   final SpecificWordStyle? style;
+  final String? seriesName;
+  final String? contextOriginal;
+  final String? contextTranslated;
+  final int phraseId;
 
   StyledVocabularyItem({
     required this.block,
     required this.words,
     required this.translationWords,
-    required this.variations,
-    required this.translationVariations,
+    required this.phraseId,
     this.style,
+    this.seriesName,
+    this.contextOriginal,
+    this.contextTranslated,
   });
 }
 
 final styledVocabularyProvider = StreamProvider<List<StyledVocabularyItem>>((ref) async* {
-  final wordService = ref.watch(wordServiceProvider);
   final statusService = ref.watch(knownWordStatusServiceProvider);
-  final styleService = ref.watch(specificWordStyleServiceProvider);
-  final translationWordService = ref.watch(translationWordServiceProvider);
-  final isar = ref.watch(isarProvider);
+  final indexService = ref.watch(wordIndexServiceProvider);
+  final stylesMap = ref.watch(allStylesMapProvider);
+  final phraseService = ref.watch(phraseServiceProvider);
 
   await for (final statuses in statusService.watchKnownWithStyles()) {
     if (statuses.isEmpty) {
@@ -41,65 +45,54 @@ final styledVocabularyProvider = StreamProvider<List<StyledVocabularyItem>>((ref
 
     final List<KnownWordStatus> sortedStatuses = List<KnownWordStatus>.from(statuses)
       ..sort((a, b) => b.id.compareTo(a.id));
-
-    final Map<int, StyledVocabularyItem> blockItems = {};
     
+    final lemmas = sortedStatuses.map((s) => s.base).whereType<String>().toList();
+    if (lemmas.isEmpty) {
+      yield [];
+      continue;
+    }
+
+    final allIndexMatches = await indexService.findByLemmas(lemmas);
+    
+    final List<StyledVocabularyItem> result = [];
+    final Set<int> processedBlockPhrasePairs = {};
+
     for (final s in sortedStatuses) {
       if (s.base == null) continue;
-      
-      final baseWords = await wordService.getWordsByLemma(s.base!);
-      if (baseWords.isEmpty) continue;
-      
-      final repWord = baseWords.last;
-      if (repWord.blockId == null) continue;
+      final matches = allIndexMatches.where((m) => m.lemma == s.base).toList();
+      if (matches.isEmpty) continue;
 
-      if (blockItems.containsKey(repWord.blockId)) continue;
+      final style = s.styleId != null ? stylesMap[s.styleId!] : null;
 
-      final block = await isar.collection<Block>().get(repWord.blockId!);
-      if (block == null) continue;
+      for (final m in matches) {
+        final pairKey = (m.phraseId << 32) | (m.blockId ?? 0);
+        if (processedBlockPhrasePairs.contains(pairKey)) continue;
+        processedBlockPhrasePairs.add(pairKey);
 
-      final style = s.styleId != null ? await styleService.getStyleById(s.styleId!) : null;
-      
-      final blockWords = await wordService.getWordsByBlockIds([block.id]);
-      blockWords.sort((a, b) => (a.wordPosition ?? 0).compareTo(b.wordPosition ?? 0));
+        final phrase = await phraseService.getPhraseById(m.phraseId);
+        if (phrase == null) continue;
 
-      final trWords = await translationWordService.getTranslationWordsByBlockId(block.id);
-      trWords.sort((a, b) => (a.translatedWordPosition ?? 0).compareTo(b.translatedWordPosition ?? 0));
+        final blockId = m.blockId ?? 0;
+        final blockWords = phrase.originalTokens?.where((t) => t.blockId == blockId).toList() ?? [];
+        blockWords.sort((a, b) => (a.wordPosition ?? 0).compareTo(b.wordPosition ?? 0));
 
-      final Set<String> blockLemmas = blockWords.map((w) => w.lemma).whereType<String>().toSet();
-      final List<Word> variations = [];
-      for (final lemma in blockLemmas) {
-        final occurrences = await wordService.getWordsByLemma(lemma);
-        for (final occ in occurrences) {
-          if (occ.blockId != block.id) {
-            final isDuplicate = variations.any((v) => v.mainText == occ.mainText);
-            if (!isDuplicate) variations.add(occ);
-          }
-        }
+        final blockTrWords = phrase.translatedWords?.where((tw) => tw.blockId == blockId).toList() ?? [];
+        blockTrWords.sort((a, b) => (a.translatedWordPosition ?? 0).compareTo(b.translatedWordPosition ?? 0));
+
+        result.add(StyledVocabularyItem(
+          block: EmbeddedBlock(blockId),
+          words: blockWords,
+          translationWords: blockTrWords,
+          phraseId: m.phraseId,
+          style: style,
+          seriesName: m.seriesName,
+          contextOriginal: m.contextOriginal,
+          contextTranslated: m.contextTranslated,
+        ));
       }
-
-      final List<TranslationWord> trVariations = [];
-      for (final tr in trWords) {
-        if (tr.text == null || tr.text!.isEmpty) continue;
-        final occurrences = await translationWordService.getTranslationWordsByText(tr.text!);
-        for (final occ in occurrences) {
-          if (occ.blockId != block.id) {
-            final isDuplicate = trVariations.any((v) => v.text == occ.text);
-            if (!isDuplicate) trVariations.add(occ);
-          }
-        }
-      }
-
-      blockItems[block.id!] = StyledVocabularyItem(
-        block: block,
-        words: blockWords,
-        translationWords: trWords,
-        variations: variations,
-        translationVariations: trVariations,
-        style: style,
-      );
     }
-    yield blockItems.values.toList();
+    
+    yield result;
   }
 });
 

@@ -40,6 +40,34 @@ class TranslationJobCard extends HookConsumerWidget {
     this.isCompact = false,
   });
 
+  String _formatPhraseOrders(List<int>? orders) {
+    if (orders == null || orders.isEmpty) return 'No phrases';
+    if (orders.length == 1) return 'Phrase #${orders.first}';
+    
+    final sorted = List<int>.from(orders)..sort();
+    final List<String> parts = [];
+    
+    int start = sorted[0];
+    int prev = sorted[0];
+    
+    for (int i = 1; i < sorted.length; i++) {
+      if (sorted[i] == prev + 1) {
+        prev = sorted[i];
+      } else {
+        parts.add(start == prev ? '#$start' : '#$start-$prev');
+        start = sorted[i];
+        prev = sorted[i];
+      }
+    }
+    parts.add(start == prev ? '#$start' : '#$start-$prev');
+    
+    final result = parts.join(', ');
+    if (result.length > 30) {
+      return '${orders.length} phrases (${parts.first}...)';
+    }
+    return 'Phrases $result';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final status = job.status ?? 'active';
@@ -64,7 +92,7 @@ class TranslationJobCard extends HookConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          _Header(job: job, isActive: isActive, isError: isError, ref: ref),
+          _Header(job: job, isActive: isActive, isError: isError, ref: ref, formattedOrders: _formatPhraseOrders(job.phraseOrders)),
           if (job.executionPlan != null) ...[
             const SizedBox(height: 20),
             _StepperGrid(job: job, isCompact: isCompact),
@@ -85,55 +113,71 @@ class _Header extends StatelessWidget {
   final bool isActive;
   final bool isError;
   final WidgetRef ref;
+  final String formattedOrders;
 
-  const _Header({required this.job, required this.isActive, required this.isError, required this.ref});
+  const _Header({required this.job, required this.isActive, required this.isError, required this.ref, required this.formattedOrders});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Row(
-            children: [
-              _Tag(text: (job.isAuto ?? true) ? 'Auto' : 'Manual'),
-              const SizedBox(width: 8),
-              if (job.modelName != null)
-                Flexible(
-                  child: Text(
-                    job.modelName!,
-                    overflow: TextOverflow.ellipsis,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  _Tag(text: (job.isAuto ?? true) ? 'Auto' : 'Manual'),
+                  const SizedBox(width: 8),
+                  if (job.modelName != null)
+                    Flexible(
+                      child: Text(
+                        job.modelName!,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: _C.dark,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 8),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(text: '${job.processedPhrases ?? 0} '),
+                        const TextSpan(text: '/ ', style: TextStyle(color: _C.grey, fontWeight: FontWeight.normal)),
+                        TextSpan(text: '${job.totalPhrases ?? 0}'),
+                      ],
+                    ),
                     style: const TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: _C.dark,
+                      fontWeight: FontWeight.w600,
                       fontFamily: 'monospace',
+                      color: _C.dark,
                     ),
                   ),
-                ),
-              const SizedBox(width: 8),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(text: '${job.processedPhrases ?? 0} '),
-                    const TextSpan(text: '/ ', style: TextStyle(color: _C.grey, fontWeight: FontWeight.normal)),
-                    TextSpan(text: '${job.totalPhrases ?? 0}'),
-                  ],
-                ),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'monospace',
-                  color: _C.dark,
-                ),
+                ],
               ),
-            ],
+            ),
+            if (isActive)
+              _StopButton(onTap: () => ref.read(translationBackgroundManagerProvider).cancelTask(job.videoId))
+            else
+              _StatusBadge(isError: isError),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          formattedOrders,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: _C.grey,
+            letterSpacing: 0.2,
           ),
         ),
-        if (isActive)
-          _StopButton(onTap: () => ref.read(translationBackgroundManagerProvider).cancelTask(job.videoId))
-        else
-          _StatusBadge(isError: isError),
       ],
     );
   }

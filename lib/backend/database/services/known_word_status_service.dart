@@ -17,6 +17,14 @@ class KnownWordStatusService {
     return results.isEmpty ? null : results.first;
   }
 
+  Future<List<KnownWordStatus>> getByBases(List<String> bases) async {
+    if (bases.isEmpty) return [];
+    return await db.collection<KnownWordStatus>()
+        .filter()
+        .anyOf(bases, (q, String base) => q.baseEqualTo(base))
+        .findAll();
+  }
+
   Future<void> setStyleForBase(String base, {int? styleId, String? colorHex}) async {
     await db.writeTxn(() async {
       final existing = await getByBase(base);

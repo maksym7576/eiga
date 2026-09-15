@@ -10,13 +10,13 @@ class Language {
 
   @Index(unique: true)
   String? name;
-  
+
   @Index(unique: true)
   String? code;
-  
+
   String? subtitle;
   String? iconLabel;
-  
+
   bool isSupported = false;
 
   // From DepackerLanguageConfig

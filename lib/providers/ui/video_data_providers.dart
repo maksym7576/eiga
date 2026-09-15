@@ -1,18 +1,16 @@
 import 'package:flutter/widgets.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hooks_riverpod/legacy.dart';
 import 'package:isar_community/isar.dart';
 import '../../backend/database/schemas/video.dart';
 import '../../backend/database/schemas/translation_job.dart';
 import '../../backend/database/schemas/phrase.dart';
-import '../../backend/database/schemas/block.dart';
-import '../../backend/database/schemas/word.dart';
-import '../../backend/database/schemas/translation_word.dart';
 import '../../backend/database/schemas/language.dart';
 import '../../backend/database/schemas/specific_word_style.dart';
 import '../../backend/database/schemas/known_word_status.dart';
 import '../../backend/services/depacker_subtitles/season_episode_info.dart';
 import '../services/isar_services_providers.dart';
+import '../../utils/logger.dart';
 
 import 'player_provider.dart';
 
@@ -21,26 +19,33 @@ final playerIdProvider = StateProvider<int?>((ref) {
   return null;
 });
 
-final phraseDataPrefetcherProvider = Provider<void>((ref) {
-  final phrases = ref.watch(phrasesStreamProvider).value ?? [];
-  final currentTime = ref.watch(playerTimeProvider);
-  if (phrases.isEmpty) return;
+final phraseDataPrefetcherProvider = NotifierProvider<PhrasePrefetchNotifier, void>(PhrasePrefetchNotifier.new);
 
-  final startBase = DateTime(1970, 1, 1);
-  final prefetchWindow = const Duration(seconds: 15);
-  
-  final upcomingPhrases = phrases.where((p) {
-    if (p.startTime == null) return false;
-    final start = p.startTime!.difference(startBase);
-    return start > currentTime && start < currentTime + prefetchWindow;
-  });
-
-  for (final p in upcomingPhrases) {
-    // Warm up the providers for the next phrases
-    ref.watch(phraseWordsProvider(p.id));
-    ref.watch(phraseTranslationTokensProvider(p.id));
+class PhrasePrefetchNotifier extends Notifier<void> {
+  @override
+  void build() {
+    ref.listen<int?>(stickyActivePhraseIdProvider, (prev, nextId) {
+      if (nextId != null) {
+        _runPrefetch(nextId);
+      }
+    });
   }
-});
+
+  Future<void> _runPrefetch(int activeId) async {
+    final List<Phrase> phrases = ref.read(phrasesStreamProvider).value ?? [];
+    if (phrases.isEmpty) return;
+
+    final int activeIndex = phrases.indexWhere((p) => p.id == activeId);
+    if (activeIndex == -1) return;
+
+    final Iterable<Phrase> nextPhrases = phrases.skip(activeIndex + 1).take(3);
+
+    for (final _ in nextPhrases) {
+      await Future.delayed(const Duration(milliseconds: 60));
+      if (ref.read(stickyActivePhraseIdProvider) != activeId) return;
+    }
+  }
+}
 
 final selectedBlockIdProvider = Provider<int?>((ref) => ref.watch(playerProvider.select((s) => s.selectedBlockId)));
 final clickedWordIdProvider = Provider<int?>((ref) => ref.watch(playerProvider.select((s) => s.clickedWordId)));
@@ -50,50 +55,48 @@ final highlightedWordIdsProvider = Provider<Set<int>>((ref) => ref.watch(playerP
 final highlightedTranslationIdsProvider = Provider<Set<int>>((ref) => ref.watch(playerProvider.select((s) => s.highlightedTranslationIds)));
 final infoPanelTextProvider = StateProvider<String?>((ref) => null);
 final clickedWordPositionProvider = Provider<Offset?>((ref) => ref.watch(playerProvider.select((s) => s.clickedWordPosition)));
+final selectionLayerLinkProvider = Provider<LayerLink?>((ref) => ref.watch(playerProvider.select((s) => s.selectionLayerLink)));
 
 class PhraseLinkIndex {
-  final Map<int, List<TranslationWord>> wordToTranslations = {};
-  final Map<int, List<Word>> translationToWords = {};
+  final Map<int, List<TranslationTokenEntry>> wordToTranslations = {};
+  final Map<int, List<TokenEntry>> translationToWords = {};
 
-  PhraseLinkIndex(List<Word> words, List<TranslationWord> tWords) {
-    // 1. Map Japanese words by position (phrase-wide)
-    final wordByPos = <int, Word>{
+  PhraseLinkIndex(List<TokenEntry> words, List<TranslationTokenEntry> tWords) {
+    final wordByPos = <int, TokenEntry>{
       for (final w in words) 
         if (w.wordPosition != null)
           w.wordPosition!: w
     };
 
-    // 2. Link translations to their source words
     for (final t in tWords) {
-      final List<Word> sourceWords = [];
+      final List<TokenEntry> sourceWords = [];
       for (final pos in t.sourceWordPositions) {
         final w = wordByPos[pos];
         if (w != null) {
           sourceWords.add(w);
-        } else {
-          print('LINK INDEX WARNING: No word found for pos $pos (Translation: "${t.text}")');
         }
       }
 
-      translationToWords[t.id] = sourceWords;
-      for (final w in sourceWords) {
-        wordToTranslations.putIfAbsent(w.id, () => []).add(t);
+      if (t.translatedWordPosition != null) {
+        translationToWords[t.translatedWordPosition!] = sourceWords;
+        for (final w in sourceWords) {
+          if (w.wordPosition != null) {
+            wordToTranslations.putIfAbsent(w.wordPosition!, () => []).add(t);
+          }
+        }
       }
     }
   }
 
-  /// Returns all words and translations that form a linked group with the given word.
-  /// Bridging logic: If word A is part of translation T, include all source words of T.
   Map<String, Set<int>> getLinkedIdsForWord(int wordId) {
     final translations = wordToTranslations[wordId] ?? [];
     final Set<int> wordIds = {wordId};
-    final Set<int> translationIds = translations.map((t) => t.id).toSet();
+    final Set<int> translationIds = translations.map((t) => t.translatedWordPosition ?? 0).toSet();
 
-    // Bridging: find siblings
     for (final tId in translationIds) {
       final siblings = translationToWords[tId] ?? [];
       for (final s in siblings) {
-        wordIds.add(s.id);
+        if (s.wordPosition != null) wordIds.add(s.wordPosition!);
       }
     }
 
@@ -103,25 +106,14 @@ class PhraseLinkIndex {
     };
   }
 
-  /// Returns all words and translations that form a linked group with the given translation token.
   Map<String, Set<int>> getLinkedIdsForTranslation(int translationId) {
     final words = translationToWords[translationId] ?? [];
     return {
-      'words': words.map((w) => w.id).toSet(),
+      'words': words.map((w) => w.wordPosition ?? 0).toSet(),
       'translations': {translationId},
     };
   }
 }
-
-final phraseLinkIndexProvider = FutureProvider.family<PhraseLinkIndex, int>((ref, phraseId) async {
-  final wordService = ref.read(wordServiceProvider);
-  final translationWordService = ref.read(translationWordServiceProvider);
-
-  final words = await wordService.getWordsByPhraseId(phraseId);
-  final tWords = await translationWordService.getTranslationWordsByPhraseId(phraseId);
-
-  return PhraseLinkIndex(words, tWords);
-});
 
 final blockLayerLinkProvider = Provider<LayerLink>((ref) => LayerLink());
 
@@ -130,16 +122,25 @@ final specificWordStylesStreamProvider = StreamProvider<List<SpecificWordStyle>>
   return service.watchAllStyles();
 });
 
+final allStylesMapProvider = Provider<Map<int, SpecificWordStyle>>((ref) {
+  final styles = ref.watch(specificWordStylesStreamProvider).value ?? [];
+  return {for (final s in styles) s.id: s};
+});
+
+final lemmaToStatusMapProvider = StreamProvider<Map<String, KnownWordStatus>>((ref) {
+  final service = ref.read(knownWordStatusServiceProvider);
+  return service.db.collection<KnownWordStatus>().where().watch(fireImmediately: true).map((list) {
+    return {for (final s in list) if (s.base != null) s.base!: s};
+  });
+});
+
 final seasonEpisodeProvider = StateProvider<SeasonEpisodeInfo?>((ref) {
   return null;
 });
 
 final currentVideoProvider = FutureProvider<Video?>((ref) async {
   final videoId = ref.watch(playerIdProvider);
-
-  if (videoId == null) {
-    return null;
-  }
+  if (videoId == null) return null;
 
   final videoService = ref.read(videoServiceProvider);
   return await videoService.getVideoById(videoId);
@@ -180,17 +181,33 @@ final activePhraseIdProvider = Provider<int?>((ref) {
 
   if (phrases.isEmpty) return null;
 
-  try {
-    final startBase = DateTime(1970, 1, 1);
-    return phrases.firstWhere((p) {
-      if (p.startTime == null || p.endTime == null) return false;
-      final start = p.startTime!.difference(startBase);
-      final end = p.endTime!.difference(startBase);
-      return currentTime >= start && currentTime <= end;
-    }).id;
-  } catch (_) {
-    return null;
+  final startBase = DateTime(1970, 1, 1);
+  
+  int low = 0;
+  int high = phrases.length - 1;
+
+  while (low <= high) {
+    int mid = (low + high) >> 1;
+    final p = phrases[mid];
+    
+    if (p.startTime == null || p.endTime == null) {
+      low++;
+      continue;
+    }
+
+    final start = p.startTime!.difference(startBase);
+    final end = p.endTime!.difference(startBase);
+
+    if (currentTime >= start && currentTime <= end) {
+      return p.id;
+    } else if (currentTime < start) {
+      high = mid - 1;
+    } else {
+      low = mid + 1;
+    }
   }
+
+  return null;
 });
 
 final stickyActivePhraseIdProvider = Provider<int?>((ref) {
@@ -199,113 +216,78 @@ final stickyActivePhraseIdProvider = Provider<int?>((ref) {
 
   if (phrases.isEmpty) return null;
 
-  // 1. Try standard active phrase first
   final activeId = ref.watch(activePhraseIdProvider);
   if (activeId != null) return activeId;
 
-  // 2. If no active phrase (gap), find the last one that finished
-  try {
-    final startBase = DateTime(1970, 1, 1);
-    
-    // Find phrases that started before or at current time
-    final pastAndCurrentPhrases = phrases.where((p) {
-      if (p.startTime == null) return false;
-      final start = p.startTime!.difference(startBase);
-      return currentTime >= start;
-    }).toList();
+  final startBase = DateTime(1970, 1, 1);
+  int low = 0;
+  int high = phrases.length - 1;
+  int lastFinishedIdx = -1;
 
-    if (pastAndCurrentPhrases.isEmpty) return null;
+  while (low <= high) {
+    int mid = (low + high) >> 1;
+    final p = phrases[mid];
+    if (p.startTime == null) {
+      low++;
+      continue;
+    }
 
-    // The "last" one is the one with the highest phraseOrder
-    pastAndCurrentPhrases.sort((a, b) => (b.phraseOrder ?? 0).compareTo(a.phraseOrder ?? 0));
-    
-    return pastAndCurrentPhrases.first.id;
-  } catch (_) {
-    return null;
+    final start = p.startTime!.difference(startBase);
+    if (start <= currentTime) {
+      lastFinishedIdx = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
   }
+
+  if (lastFinishedIdx != -1) {
+    return phrases[lastFinishedIdx].id;
+  }
+
+  return null;
 });
 
-final phraseBlocksProvider = FutureProvider.family<List<Block>, int>((ref, phraseId) async {
-  final blockService = ref.read(blockServiceProvider);
-  return await blockService.getBlocksForPhrase(phraseId);
-});
-
-final blockWordsProvider = FutureProvider.family<List<Word>, int>((ref, blockId) async {
-  final wordService = ref.read(wordServiceProvider);
-  return await wordService.getWordsByBlockIds([blockId]);
-});
-
-final clickedWordProvider = FutureProvider<Word?>((ref) async {
+final clickedWordProvider = FutureProvider<TokenEntry?>((ref) async {
   final wordId = ref.watch(clickedWordIdProvider);
   if (wordId == null) return null;
   
-  final wordService = ref.read(wordServiceProvider);
-  return await wordService.getWordById(wordId);
+  final phraseId = ref.watch(stickyActivePhraseIdProvider);
+  if (phraseId == null) return null;
+  
+  final phraseService = ref.read(phraseServiceProvider);
+  final phrase = await phraseService.getPhraseById(phraseId);
+  return phrase?.originalTokens?.where((t) => (t.wordPosition ?? 0) == wordId).firstOrNull;
 });
 
-final clickedTranslationWordProvider = FutureProvider<TranslationWord?>((ref) async {
+final clickedTranslationWordProvider = FutureProvider<TranslationTokenEntry?>((ref) async {
   final twId = ref.watch(clickedTranslationWordIdProvider);
   if (twId == null) return null;
   
-  final twService = ref.read(translationWordServiceProvider);
-  return await twService.db.translationWords.get(twId);
+  final phraseId = ref.watch(stickyActivePhraseIdProvider);
+  if (phraseId == null) return null;
+  
+  final phraseService = ref.read(phraseServiceProvider);
+  final phrase = await phraseService.getPhraseById(phraseId);
+  return phrase?.translatedWords?.where((t) => (t.translatedWordPosition ?? 0) == twId).firstOrNull;
 });
 
+class EmbeddedBlock {
+  final int id;
+  EmbeddedBlock(this.id);
+}
+
 class WordWithStyle {
-  final Word word;
-  final Block block;
+  final TokenEntry word;
+  final EmbeddedBlock block;
   final SpecificWordStyle? style;
 
   WordWithStyle({required this.word, required this.block, this.style});
 }
 
-final phraseBlocksWithStylesProvider = StreamProvider.family<List<Map<String, dynamic>>, int>((ref, phraseId) {
-  final blockService = ref.read(blockServiceProvider);
-  final wordService = ref.read(wordServiceProvider);
-  final statusService = ref.read(knownWordStatusServiceProvider);
-  final styleService = ref.read(specificWordStyleServiceProvider);
-  final translationWordService = ref.read(translationWordServiceProvider);
-
-  return blockService.watchBlocksForPhrase(phraseId).asyncMap((blocks) async {
-    if (blocks.isEmpty) return [];
-
-    final List<Map<String, dynamic>> results = [];
-    for (final block in blocks) {
-      SpecificWordStyle? style;
-      
-      // Find words for this block to determine style via lemma
-      final words = await wordService.getWordsByBlockIds([block.id]);
-      final wordWithLemma = words.where((w) => w.lemma != null && w.lemma!.isNotEmpty).firstOrNull;
-      
-      if (wordWithLemma != null) {
-        final status = await statusService.getByBase(wordWithLemma.lemma!);
-        if (status != null && status.styleId != null) {
-          style = await styleService.getStyleById(status.styleId!);
-        }
-      }
-
-      // Find translation tokens for this block
-      final translationWords = await translationWordService.getTranslationWordsByBlockId(block.id);
-      final translationIndices = translationWords.map((tw) => tw.translatedWordPosition ?? 0).toList();
-      
-      results.add({
-        'block': block, 
-        'style': style,
-        'translationIndices': translationIndices,
-      });
-    }
-
-    // Sort by position index
-    results.sort((a, b) => ((a['block'] as Block).blockPositionIndex ?? 0)
-        .compareTo((b['block'] as Block).blockPositionIndex ?? 0));
-
-    return results;
-  });
-});
-
 class TranslationTokenWithStyle {
-  final TranslationWord token;
-  final Block? block;
+  final TranslationTokenEntry token;
+  final EmbeddedBlock? block;
   final SpecificWordStyle? style;
   final String? lemma;
 
@@ -317,192 +299,53 @@ class TranslationTokenWithStyle {
   });
 }
 
-final phraseTranslationTokensProvider = StreamProvider.family<List<TranslationTokenWithStyle>, int>((ref, phraseId) {
-  final blockService = ref.read(blockServiceProvider);
-  final wordService = ref.read(wordServiceProvider);
-  final statusService = ref.read(knownWordStatusServiceProvider);
-  final styleService = ref.read(specificWordStyleServiceProvider);
-  final translationWordService = ref.read(translationWordServiceProvider);
-
-  return translationWordService.db.collection<TranslationWord>()
-      .filter()
-      .phraseIdEqualTo(phraseId)
-      .watch(fireImmediately: true)
-      .asyncMap((tokens) async {
-    if (tokens.isEmpty) return [];
-
-    final List<TranslationTokenWithStyle> results = [];
-    
-    // Cache blocks and styles to avoid redundant lookups
-    final Map<int, Block> blockCache = {};
-    final Map<int, SpecificWordStyle?> styleCache = {};
-
-    // Load all words for this phrase once to link lemmas to translation tokens
-    final phraseWords = await wordService.getWordsByPhraseId(phraseId);
-    final Map<int, Word> wordPosMap = {
-      for (final w in phraseWords) if (w.wordPosition != null) w.wordPosition!: w
-    };
-
-    for (final token in tokens) {
-      // 1. Get or Load Block (if available)
-      Block? block;
-      if (token.blockId != null) {
-        block = blockCache[token.blockId!];
-        if (block == null) {
-          block = await blockService.db.blocks.get(token.blockId!);
-          if (block != null) blockCache[token.blockId!] = block;
-        }
-      }
-
-      // 2. Get or Load Style and Lemma from sourceWordPositions
-      SpecificWordStyle? style;
-      String? lemma;
-      
-      if (token.sourceWordPositions.isNotEmpty) {
-        // Find lemma from the FIRST source word position linked to this token
-        final sourceWord = wordPosMap[token.sourceWordPositions.first];
-        
-        if (sourceWord != null && sourceWord.lemma != null) {
-          lemma = sourceWord.lemma;
-          final status = await statusService.getByBase(lemma!);
-          if (status != null && status.styleId != null) {
-            style = await styleService.getStyleById(status.styleId!);
-          }
-        }
-      } else if (token.blockId != null) {
-        // Fallback to block-based lookup if positions are empty
-        if (styleCache.containsKey(token.blockId!)) {
-          style = styleCache[token.blockId!];
-          final blockWords = phraseWords.where((w) => w.blockId == token.blockId).toList();
-          lemma = blockWords.where((w) => w.lemma != null && w.lemma!.isNotEmpty).firstOrNull?.lemma;
-        } else {
-          final blockWords = phraseWords.where((w) => w.blockId == token.blockId).toList();
-          final wordWithLemma = blockWords.where((w) => w.lemma != null && w.lemma!.isNotEmpty).firstOrNull;
-          lemma = wordWithLemma?.lemma;
-          
-          if (wordWithLemma != null) {
-            final status = await statusService.getByBase(wordWithLemma.lemma!);
-            if (status != null && status.styleId != null) {
-              style = await styleService.getStyleById(status.styleId!);
-            }
-          }
-          styleCache[token.blockId!] = style;
-        }
-      }
-
-      results.add(TranslationTokenWithStyle(
-        token: token,
-        block: block,
-        style: style,
-        lemma: lemma,
-      ));
-    }
-
-    // Sort by translated word position to reconstruct the sentence
-    results.sort((a, b) => (a.token.translatedWordPosition ?? 0)
-        .compareTo(b.token.translatedWordPosition ?? 0));
-
-    return results;
-  });
-});
-
-final phraseWordsProvider = StreamProvider.family<List<WordWithStyle>, int>((ref, phraseId) {
-  final blockService = ref.read(blockServiceProvider);
-  final wordService = ref.read(wordServiceProvider);
-  final statusService = ref.read(knownWordStatusServiceProvider);
-  final styleService = ref.read(specificWordStyleServiceProvider);
-
-  return blockService.watchBlocksForPhrase(phraseId).asyncMap((blocks) async {
-    final List<WordWithStyle> allWords = [];
-    
-    // Sort blocks by position index
-    final sortedBlocks = List<Block>.from(blocks)
-      ..sort((a, b) => (a.blockPositionIndex ?? 0).compareTo(b.blockPositionIndex ?? 0));
-
-    for (final block in sortedBlocks) {
-      final words = await wordService.getWordsByBlockIds([block.id]);
-      final sortedWords = List<Word>.from(words)
-        ..sort((a, b) => (a.wordPosition ?? 0).compareTo(b.wordPosition ?? 0));
-
-      for (final word in sortedWords) {
-        SpecificWordStyle? wordStyle;
-        
-        // Resolve style specifically for this word via its lemma
-        if (word.lemma != null && word.lemma!.isNotEmpty) {
-          final status = await statusService.getByBase(word.lemma!);
-          if (status != null && status.styleId != null) {
-            wordStyle = await styleService.getStyleById(status.styleId!);
-          }
-        }
-        
-        allWords.add(WordWithStyle(word: word, block: block, style: wordStyle));
-      }
-    }
-    return allWords;
-  });
-});
-
-class TranslationBatch {
-  final int startOrder;
-  final int endOrder;
-  final int translatedCount;
-  final int totalCount;
-  final bool isDone;
-
-  TranslationBatch({
-    required this.startOrder,
-    required this.endOrder,
-    required this.translatedCount,
-    required this.totalCount,
-    required this.isDone,
-  });
-
-  double get progress => totalCount > 0 ? translatedCount / totalCount : 0.0;
-}
-
 final wordStyleProvider = StreamProvider.family<SpecificWordStyle?, String>((ref, lemma) {
   if (lemma.isEmpty) return Stream.value(null);
   
   final statusService = ref.read(knownWordStatusServiceProvider);
-  final styleService = ref.read(specificWordStyleServiceProvider);
+  final stylesMap = ref.watch(allStylesMapProvider);
   
   return statusService.db.collection<KnownWordStatus>()
       .filter()
       .baseEqualTo(lemma)
       .watch(fireImmediately: true)
-      .asyncMap((statuses) async {
+      .map((statuses) {
     if (statuses.isEmpty || statuses.first.styleId == null) return null;
-    return await styleService.getStyleById(statuses.first.styleId!);
+    return stylesMap[statuses.first.styleId!];
   });
 });
 
 final blockStyleProvider = StreamProvider.family<SpecificWordStyle?, int>((ref, blockId) async* {
-  final isar = ref.watch(isarProvider);
-  final wordService = ref.read(wordServiceProvider);
-  final statusService = ref.read(knownWordStatusServiceProvider);
-  final styleService = ref.read(specificWordStyleServiceProvider);
-
-  // 1. Get all words in this block to form the expression base
-  final words = await wordService.getWordsByBlockIds([blockId]);
-  if (words.isEmpty) {
+  final phraseId = ref.watch(stickyActivePhraseIdProvider);
+  if (phraseId == null) {
     yield null;
     return;
   }
   
-  words.sort((a, b) => (a.wordPosition ?? 0).compareTo(b.wordPosition ?? 0));
-  final expressionBase = words.map((w) => w.lemma ?? '').join(' ').trim();
+  final phraseService = ref.read(phraseServiceProvider);
+  final phrase = await phraseService.getPhraseById(phraseId);
+  if (phrase == null || phrase.originalTokens == null) {
+    yield null;
+    return;
+  }
+
+  final blockTokens = phrase.originalTokens!.where((t) => t.blockId == blockId).toList();
+  blockTokens.sort((a, b) => (a.wordPosition ?? 0).compareTo(b.wordPosition ?? 0));
+  final expressionBase = blockTokens.map((w) => w.lemma ?? '').join(' ').trim();
   
   if (expressionBase.isEmpty) {
     yield null;
     return;
   }
 
-  // 2. Watch the status of this specific expression
+  final statusService = ref.read(knownWordStatusServiceProvider);
+  final stylesMap = ref.watch(allStylesMapProvider);
+
   await for (final statuses in statusService.db.collection<KnownWordStatus>().filter().baseEqualTo(expressionBase).watch(fireImmediately: true)) {
     if (statuses.isEmpty || statuses.first.styleId == null) {
       yield null;
     } else {
-      yield await styleService.getStyleById(statuses.first.styleId!);
+      yield stylesMap[statuses.first.styleId!];
     }
   }
 });

@@ -14,6 +14,34 @@ class TranslationQueueCard extends StatelessWidget {
     required this.total,
   });
 
+  String _formatPhraseOrders(List<int>? orders) {
+    if (orders == null || orders.isEmpty) return 'No phrases';
+    if (orders.length == 1) return 'Phrase #${orders.first}';
+    
+    final sorted = List<int>.from(orders)..sort();
+    final List<String> parts = [];
+    
+    int start = sorted[0];
+    int prev = sorted[0];
+    
+    for (int i = 1; i < sorted.length; i++) {
+      if (sorted[i] == prev + 1) {
+        prev = sorted[i];
+      } else {
+        parts.add(start == prev ? '#$start' : '#$start-$prev');
+        start = sorted[i];
+        prev = sorted[i];
+      }
+    }
+    parts.add(start == prev ? '#$start' : '#$start-$prev');
+    
+    final result = parts.join(', ');
+    if (result.length > 30) {
+      return '${orders.length} phrases (${parts.first}...)';
+    }
+    return 'Phrases $result';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -31,42 +59,57 @@ class TranslationQueueCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Expanded(
-            child: Row(
-              children: [
-                Icon(Icons.hourglass_empty_rounded, size: 16, color: Color(0xFF94A3B8)),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Queue Batch • Waiting',
-                    style: TextStyle(
-                      fontSize: 14, 
-                      fontWeight: FontWeight.w700, 
-                      color: Color(0xFF475569),
+          Row(
+            children: [
+              const Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.hourglass_empty_rounded, size: 16, color: Color(0xFF94A3B8)),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Queue Batch • Waiting',
+                        style: TextStyle(
+                          fontSize: 14, 
+                          fontWeight: FontWeight.w700, 
+                          color: Color(0xFF475569),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    overflow: TextOverflow.ellipsis,
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFF1F5F9)),
+                ),
+                child: Text(
+                  '0 / ${task.phraseIds.length}',
+                  style: const TextStyle(
+                    fontSize: 12, 
+                    fontWeight: FontWeight.w800, 
+                    fontFamily: 'monospace', 
+                    color: Color(0xFF64748B)
                   ),
                 ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFF1F5F9)),
-            ),
-            child: Text(
-              '0 / ${task.phraseIds.length}',
-              style: const TextStyle(
-                fontSize: 12, 
-                fontWeight: FontWeight.w800, 
-                fontFamily: 'monospace', 
-                color: Color(0xFF64748B)
               ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _formatPhraseOrders(task.phraseOrders),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF94A3B8),
+              letterSpacing: 0.2,
             ),
           ),
         ],

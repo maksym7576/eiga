@@ -86,7 +86,7 @@ class VideoMobileView extends HookConsumerWidget {
           child: PlayerView(),
         ),
         const Positioned.fill(child: _VideoPlayerBackgroundLayer()),
-        const Positioned.fill(child: PlayerControls()),
+        const Positioned.fill(child: RepaintBoundary(child: PlayerControls())),
         const FullscreenSubtitle(),
       ],
     );
@@ -119,18 +119,20 @@ class VideoMobileView extends HookConsumerWidget {
               left: 0,
               right: 0,
               height: videoHeight,
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: () {
-                  if (isFullscreen && orientation == Orientation.portrait) {
-                    if (!playerState.isLocked) {
-                      ref.read(playerProvider.notifier).setFullscreen(false);
-                    } else {
-                      ref.read(playerProvider.notifier).resetLockAndFullscreen();
+              child: RepaintBoundary(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () {
+                    if (isFullscreen && orientation == Orientation.portrait) {
+                      if (!playerState.isLocked) {
+                        ref.read(playerProvider.notifier).setFullscreen(false);
+                      } else {
+                        ref.read(playerProvider.notifier).resetLockAndFullscreen();
+                      }
                     }
-                  }
-                },
-                child: videoContent,
+                  },
+                  child: videoContent,
+                ),
               ),
             ),
 
@@ -172,31 +174,30 @@ class VideoMobileView extends HookConsumerWidget {
               left: 0,
               right: 0,
               bottom: 0,
-              child: AnimatedOpacity(
-                duration: _kChromeFadeDuration,
-                curve: Curves.easeOut,
-                opacity: isFullscreen ? 0.0 : 1.0,
-                child: IgnorePointer(
-                  ignoring: isFullscreen,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      if (constraints.maxHeight < 24) {
-                        return const SizedBox.shrink();
-                      }
-                      return Column(
-                        children: [
-                          PlayerResizableContainerHandle(
-                            currentHeight: resizableHeight,
-                            minHeight: minHeight,
-                            maxHeight: maxHeight,
-                          ),
-                          const Expanded(child: PlayerPhraseList()),
-                        ],
-                      );
-                    },
+              child: isFullscreen 
+                ? const SizedBox.shrink() 
+                : AnimatedOpacity(
+                    duration: _kChromeFadeDuration,
+                    curve: Curves.easeOut,
+                    opacity: 1.0,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        if (constraints.maxHeight < 24) {
+                          return const SizedBox.shrink();
+                        }
+                        return Column(
+                          children: [
+                            PlayerResizableContainerHandle(
+                              currentHeight: resizableHeight,
+                              minHeight: minHeight,
+                              maxHeight: maxHeight,
+                            ),
+                            const Expanded(child: PlayerPhraseList()),
+                          ],
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ),
             ),
 
             // --- Bottom dock (hidden in fullscreen) ---
@@ -221,14 +222,6 @@ class VideoMobileView extends HookConsumerWidget {
             ),
 
             const WordDetailsPopover(),
-
-            // --- Silent Offscreen Prerender Cache ---
-            // Pre-warm fullscreen subtitle and overlay render trees invisibly
-            // so the first fullscreen transition has zero rasterization latency.
-            const Offstage(
-              offstage: true,
-              child: FullscreenSubtitle(),
-            ),
           ],
         ),
       ),

@@ -26,8 +26,8 @@ class TranslationProgressSheet extends HookConsumerWidget {
             final activeJobs = jobs.where((j) => j.status == 'active').toList();
             final completedJobs = jobs.where((j) => j.status != 'active').toList();
 
-            final totalTranslatedPhrases = completedJobs.fold(0, (sum, j) => sum + (j.processedPhrases ?? 0));
-            final totalPhrasesCount = jobs.length + queue.length;
+            final int totalTranslatedPhrases = completedJobs.fold(0, (sum, j) => sum + (j.processedPhrases ?? 0));
+            final int totalPhrasesCount = (jobs.length + queue.length).toInt();
 
             return Column(
               mainAxisSize: MainAxisSize.min,
@@ -72,13 +72,13 @@ class TranslationProgressSheet extends HookConsumerWidget {
                       if (activeJobs.isNotEmpty || queue.isNotEmpty) ...[
                         ...activeJobs.asMap().entries.map((entry) => TranslationJobCard(
                           job: entry.value, 
-                          index: entry.key + 1,
-                          total: totalPhrasesCount,
+                          index: (entry.key + 1).toInt(),
+                          total: (totalPhrasesCount).toInt(),
                         )),
                         ...queue.asMap().entries.map((entry) => TranslationQueueCard(
                           task: entry.value,
-                          index: activeJobs.length + entry.key + 1,
-                          total: totalPhrasesCount,
+                          index: (activeJobs.length + entry.key + 1).toInt(),
+                          total: (totalPhrasesCount).toInt(),
                         )),
                         const SizedBox(height: 16),
                       ],
@@ -120,8 +120,8 @@ class TranslationProgressSheet extends HookConsumerWidget {
                         ),
                         ...completedJobs.reversed.toList().asMap().entries.map((entry) => TranslationJobCard(
                           job: entry.value,
-                          index: completedJobs.length - entry.key,
-                          total: totalPhrasesCount,
+                          index: (completedJobs.length - entry.key).toInt(),
+                          total: totalPhrasesCount.toInt(),
                         )),
                       ],
                       const SizedBox(height: 16),

@@ -145,18 +145,3 @@ class Video {
       ..isCached = isCached ?? this.isCached;
   }
 }
-
-@embedded
-class AiStageHistory {
-  String? stageName;
-  int? durationMs;
-  String? status; // 'success', 'error'
-  String? modelName;
-
-  AiStageHistory({
-    this.stageName,
-    this.durationMs,
-    this.status,
-    this.modelName,
-  });
-}

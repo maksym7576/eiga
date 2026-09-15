@@ -1,16 +1,13 @@
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
-import '../schemas/block.dart';
 import '../schemas/language.dart';
 import '../schemas/phrase.dart';
 import '../schemas/specific_word_style.dart';
 import '../schemas/video.dart';
-import '../schemas/word.dart';
+import '../schemas/word_index.dart';
 import '../schemas/ai_model.dart';
 import '../schemas/translation_job.dart';
-import '../schemas/translation_word.dart';
 import '../schemas/known_word_status.dart';
-import '../schemas/translation_pipeline_step.dart';
 import '../seeds/language_seeds.dart';
 import '../seeds/ai_model_seeds.dart';
 import '../seeds/specific_word_style_seeds.dart';
@@ -35,15 +32,13 @@ class IsarService {
     
     final isar = await Isar.open(
       [
-        BlockSchema,
         LanguageSchema,
         PhraseSchema,
         SpecificWordStyleSchema,
         VideoSchema,
-        WordSchema,
+        WordIndexSchema,
         AiModelSchema,
         TranslationJobSchema,
-        TranslationWordSchema,
         KnownWordStatusSchema,
       ],
       directory: dir.path,
@@ -53,60 +48,7 @@ class IsarService {
     // Initial seeding
     await _seedInitialData(isar);
 
-    // Run one-time data migration for lemma-based styling
-    await _runDataMigration(isar);
-
     return isar;
-  }
-
-  static Future<void> _runDataMigration(Isar isar) async {
-    // Only fetch particles (pos == p) that haven't been migrated yet.
-    // Migration is needed if a particle's lemma doesn't contain a colon ':'.
-    final particlesToMigrate = await isar.words.filter()
-        .posEqualTo(WordPos.p)
-        .and()
-        .not().lemmaContains(':')
-        .findAll();
-
-    if (particlesToMigrate.isEmpty) return;
-
-    print('DB: Running optimized lemma/base migration for ${particlesToMigrate.length} particles...');
-
-    await isar.writeTxn(() async {
-      final List<Word> wordsToUpdate = [];
-      
-      for (var word in particlesToMigrate) {
-        bool changed = false;
-        
-        // 1. Move old grammar-lemma to grammarFunction if none
-        if (word.lemma != null && word.grammarFunction == GrammarFunction.none) {
-          final val = word.lemma!.toLowerCase();
-          for (final e in GrammarFunction.values) {
-            if (e.name == val) {
-              word.grammarFunction = e;
-              break;
-            }
-          }
-        }
-        
-        // 2. Set lemma to particle:function
-        final newLemma = '${word.mainText}:${word.grammarFunction.name}';
-        if (word.lemma != newLemma) {
-          word.lemma = newLemma;
-          changed = true;
-        }
-
-        if (changed) {
-          wordsToUpdate.add(word);
-        }
-      }
-
-      if (wordsToUpdate.isNotEmpty) {
-        await isar.words.putAll(wordsToUpdate);
-      }
-    });
-
-    print('DB: Migration complete.');
   }
 
   static Future<void> _seedInitialData(Isar isar) async {

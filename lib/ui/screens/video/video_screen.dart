@@ -85,46 +85,27 @@ class VideoScreen extends HookConsumerWidget {
 
     final isLocked = ref.watch(playerProvider.select((s) => s.isLocked));
 
-    // Auto-fullscreen only for mobile devices.
-    //
-    // IMPORTANT: debounced instead of a raw addPostFrameCallback.
-    final lastRotationRef = useRef<DateTime?>(null);
+    // Auto-fullscreen logic: triggers ONLY on physical orientation changes.
+    final prevOrientationRef = useRef<Orientation?>(null);
 
-    // Auto-fullscreen only for mobile devices.
-    //
-    // Reacts immediately to the first orientation change to avoid video squishing,
-    // but uses a debounce defense if rapid consecutive changes occur within 500ms
-    // to protect against sensor noise and overlapping rebuild cascades.
     useEffect(() {
-      Timer? debounce;
-
       if (Platform.isAndroid || Platform.isIOS) {
         if (!isLocked) {
-          final now = DateTime.now();
-          final lastRotation = lastRotationRef.value;
-          final isRapidChange = lastRotation != null && now.difference(lastRotation).inMilliseconds < 500;
+          final currentOrientation = orientation;
+          final prevOrientation = prevOrientationRef.value;
           
-          lastRotationRef.value = now;
-
-          if (!isRapidChange) {
-            // First/clean rotation: react immediately without any artificial delay
-            Future.microtask(() {
-              if (context.mounted) {
-                ref.read(playerProvider.notifier).setFullscreen(isLandscape, updateSystem: true);
-              }
-            });
-          } else {
-            // Rapid consecutive updates (sensor noise): use debounce to let it settle
-            debounce = Timer(const Duration(milliseconds: 200), () {
+          // Only trigger if orientation has actually changed
+          if (prevOrientation != null && prevOrientation != currentOrientation) {
+             Future.microtask(() {
               if (context.mounted) {
                 ref.read(playerProvider.notifier).setFullscreen(isLandscape, updateSystem: true);
               }
             });
           }
+          prevOrientationRef.value = currentOrientation;
         }
       }
-
-      return () => debounce?.cancel();
+      return null;
     }, [isLandscape, isLocked]);
 
     // Ensure screen stays on during video playback and mode changes

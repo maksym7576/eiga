@@ -1,5 +1,5 @@
 import 'package:isar_community/isar.dart';
-import 'translation_pipeline_step.dart';
+import 'translation_job.dart';
 
 part 'ai_model.g.dart';
 
@@ -20,9 +20,9 @@ class AiModel {
 
   @Index(unique: true)
   late String name;
-  
+
   late String url;
-  
+
   int defaultLimit = 20;
   int currentMaxLimit = 20;
   bool isMaxLimitCustom = false;
@@ -38,7 +38,7 @@ class AiModel {
   bool isPhrasesPerRequestCustom = false;
 
   bool supportsWebSearch = false;
-  
+
   bool supportsStreaming = true;
   bool currentStreamingEnabled = true;
   bool isStreamingCustom = false;
@@ -47,12 +47,12 @@ class AiModel {
 
   @Enumerated(EnumType.name)
   late ModelQuality quality;
-  
+
   bool supportsThinking = false;
 
   @Enumerated(EnumType.name)
   late ModelSpeed speed;
-  
+
   int estimatedTokensPerSec = 50;
 
   int errorCount = 0;

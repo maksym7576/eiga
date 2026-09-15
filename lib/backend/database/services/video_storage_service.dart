@@ -4,9 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../schemas/video.dart';
 import '../schemas/phrase.dart';
-import '../schemas/block.dart';
-import '../schemas/word.dart';
-import '../schemas/translation_word.dart';
+import '../schemas/word_index.dart';
 import 'video_service.dart';
 
 class VideoStorageService {
@@ -70,34 +68,11 @@ class VideoStorageService {
 
     // 2. Cascade delete from DB
     await isar.writeTxn(() async {
-      final phraseIds = await isar.phrases
-          .filter()
-          .videoIdEqualTo(video.id)
-          .idProperty()
-          .findAll();
+      // Delete associated WordIndex entries
+      await isar.wordIndexs.filter().videoIdEqualTo(video.id).deleteAll();
 
-      if (phraseIds.isNotEmpty) {
-        // Delete words linked to these phrases
-        await isar.collection<Word>()
-            .filter()
-            .anyOf(phraseIds, (q, int id) => q.phraseIdEqualTo(id))
-            .deleteAll();
-
-        // Delete translation words linked to these phrases
-        await isar.translationWords
-            .filter()
-            .anyOf(phraseIds, (q, int id) => q.phraseIdEqualTo(id))
-            .deleteAll();
-
-        // Delete blocks linked to these phrases
-        await isar.blocks
-            .filter()
-            .anyOf(phraseIds, (q, int id) => q.phraseIdEqualTo(id))
-            .deleteAll();
-
-        // Delete phrases
-        await isar.phrases.filter().videoIdEqualTo(video.id).deleteAll();
-      }
+      // Delete associated Phrases
+      await isar.phrases.filter().videoIdEqualTo(video.id).deleteAll();
 
       // Finally delete the video
       await isar.videos.delete(video.id);

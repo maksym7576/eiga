@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../backend/database/schemas/word.dart';
-import '../../../backend/database/schemas/translation_word.dart';
+import '../../../backend/database/schemas/phrase.dart';
 import '../../../backend/database/schemas/specific_word_style.dart';
 import 'package:eiga/providers/ui/vocabulary_provider.dart';
 import '../../styles/additional_window_theme.dart';
@@ -73,7 +72,6 @@ class VocabularyFeedItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Multiple Words & Status Badge
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -129,7 +127,7 @@ class VocabularyFeedItem extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _buildPosBadge(item.words.first),
+                  if (item.words.isNotEmpty) _buildPosBadge(item.words.first),
                   const SizedBox(height: 8),
                   _buildStatusBadge(style),
                 ],
@@ -139,22 +137,14 @@ class VocabularyFeedItem extends StatelessWidget {
           
           const SizedBox(height: 12),
           
-          // Technical Analysis Table
           _buildInfoTable(item.words),
-          
-          if (item.variations.isNotEmpty || item.translationVariations.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            _buildVariationsSection(item.variations, item.translationVariations),
-          ],
           
           const SizedBox(height: 20),
           
-          // Analysis Box
           _buildAnalysisBox(item.words, item.translationWords),
           
           const SizedBox(height: 20),
           
-          // Translation Header
           const Text(
             'TRANSLATION OF BLOCK',
             style: TextStyle(
@@ -166,7 +156,6 @@ class VocabularyFeedItem extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           
-          // Translation Tokens
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -215,7 +204,7 @@ class VocabularyFeedItem extends StatelessWidget {
     );
   }
 
-  Widget _buildPosBadge(Word word) {
+  Widget _buildPosBadge(TokenEntry word) {
     String short = _posNames[word.pos]?.substring(0, 1).toUpperCase() ?? '?';
     if (word.pos == WordPos.n) short = '名'; 
     else if (word.pos == WordPos.v) short = '動';
@@ -242,7 +231,8 @@ class VocabularyFeedItem extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoTable(List<Word> words) {
+  Widget _buildInfoTable(List<TokenEntry> words) {
+    if (words.isEmpty) return const SizedBox.shrink();
     final first = words.first;
     final posLabel = _posNames[first.pos] ?? 'Other';
     final gfLabel = _gfNames[first.grammarFunction] ?? 'None';
@@ -293,52 +283,8 @@ class VocabularyFeedItem extends StatelessWidget {
     );
   }
 
-  Widget _buildVariationsSection(List<Word> variations, List<TranslationWord> trVariations) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'OTHER FORMS IN LIBRARY',
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            color: AppColors.slate400,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ...variations.map((v) => _buildVariationChip(v.mainText, isTranslation: false)),
-            ...trVariations.map((v) => _buildVariationChip(v.text ?? '', isTranslation: true)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildVariationChip(String text, {required bool isTranslation}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: isTranslation ? AppColors.brandBlue50 : AppColors.slate50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isTranslation ? AppColors.brandBlue100 : AppColors.slate100),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: isTranslation ? AppColors.brandBlue : AppColors.slate600,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAnalysisBox(List<Word> words, List<TranslationWord> trWords) {
+  Widget _buildAnalysisBox(List<TokenEntry> words, List<TranslationTokenEntry> trWords) {
+    if (words.isEmpty) return const SizedBox.shrink();
     String explanation = '';
     final first = words.first;
 

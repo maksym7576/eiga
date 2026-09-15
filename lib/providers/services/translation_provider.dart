@@ -1,8 +1,8 @@
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/backend/database/schemas/phrase.dart';
 import 'package:eiga/backend/services/background/translation_background_manager.dart';
-import 'package:eiga/providers/services/ai_services_providers.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/services/app_configs_provider.dart';
 import 'package:eiga/providers/services/isar_services_providers.dart';
@@ -13,17 +13,31 @@ class TranslationNotifier extends Notifier<void> {
   int? _currentVideoId;
   Timer? _jumperTimer;
   bool _isProcessingRealtime = false;
+  DateTime? _lastTaskAddedTime;
+
+  // Local cache of IDs sent to the queue but not yet marked as 'processing' in DB
+  final Set<int> _sentToQueueIds = {};
 
   @override
   void build() {
     _initListeners();
     _cleanupDatabaseState();
+    
+    // Clear cache on rebuild (e.g. video change)
+    _sentToQueueIds.clear();
+    
+    // Immediate check on screen entry
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final currentTime = ref.read(playerTimeProvider);
+      _checkAndTranslateRealtime(currentTime);
+    });
   }
 
   Future<void> _cleanupDatabaseState() async {
     try {
-      await ref.read(phraseServiceProvider).resetAllTranslatingStatuses();
-      logger.d('TranslationNotifier: cleaned up database translating statuses');
+      await ref.read(phraseServiceProvider).resetAllProcessingStatuses();
+      await ref.read(translationJobServiceProvider).markActiveJobsAsInterrupted();
+      logger.d('TranslationNotifier: cleaned up database processing statuses and active jobs');
     } catch (e) {
       logger.e('TranslationNotifier: failed to cleanup database state', error: e);
     }
@@ -53,6 +67,8 @@ class TranslationNotifier extends Notifier<void> {
     _jumperTimer?.cancel();
     _isProcessingRealtime = false;
     _currentVideoId = newVideoId;
+    _lastTaskAddedTime = null;
+    _sentToQueueIds.clear();
   }
 
   void _handleTimeUpdate(Duration? prevTime, Duration currentTime) {
@@ -62,29 +78,55 @@ class TranslationNotifier extends Notifier<void> {
     }
     final diff = (currentTime - prevTime).abs();
 
-    if (diff > const Duration(seconds: 3)) {
+    if (diff > const Duration(seconds: 2)) {
       _jumperTimer?.cancel();
-      _jumperTimer = Timer(const Duration(seconds: 2), () {
-        _checkAndTranslateRealtime(currentTime);
-      });
+      // Trigger immediately on jumps to ensure phrases are ready
+      _checkAndTranslateRealtime(currentTime);
     } else {
-      _jumperTimer?.cancel();
+      // Cooldown for regular updates to avoid spamming checks
+      if (_lastTaskAddedTime != null && 
+          DateTime.now().difference(_lastTaskAddedTime!) < const Duration(seconds: 3)) {
+        return;
+      }
       _checkAndTranslateRealtime(currentTime);
     }
   }
 
-  Future<void> _checkAndTranslateRealtime(Duration currentTime) async {
+  Future<void> checkAndTranslateRealtime(Duration currentTime) async {
     if (_isProcessingRealtime || _currentVideoId == null) return;
 
     final phrases = ref.read(phrasesStreamProvider).value ?? [];
     if (phrases.isEmpty) return;
 
+    // OPTIMIZATION: Instead of scanning all phrases, start from the active one.
+    final activeId = ref.read(stickyActivePhraseIdProvider);
+    // Use fallback to find index if sticky isn't set yet (for manual taps)
+    int activeIndex = activeId != null ? phrases.indexWhere((p) => p.id == activeId) : -1;
+    
+    if (activeIndex == -1) {
+       final startBase = DateTime(1970, 1, 1);
+       activeIndex = phrases.indexWhere((p) => 
+         p.startTime != null && p.startTime!.difference(startBase) >= currentTime);
+       if (activeIndex == -1 && phrases.isNotEmpty) activeIndex = 0;
+    }
+    
+    if (activeIndex == -1) return;
+
     final List<Phrase> pastPhrases = [];
     final List<Phrase> futurePhrases = [];
 
     final startBase = DateTime(1970, 1, 1);
+    
+    final config = ref.read(appConfigsServiceProvider);
+    final maxLimit = config.getNumberOfPhrases;
 
-    for (var phrase in phrases) {
+    // Scan forward from the active index to find up to maxLimit untranslated phrases.
+    // Also include a small number of past phrases if they were missed.
+    final startIdx = (activeIndex - (maxLimit ~/ 4)).clamp(0, phrases.length);
+    
+    int foundCount = 0;
+    for (int i = startIdx; i < phrases.length; i++) {
+      final phrase = phrases[i];
       if (phrase.isTranslating || phrase.isTranslated) continue;
       if (phrase.startTime == null) continue;
 
@@ -94,34 +136,89 @@ class TranslationNotifier extends Notifier<void> {
       } else {
         futurePhrases.add(phrase);
       }
+      
+      foundCount++;
+      if (foundCount >= maxLimit) break;
     }
 
-    if (futurePhrases.isNotEmpty) {
+    if (futurePhrases.isNotEmpty || pastPhrases.isNotEmpty) {
       final config = ref.read(appConfigsServiceProvider);
       final lookAhead = Duration(seconds: config.getSecondsAhead);
-      final nextPhraseTime = futurePhrases.first.startTime!.difference(startBase);
+      
+      // If we have past phrases that need translation, we trigger immediately
+      bool shouldTrigger = pastPhrases.isNotEmpty;
+      
+      if (!shouldTrigger && futurePhrases.isNotEmpty) {
+        final nextPhraseTime = futurePhrases.first.startTime!.difference(startBase);
+        if (nextPhraseTime <= currentTime + lookAhead) {
+          shouldTrigger = true;
+        }
+      }
 
-      if (nextPhraseTime <= currentTime + lookAhead) {
-        logger.d('Realtime trigger: phrase coming up in $lookAhead. Requesting translation.');
-        final tasks = _buildTasks(pastPhrases, futurePhrases, config.getNumberOfPhrases, TaskPriority.high);
+      if (shouldTrigger) {
+        final processingIds = _getCurrentlyProcessingIds();
+        
+        final pastToTranslate = pastPhrases.where((p) => !processingIds.contains(p.id) && !_sentToQueueIds.contains(p.id)).toList();
+        final futureToTranslate = futurePhrases.where((p) => !processingIds.contains(p.id) && !_sentToQueueIds.contains(p.id)).toList();
+
+        if (futureToTranslate.isEmpty && pastToTranslate.isEmpty) return;
+        
+        final totalToTranslate = futureToTranslate.length + pastToTranslate.length;
+        
+        // RULE: Only trigger if we have a full batch (or close to it)
+        // OR if there are no more untranslated phrases later in the entire video.
+        final bool isFullBatch = totalToTranslate >= (maxLimit * 0.8).toInt();
+        
+        if (!isFullBatch) {
+           final hasMoreLater = phrases.skip(activeIndex + foundCount).any((p) => !p.isTranslated && !p.isTranslating && !processingIds.contains(p.id) && !_sentToQueueIds.contains(p.id));
+           
+           // If there IS more content later, we wait until the playhead gets closer or more phrases accumulate
+           if (hasMoreLater) {
+             // Exception: if it's a manual jump/tap, we allow smaller batches
+             final isManualInteraction = _lastTaskAddedTime == null || DateTime.now().difference(_lastTaskAddedTime!) > const Duration(seconds: 1);
+             if (!isManualInteraction) return;
+           }
+        }
+
+        logger.d('Realtime trigger: Requesting translation ($totalToTranslate phrases).');
+        final tasks = _buildTasks(pastToTranslate, futureToTranslate, maxLimit, TaskPriority.high);
         if (tasks.isNotEmpty) {
+          _lastTaskAddedTime = DateTime.now();
+          _sentToQueueIds.addAll(tasks.first.phraseIds);
           ref.read(translationBackgroundManagerProvider).addTask(tasks.first);
         }
       }
     }
   }
 
+  // Legacy private ref
+  Future<void> _checkAndTranslateRealtime(Duration time) => checkAndTranslateRealtime(time);
+
+  Set<int> _getCurrentlyProcessingIds() {
+    final queue = ref.read(translationQueueProvider);
+    final active = ref.read(activeTranslationTasksProvider);
+    final Set<int> processingIds = {};
+    for (final t in queue) { processingIds.addAll(t.phraseIds); }
+    for (final t in active) { processingIds.addAll(t.phraseIds); }
+    return processingIds;
+  }
+
   List<TranslationTask> _buildTasks(List<Phrase> past, List<Phrase> future, int maxLimit, TaskPriority priority) {
     final resultIds = <int>[];
+    final resultOrders = <int>[];
 
-    // Take some recent past phrases that were missed
-    final recentPast = past.length > 5 ? past.sublist(past.length - 5) : past;
+    // Take past phrases that were missed (up to half the batch)
+    final pastLimit = maxLimit ~/ 2;
+    final recentPast = past.length > pastLimit ? past.sublist(past.length - pastLimit) : past;
     resultIds.addAll(recentPast.map((e) => e.id));
+    resultOrders.addAll(recentPast.map((e) => e.phraseOrder ?? 0));
 
-    // Fill with future phrases
+    // Fill the rest with future phrases
     final remainingSpace = maxLimit - resultIds.length;
     if (remainingSpace > 0) {
-      resultIds.addAll(future.take(remainingSpace).map((e) => e.id));
+      final chunk = future.take(remainingSpace);
+      resultIds.addAll(chunk.map((e) => e.id));
+      resultOrders.addAll(chunk.map((e) => e.phraseOrder ?? 0));
     }
 
     if (resultIds.isEmpty) return [];
@@ -130,6 +227,7 @@ class TranslationNotifier extends Notifier<void> {
       TranslationTask(
         videoId: _currentVideoId!,
         phraseIds: resultIds,
+        phraseOrders: resultOrders,
         priority: priority,
       )
     ];
@@ -140,7 +238,8 @@ class TranslationNotifier extends Notifier<void> {
     final phraseService = ref.read(phraseServiceProvider);
     final allPhrases = await phraseService.getPhrasesByVideoId(videoId);
     
-    final unTranslated = allPhrases.where((p) => !p.isTranslated && !p.isTranslating).toList();
+    final processingIds = _getCurrentlyProcessingIds();
+    final unTranslated = allPhrases.where((p) => !p.isTranslated && !p.isTranslating && !processingIds.contains(p.id)).toList();
     logger.d('TranslateAll: found ${unTranslated.length} phrases to translate');
 
     if (unTranslated.isEmpty) return;
@@ -157,6 +256,7 @@ class TranslationNotifier extends Notifier<void> {
       tasks.add(TranslationTask(
         videoId: videoId,
         phraseIds: chunk.map((e) => e.id).toList(),
+        phraseOrders: chunk.map((e) => e.phraseOrder ?? 0).toList(),
         priority: TaskPriority.normal,
       ));
     }

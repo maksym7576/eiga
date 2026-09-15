@@ -9,9 +9,6 @@ import 'isar_services_providers.dart';
 final phraseResponseHandlerProvider = Provider<PhraseResponseHandler>((ref) {
   return PhraseResponseHandler(
     phraseService: ref.watch(phraseServiceProvider),
-    blockService: ref.watch(blockServiceProvider),
-    wordService: ref.watch(wordServiceProvider),
-    translationWordService: ref.watch(translationWordServiceProvider),
   );
 });
 

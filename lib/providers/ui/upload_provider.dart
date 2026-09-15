@@ -1,9 +1,11 @@
 import 'dart:math';
 import 'dart:developer' as developer;
 import 'package:eiga/providers/ui/player_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:hooks_riverpod/legacy.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:hooks_riverpod/legacy.dart';
 import 'package:path/path.dart' as p;
 import '../../backend/database/schemas/phrase.dart';
 import '../../backend/database/schemas/video.dart';
@@ -425,11 +427,10 @@ class UploadNotifier extends Notifier<UploadState> {
         translatedPhrase: p.translatedPhrase,
         startTime: p.startTime?.add(offset),
         endTime: p.endTime?.add(offset),
-        isTranslated: p.isTranslated,
-        isTranslating: p.isTranslating,
         isActive: p.isActive,
         originalTokens: p.originalTokens,
-        translatedTokens: p.translatedTokens,
+        translatedWords: p.translatedWords,
+        stageStatuses: p.stageStatuses,
       );
     }).toList();
 
@@ -471,11 +472,10 @@ class UploadNotifier extends Notifier<UploadState> {
         translatedPhrase: p.translatedPhrase,
         startTime: p.startTime?.add(offset),
         endTime: p.endTime?.add(offset),
-        isTranslated: p.isTranslated,
-        isTranslating: p.isTranslating,
         isActive: p.isActive,
         originalTokens: p.originalTokens,
-        translatedTokens: p.translatedTokens,
+        translatedWords: p.translatedWords,
+        stageStatuses: p.stageStatuses,
       );
     }).toList();
 

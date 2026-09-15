@@ -37,7 +37,8 @@ class AiService {
     
     logger.d('[AiService] Running 4-stage translation for video ${video.id}');
 
-    final jobId = await _startHistoryEntry(video.id, pipelineId, phrases.length);
+    final phraseOrders = phrases.map((p) => p.phraseOrder ?? 0).toList();
+    final jobId = await _startHistoryEntry(video.id, pipelineId, phrases.length, phraseOrders);
 
     try {
       final result = await processContextTranslationPipeline(
@@ -61,7 +62,7 @@ class AiService {
     }
   }
 
-  Future<int> _startHistoryEntry(int videoId, String pipelineId, int totalPhrases) async {
+  Future<int> _startHistoryEntry(int videoId, String pipelineId, int totalPhrases, List<int> phraseOrders) async {
     final service = ref.read(translationJobServiceProvider);
     final config = ref.read(appConfigsServiceProvider);
     
@@ -72,6 +73,7 @@ class AiService {
       startTime: DateTime.now(),
       totalPhrases: totalPhrases,
       processedPhrases: 0,
+      phraseOrders: phraseOrders,
       isAuto: config.getIsAutomaticModelSwitch,
       stageHistory: [],
     );
@@ -168,6 +170,7 @@ class AiService {
 
     final plan = await _buildExecutionPlan(video, phrases);
     
+    final phraseService = ref.read(phraseServiceProvider);
     final jobService = ref.read(translationJobServiceProvider);
     final initialJob = await jobService.getJobById(jobId);
     if (initialJob != null) {
@@ -191,36 +194,63 @@ class AiService {
       for (int i = 0; i < plan.length; i++) {
         final step = plan[i];
         final type = step['type'] as String;
+        final List<dynamic> stepIds = step['ids'] ?? [];
         
         AiRequestResult result;
+        logger.d('[AiService] Executing step $i: $type for ${stepIds.length} phrases');
+        
         switch (type) {
           case 'context':
+            await phraseService.setStages(stepIds.cast<int>(), StageKey.context, StageState.processing);
             result = await _executeContextStep(video, pipelineResult.stepOf(PipelineStepType.contextResearch), jobId);
+            await phraseService.setStages(stepIds.cast<int>(), StageKey.context, result.phase == AiRequestPhase.success ? StageState.completed : StageState.error);
             break;
           case 'translation':
-            result = await _executeTranslationBatch(step['ids'], pipelineResult.stepOf(PipelineStepType.translation), jobId);
+            await phraseService.setStages(stepIds.cast<int>(), StageKey.translation, StageState.processing);
+            result = await _executeTranslationBatch(stepIds, pipelineResult.stepOf(PipelineStepType.translation), jobId);
+            await phraseService.setStages(stepIds.cast<int>(), StageKey.translation, result.phase == AiRequestPhase.success ? StageState.completed : StageState.error);
             break;
           case 'tokenize_source':
-            result = await _executeTokenizeBatch(step['ids'], pipelineResult.stepOf(PipelineStepType.tokenize), jobId, isOrig: true);
+            await phraseService.setStages(stepIds.cast<int>(), StageKey.tokenizeSource, StageState.processing);
+            result = await _executeTokenizeBatch(stepIds, pipelineResult.stepOf(PipelineStepType.tokenize), jobId, isOrig: true);
+            await phraseService.setStages(stepIds.cast<int>(), StageKey.tokenizeSource, result.phase == AiRequestPhase.success ? StageState.completed : StageState.error);
             break;
           case 'tokenize_translation':
-            result = await _executeTokenizeBatch(step['ids'], pipelineResult.stepOf(PipelineStepType.tokenize), jobId, isOrig: false);
+            await phraseService.setStages(stepIds.cast<int>(), StageKey.tokenizeTranslation, StageState.processing);
+            result = await _executeTokenizeBatch(stepIds, pipelineResult.stepOf(PipelineStepType.tokenize), jobId, isOrig: false);
+            await phraseService.setStages(stepIds.cast<int>(), StageKey.tokenizeTranslation, result.phase == AiRequestPhase.success ? StageState.completed : StageState.error);
             break;
           case 'morphology':
-            result = await _executeMorphologyBatch(step['ids'], pipelineResult.stepOf(PipelineStepType.morphemes), jobId);
+            await phraseService.setStages(stepIds.cast<int>(), StageKey.morphology, StageState.processing);
+            result = await _executeMorphologyBatch(stepIds, pipelineResult.stepOf(PipelineStepType.morphemes), jobId);
+            await phraseService.setStages(stepIds.cast<int>(), StageKey.morphology, result.phase == AiRequestPhase.success ? StageState.completed : StageState.error);
             break;
           default:
             result = AiRequestResult.success();
         }
 
-        if (result.phase != AiRequestPhase.success) {
+        if (result.phase == AiRequestPhase.error) {
+          logger.e('[AiService] Step $type FATAL ERROR: ${result.error?.message}');
           await _failHistoryEntry(jobId, result.error?.message ?? 'Step failed');
           return result;
         }
 
+        if (result.phase == AiRequestPhase.partialSuccess) {
+          logger.w('[AiService] Step $type partially succeeded. Continuing...');
+        }
+        
+        logger.d('[AiService] Step $type completed (Phase: ${result.phase.name})');
+
         final currentJob = await jobService.getJobById(jobId);
         if (currentJob != null) {
           currentJob.completedSteps = i + 1;
+          
+          // Update processed count incrementally for terminal stages
+          if (type == 'morphology' || type == 'translation') {
+            final int currentProcessed = currentJob.processedPhrases ?? 0;
+            currentJob.processedPhrases = (currentProcessed + stepIds.length).clamp(0, currentJob.totalPhrases ?? 0);
+          }
+          
           await jobService.updateJob(currentJob);
         }
       }
@@ -242,11 +272,15 @@ class AiService {
 
     final toTranslateIds = phrases.where((p) => p.translatedPhrase == null || p.translatedPhrase!.isEmpty).map((e) => e.id).toList();
     final toTokenizeOrigIds = phrases.where((p) => p.originalTokens == null || p.originalTokens!.isEmpty).map((e) => e.id).toList();
-    final toTokenizeDestIds = phrases.where((p) => p.translatedTokens == null || p.translatedTokens!.isEmpty).toList();
+    final toTokenizeDestIds = phrases.where((p) => p.translatedWords == null || p.translatedWords!.isEmpty).toList();
     final toMorphIds = phrases.where((p) => !p.isTranslated).map((e) => e.id).toList();
 
     if (video.isResearchDone != true) {
-      plan.add({'type': 'context', 'method': 'ai'});
+      plan.add({
+        'type': 'context', 
+        'method': 'ai',
+        'ids': phrases.map((e) => e.id).toList(),
+      });
     }
 
     if (toTranslateIds.isNotEmpty) {
@@ -263,7 +297,7 @@ class AiService {
     // For translated language
     final List<int> destTokenizeIds = {
       ...toTranslateIds, 
-      ...phrases.where((p) => p.translatedTokens == null || p.translatedTokens!.isEmpty).map((e) => e.id)
+      ...phrases.where((p) => p.translatedWords == null || p.translatedWords!.isEmpty).map((e) => e.id)
     }.toList();
 
     if (destTokenizeIds.isNotEmpty) {
@@ -336,7 +370,16 @@ class AiService {
       final url = await _buildUrl(step.model, forceStreaming: false);
       final prompt = _formTranslationBatchPrompt(step.prompt, batch);
       final response = await geminiService.sendRequest(url, prompt, model: step.model);
-      final result = await geminiService.phraseResponseHandler.saveTranslationsResponse(jsonDecode(response), expectedIds: batch.map((e) => e.id).toList());
+      
+      dynamic decoded;
+      try {
+        decoded = jsonDecode(response);
+      } catch (e) {
+        logger.e('[AiService] Translation response is NOT valid JSON: $response');
+        return AiRequestResult.failure(AiErrorType.parse, message: 'Invalid JSON response from AI', stepType: 'translation', model: step.model);
+      }
+
+      final result = await geminiService.phraseResponseHandler.saveTranslationsResponse(decoded, expectedIds: batch.map((e) => e.id).toList());
       if (result.phase == AiRequestPhase.success) {
         await _updateStageProgress(jobId, 'Translation', status: 'success');
       }
@@ -382,14 +425,22 @@ class AiService {
           if (text.isEmpty) continue;
           
           final localTokens = await tokenizer.tokenize(text);
-          final tokens = localTokens.map((t) => TokenEntry(
-            wordPosition: t.wordPosition, 
-            pos: t.pos.name, 
-            blockId: t.wordPosition,
-            versions: List.from(t.versions),
-          )).toList();
-          
-          await phraseService.updateTokens(p.id, original: isOrig ? tokens : null, translated: isOrig ? null : tokens);
+          if (isOrig) {
+            final tokens = localTokens.map((t) => TokenEntry(
+              wordPosition: t.wordPosition, 
+              pos: t.pos, 
+              blockId: t.wordPosition,
+              versions: List.from(t.versions),
+            )).toList();
+            await phraseService.updateTokens(p.id, original: tokens, translated: null);
+          } else {
+            final tokens = localTokens.map((t) => TranslationTokenEntry(
+              translatedWordPosition: t.wordPosition,
+              blockId: t.wordPosition,
+              text: t.versions.isNotEmpty ? t.versions.first.text : '',
+            )).toList();
+            await phraseService.updateTokens(p.id, original: null, translated: tokens);
+          }
         }
       }
       
@@ -409,7 +460,7 @@ class AiService {
       if (p != null && 
           p.translatedPhrase != null && p.translatedPhrase!.isNotEmpty &&
           p.originalTokens != null && p.originalTokens!.isNotEmpty &&
-          p.translatedTokens != null && p.translatedTokens!.isNotEmpty) {
+          p.translatedWords != null && p.translatedWords!.isNotEmpty) {
         batch.add(p);
       } else if (p != null) {
         logger.w('[AiService] Skipping phrase ${p.id} for Morphology: missing tokens or translation');
@@ -456,7 +507,7 @@ class AiService {
       final jaTokens = (p.originalTokens ?? []).map((t) {
         final Map<String, dynamic> map = {
           "wordPosition": t.wordPosition,
-          "partOfSpeech": t.pos,
+          "partOfSpeech": t.pos.name,
           "lemma": t.lemma,
         };
         for (var v in t.versions) {
@@ -465,14 +516,11 @@ class AiService {
         return map;
       }).toList();
 
-      final trTokens = (p.translatedTokens ?? []).map((t) {
-        final Map<String, dynamic> map = {
-          "translationPosition": t.wordPosition,
+      final trTokens = (p.translatedWords ?? []).map((t) {
+        return {
+          "translationPosition": t.translatedWordPosition,
+          "text": t.text ?? '',
         };
-        for (var v in t.versions) {
-          map[v.key == 'original' ? 'text' : v.key!] = v.text;
-        }
-        return map;
       }).toList();
 
       return {

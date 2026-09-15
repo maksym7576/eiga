@@ -36,9 +36,46 @@ class TranslationJobService {
     });
   }
 
+  Future<void> markActiveJobsAsInterrupted() async {
+    await isar.writeTxn(() async {
+      final activeJobs = await isar.translationJobs
+          .filter()
+          .statusEqualTo('active')
+          .findAll();
+
+      for (var job in activeJobs) {
+        job.status = 'interrupted';
+        job.endTime = DateTime.now();
+        job.errorMessage = 'Process interrupted by app close or restart';
+      }
+      if (activeJobs.isNotEmpty) {
+        await isar.translationJobs.putAll(activeJobs);
+      }
+    });
+  }
+
   Future<void> deleteJob(Id id) async {
     await isar.writeTxn(() async {
       await isar.translationJobs.delete(id);
+    });
+  }
+
+  Future<void> cancelJobsForVideo(int videoId) async {
+    await isar.writeTxn(() async {
+      final activeJobs = await isar.translationJobs
+          .filter()
+          .videoIdEqualTo(videoId)
+          .statusEqualTo('active')
+          .findAll();
+
+      for (var job in activeJobs) {
+        job.status = 'stopped';
+        job.endTime = DateTime.now();
+        job.errorMessage = 'Stopped by user';
+      }
+      if (activeJobs.isNotEmpty) {
+        await isar.translationJobs.putAll(activeJobs);
+      }
     });
   }
 }

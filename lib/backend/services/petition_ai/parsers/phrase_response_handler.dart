@@ -1,29 +1,27 @@
 import 'dart:convert';
-import '../../../database/schemas/block.dart';
-import '../../../database/schemas/word.dart';
+import 'package:isar_community/isar.dart';
 import '../../../database/schemas/phrase.dart';
-import '../../../database/schemas/translation_word.dart';
+import '../../../database/schemas/word_index.dart';
+import '../../../database/schemas/video.dart';
 import '../../../database/schemas/language.dart';
 import '../../../database/services/phrase_service.dart';
-import '../../../database/services/block_service.dart';
-import '../../../database/services/word_service.dart';
-import '../../../database/services/translation_word_service.dart';
 import '../../utils/ai_exceptions.dart';
 import 'package:eiga/providers/services/ai_request_state.dart';
 import 'response_parser_utils.dart';
 import '../../../../utils/logger.dart';
 
+class PhraseOutcome {
+  final int phraseId;
+  final bool ok;
+
+  PhraseOutcome({required this.phraseId, required this.ok});
+}
+
 class PhraseResponseHandler {
   final PhraseService phraseService;
-  final BlockService blockService;
-  final WordService wordService;
-  final TranslationWordService translationWordService;
 
   PhraseResponseHandler({
     required this.phraseService,
-    required this.blockService,
-    required this.wordService,
-    required this.translationWordService,
   });
 
   Future<AiRequestResult> processResponse(String jsonResponse, {List<int> expectedIds = const [], String? language}) async {
@@ -92,18 +90,17 @@ class PhraseResponseHandler {
     final phrase = await phraseService.getPhraseById(phraseId);
     if (phrase == null) return PhraseOutcome(phraseId: phraseId, ok: false);
 
-    final bool isJapanese = language?.toLowerCase() == 'japanese';
     bool phraseHadErrors = false;
 
     try {
-      await _clearPhraseData(phraseId);
+      final List<TokenEntry> originalTokens = [];
+      final List<TranslationTokenEntry> translatedWords = [];
+
       for (final blockJson in rawBlocks) {
         if (blockJson is! Map) continue;
-        final newBlock = Block(phraseId: phraseId, blockPositionIndex: blockJson['p'] as int?);
-        final blockId = await blockService.createBlock(block: newBlock);
+        final int? blockId = blockJson['p'] as int?;
 
         final List<dynamic> tData = blockJson['t'] ?? [];
-        final List<TranslationWord> translationWords = [];
         for (final tItem in tData) {
           if (tItem is! List || tItem.length < 3) continue;
           final List<int> sourceWordPositions = [];
@@ -112,75 +109,62 @@ class PhraseResponseHandler {
               if (pos is num) sourceWordPositions.add(pos.toInt());
             }
           }
-          translationWords.add(TranslationWord(
-            phraseId: phraseId,
+          translatedWords.add(TranslationTokenEntry(
             blockId: blockId,
-            translatedWordPosition: tItem[0] as int?,
-            text: tItem[1]?.toString(),
+            translatedWordPosition: ResponseParserUtils.parseId(tItem[0]),
+            text: tItem[1]?.toString() ?? '',
             isInferred: tItem[2] == true,
             sourceWordPositions: sourceWordPositions,
           ));
         }
-        if (translationWords.isNotEmpty) await translationWordService.createTranslationWords(translationWords);
 
         final List<dynamic> wData = blockJson['w'] ?? [];
         for (final wItem in wData) {
           if (wItem is! List || wItem.length < 7) continue;
           final wPos = wItem[0] as int?;
           final original = wItem[1]?.toString() ?? '';
-          String? posStr = wItem[2]?.toString();
+          final posStr = wItem[2]?.toString();
           final lemma = wItem[3]?.toString();
           final kanaRaw = wItem[4]?.toString();
           final romaji = wItem[5]?.toString();
           final functionStr = wItem[6]?.toString();
 
-          final punctuationPattern = RegExp(r'^[\p{P}\p{S}]+$', unicode: true);
-          bool isLikelyPunctuation = punctuationPattern.hasMatch(original.trim());
-          if (!isLikelyPunctuation && original.trim().length == 1) {
-            const commonPunct = '()[]{}<>!?,.:;…-—"\'（）「」『』【】〈〉《〉〔〕［］｛｝！？，．：；。・';
-            if (commonPunct.contains(original.trim())) isLikelyPunctuation = true;
-          }
-          if (isLikelyPunctuation) posStr = 's';
-
-          final pos = _parsePos(posStr);
-          final grammarFunction = _parseGrammarFunction(functionStr);
-          bool isClickable = pos != WordPos.s && !isLikelyPunctuation;
-
-          final Word newWord = Word(
-            phraseId: phraseId,
-            blockId: blockId,
-            wordPosition: wPos,
-            pos: pos,
-            lemma: lemma,
-            grammarFunction: grammarFunction,
-            isClickable: isClickable,
-          );
-
-          String? kana = kanaRaw;
-          if (isJapanese && (kana == null || kana.isEmpty)) kana = original;
-          newWord.versions = [
+          final List<ReadingItem> versions = [
             ReadingItem(key: 'original', text: original),
-            if (kana != null && kana.isNotEmpty) ReadingItem(key: 'kana', text: kana),
+            if (kanaRaw != null && kanaRaw.isNotEmpty) ReadingItem(key: 'kana', text: kanaRaw),
             if (romaji != null && romaji.isNotEmpty) ReadingItem(key: 'romaji', text: romaji),
           ];
-          await wordService.createWord(word: newWord);
+
+          originalTokens.add(TokenEntry(
+            wordPosition: wPos,
+            pos: _parsePos(posStr),
+            grammarFunction: _parseGrammarFunction(functionStr),
+            lemma: lemma,
+            blockId: blockId,
+            versions: versions,
+          ));
         }
       }
+
+      phrase.originalTokens = originalTokens;
+      phrase.translatedWords = translatedWords;
+      
+      await phraseService.putPhrases([phrase]);
+      await _updateWordIndexForPhrases([phrase]);
     } catch (e) {
       phraseHadErrors = true;
       logger.e('Error processing phrase $phraseId', error: e);
     }
 
     if (!phraseHadErrors) {
-      await phraseService.markAsTranslatedAndMarkNotTranslating(phraseId);
+      await phraseService.setStage(phraseId, StageKey.translation, StageState.completed);
     } else {
-      await phraseService.resetTranslatingState([phraseId]);
+      await phraseService.setStage(phraseId, StageKey.translation, StageState.error);
     }
     return PhraseOutcome(phraseId: phraseId, ok: !phraseHadErrors);
   }
 
   Future<void> processTokenizationResult(Phrase phrase, Map<String, dynamic> result, {bool isOriginal = true, required Language language}) async {
-    final List<TokenEntry> tokens = [];
     final List<dynamic> rawList = result['words'] ?? result['tokens'] ?? [];
 
     final List<dynamic> blocks = result['blocks'] ?? [];
@@ -193,30 +177,44 @@ class PhraseResponseHandler {
       }
     }
 
-    for (var item in rawList) {
-      if (item is! Map<String, dynamic>) continue;
-      final int pos = ResponseParserUtils.parseId(item['pos'] ?? item['wordPosition'] ?? item['translationPosition']);
-      
-      final List<ReadingItem> versions = [];
-      for (var opt in language.readingOptions) {
-        // Look for exact key or 'text' if it's 'original'
-        final String keyToLook = opt == 'original' ? 'text' : opt;
-        final val = item[keyToLook] ?? item[opt];
-        if (val != null) {
-          versions.add(ReadingItem(key: opt, text: val.toString()));
+    if (isOriginal) {
+      final List<TokenEntry> tokens = [];
+      for (var item in rawList) {
+        if (item is! Map<String, dynamic>) continue;
+        final int pos = ResponseParserUtils.parseId(item['pos'] ?? item['wordPosition'] ?? item['translationPosition']);
+        
+        final List<ReadingItem> versions = [];
+        for (var opt in language.readingOptions) {
+          final String keyToLook = opt == 'original' ? 'text' : opt;
+          final val = item[keyToLook] ?? item[opt];
+          if (val != null) {
+            versions.add(ReadingItem(key: opt, text: val.toString()));
+          }
         }
-      }
 
-      tokens.add(TokenEntry(
-        wordPosition: pos,
-        pos: item['partOfSpeech']?.toString(),
-        lemma: item['lemma']?.toString(),
-        blockId: posToBlock[pos],
-        versions: versions,
-      ));
+        tokens.add(TokenEntry(
+          wordPosition: pos,
+          pos: _parsePos(item['partOfSpeech']?.toString()),
+          lemma: item['lemma']?.toString(),
+          blockId: posToBlock[pos],
+          versions: versions,
+        ));
+      }
+      await phraseService.updateTokens(phrase.id, original: tokens, translated: null);
+    } else {
+      final List<TranslationTokenEntry> tokens = [];
+      for (var item in rawList) {
+        if (item is! Map<String, dynamic>) continue;
+        final int pos = ResponseParserUtils.parseId(item['pos'] ?? item['wordPosition'] ?? item['translationPosition']);
+        
+        tokens.add(TranslationTokenEntry(
+          translatedWordPosition: pos,
+          blockId: posToBlock[pos] ?? pos,
+          text: item['text']?.toString() ?? item['translation']?.toString() ?? '',
+        ));
+      }
+      await phraseService.updateTokens(phrase.id, original: null, translated: tokens);
     }
-    
-    await phraseService.updateTokens(phrase.id, original: isOriginal ? tokens : null, translated: isOriginal ? null : tokens);
   }
 
   Future<void> processTokenizationBatch(Map<String, dynamic> batchResult, List<Phrase> phrases, {bool isOriginal = true, required Language language}) async {
@@ -232,110 +230,106 @@ class PhraseResponseHandler {
 
   Future<void> processMorphologyBatch(Map<String, dynamic> batchResult, List<Phrase> phrases) async {
     final List<dynamic> lines = batchResult['lines'] ?? [];
+    final List<Phrase> toUpdate = [];
+    final List<int> completedIds = [];
+
     for (var line in lines) {
       final id = ResponseParserUtils.parseId(line['id']);
       final phrase = phrases.where((p) => p.id == id).firstOrNull;
       if (phrase != null) {
-        await processMorphologyResult(phrase, line);
+        _applyMorphologyToPhrase(phrase, line);
+        toUpdate.add(phrase);
+        completedIds.add(phrase.id);
       }
+    }
+
+    if (toUpdate.isNotEmpty) {
+      await phraseService.putPhrases(toUpdate);
+      await _updateWordIndexForPhrases(toUpdate);
+      await phraseService.setStages(completedIds, StageKey.morphology, StageState.completed);
     }
   }
 
-  Future<void> _clearPhraseData(int phraseId) async {
-    await blockService.deleteByPhraseId(phraseId);
-    await wordService.deleteByPhraseId(phraseId);
-    await translationWordService.deleteByPhraseId(phraseId);
-  }
-
-  Future<void> processMorphologyResult(Phrase phrase, Map<String, dynamic> result) async {
-    final int phraseId = phrase.id;
-    await _clearPhraseData(phraseId);
-
-    final Map<int, String> particleFunctions = {};
-    if (result['particleFunctions'] is List) {
-      for (var pf in result['particleFunctions']) {
-        final pos = ResponseParserUtils.parseId(pf['wordPosition']);
-        final fn = pf['grammarFunction']?.toString();
-        if (pos > 0 && fn != null) particleFunctions[pos] = fn;
-      }
-    }
-
-    final tokens = phrase.originalTokens ?? [];
-    final Map<int, int> blockIdToDbId = {};
-    final Map<int, List<TokenEntry>> blockGroups = {};
-    for (var t in tokens) {
-      final bId = t.blockId ?? (t.wordPosition ?? 0); 
-      blockGroups.putIfAbsent(bId, () => []).add(t);
-    }
-
-    for (var entry in blockGroups.entries) {
-      final bId = entry.key;
-      final bTokens = entry.value;
-      final block = Block(phraseId: phraseId, blockPositionIndex: bId);
-      final dbBlockId = await blockService.createBlock(block: block);
-      blockIdToDbId[bId] = dbBlockId;
-
-      for (var t in bTokens) {
-        final original = t.text ?? '';
-        final pos = _parsePos(t.pos);
-        final grammarFunction = _parseGrammarFunction(particleFunctions[t.wordPosition] ?? 'none');
-        final punctuationPattern = RegExp(r'^[\p{P}\p{S}]+$', unicode: true);
-        bool isClickable = pos != WordPos.s && !punctuationPattern.hasMatch(original.trim());
-
-        final word = Word(
-          phraseId: phraseId,
-          blockId: dbBlockId,
-          wordPosition: t.wordPosition,
-          pos: pos,
-          lemma: t.lemma,
-          grammarFunction: grammarFunction,
-          isClickable: isClickable,
-          versions: List.from(t.versions),
-        );
-        await wordService.createWord(word: word);
-      }
-    }
-
+  void _applyMorphologyToPhrase(Phrase phrase, Map<String, dynamic> result) {
     if (result['alignment'] is List) {
-      final trTokens = phrase.translatedTokens ?? [];
-      final Map<int, TokenEntry> trMap = {for (var t in trTokens) t.wordPosition ?? 0: t};
-      
-      // Map wordPosition -> dbBlockId
-      final Map<int, int> posToBlockId = {};
-      for (var t in tokens) {
-        if (t.wordPosition == null) continue;
-        final bId = t.blockId ?? t.wordPosition!;
-        final dbId = blockIdToDbId[bId];
-        if (dbId != null) posToBlockId[t.wordPosition!] = dbId;
-      }
+      final trTokens = phrase.translatedWords ?? [];
+      final Map<int, TranslationTokenEntry> trMap = {for (var t in trTokens) t.translatedWordPosition ?? 0: t};
 
       for (var align in result['alignment']) {
         final trPos = ResponseParserUtils.parseId(align['translationPosition']);
         final token = trMap[trPos];
         if (token == null) continue;
         
-        final sourceWordPositions = ResponseParserUtils.parseIntList(align['sourceWordPositions']);
-        final isInferred = align['inferred'] == true;
-
-        // Assign blockId from the first source word if available
-        int? dbBlockId;
-        if (sourceWordPositions.isNotEmpty) {
-          dbBlockId = posToBlockId[sourceWordPositions.first];
-        }
-
-        await translationWordService.createTranslationWords([
-          TranslationWord(
-            phraseId: phraseId,
-            blockId: dbBlockId,
-            translatedWordPosition: trPos,
-            text: token.text,
-            isInferred: isInferred,
-            sourceWordPositions: sourceWordPositions,
-          )
-        ]);
+        token.sourceWordPositions = ResponseParserUtils.parseIntList(align['sourceWordPositions']);
+        token.isInferred = align['inferred'] == true;
       }
     }
-    await phraseService.markAsTranslatedAndMarkNotTranslating(phraseId);
+
+    if (result['particleFunctions'] is List) {
+       for (var pf in result['particleFunctions']) {
+        final pos = ResponseParserUtils.parseId(pf['wordPosition']);
+        final fn = pf['grammarFunction']?.toString();
+        if (pos > 0 && fn != null) {
+           final token = phrase.originalTokens?.where((t) => t.wordPosition == pos).firstOrNull;
+           if (token != null) {
+             token.grammarFunction = _parseGrammarFunction(fn);
+           }
+        }
+      }
+    }
+  }
+
+  Future<AiRequestResult> saveTranslationsResponse(Map<String, dynamic> parsedJson, {List<int> expectedIds = const []}) async {
+    final lines = parsedJson['lines'];
+    if (lines is! List) {
+      await phraseService.resetPhrasesTranslationStatusByIds(expectedIds);
+      return AiRequestResult.failure(AiErrorType.parse);
+    }
+
+    final List<Phrase> toUpdate = [];
+    final List<int> processedIds = [];
+    final List<int> failedIds = [];
+
+    for (var lineData in lines) {
+      if (lineData is! Map<String, dynamic>) continue;
+      final int phraseId = ResponseParserUtils.parseId(lineData['id']);
+      final String translation = lineData['translation']?.toString() ?? '';
+      final String? cleanedOriginal = lineData['cleanedOriginal']?.toString();
+
+      if (phraseId <= 0 || translation.isEmpty) {
+        if (phraseId > 0) failedIds.add(phraseId);
+        continue;
+      }
+
+      final phrase = await phraseService.getPhraseById(phraseId);
+      if (phrase != null) {
+        phrase.translatedPhrase = translation;
+        if (cleanedOriginal != null && cleanedOriginal.isNotEmpty) {
+          phrase.originalPhrase = cleanedOriginal;
+        }
+        final statuses = Map<String, String>.from(phrase.stageStatuses);
+        statuses[StageKey.translation] = StageState.completed.name;
+        phrase.stageStatuses = statuses;
+        toUpdate.add(phrase);
+        processedIds.add(phraseId);
+      }
+    }
+
+    if (toUpdate.isNotEmpty) {
+      await phraseService.putPhrases(toUpdate);
+    }
+
+    final missingIds = expectedIds.where((id) => !processedIds.contains(id) && !failedIds.contains(id)).toList();
+    if (missingIds.isNotEmpty) {
+      logger.w('[Handler] Missing IDs in translation response: $missingIds');
+      await phraseService.resetPhrasesTranslationStatusByIds(missingIds);
+    }
+    if (failedIds.isNotEmpty) {
+      await phraseService.resetPhrasesTranslationStatusByIds(failedIds);
+    }
+
+    if (failedIds.isEmpty && missingIds.isEmpty) return AiRequestResult.success();
+    return AiRequestResult.partialSuccess([...failedIds, ...missingIds]);
   }
 
   WordPos _parsePos(String? pos) {
@@ -363,50 +357,60 @@ class PhraseResponseHandler {
     return GrammarFunction.none;
   }
 
-  Future<AiRequestResult> saveTranslationsResponse(Map<String, dynamic> parsedJson, {List<int> expectedIds = const []}) async {
-    final lines = parsedJson['lines'];
-    if (lines is! List) {
-      await phraseService.resetPhrasesTranslationStatusByIds(expectedIds);
-      return AiRequestResult.failure(AiErrorType.parse);
-    }
-    final failedPhraseIds = <int>[];
-    final processedIds = <int>{};
-    for (var lineData in lines) {
-      if (lineData is! Map<String, dynamic>) continue;
-      final int phraseId = ResponseParserUtils.parseId(lineData['id']);
-      final String translation = lineData['translation']?.toString() ?? '';
-      final String? cleanedOriginal = lineData['cleanedOriginal']?.toString();
-      if (phraseId <= 0 || translation.isEmpty) {
-        if (phraseId > 0) {
-          failedPhraseIds.add(phraseId);
-          await phraseService.resetPhrasesTranslationStatusByIds([phraseId]);
-        }
-        continue;
-      }
-      processedIds.add(phraseId);
-      try {
-        if (cleanedOriginal != null && cleanedOriginal.isNotEmpty) {
-          await phraseService.updatePhraseTextsRaw(phraseId, cleanedOriginal, translation);
-        } else {
-          await phraseService.updateTranslatedPhraseTextRaw(phraseId, translation);
-        }
-      } catch (e) {
-        failedPhraseIds.add(phraseId);
-        await phraseService.resetPhrasesTranslationStatusByIds([phraseId]);
-      }
-    }
-    final missingIds = expectedIds.where((id) => !processedIds.contains(id)).toList();
-    if (missingIds.isNotEmpty) {
-      logger.w('[Handler] Missing IDs in translation response: $missingIds');
-      await phraseService.resetPhrasesTranslationStatusByIds(missingIds);
-    }
-    if (failedPhraseIds.isEmpty) return AiRequestResult.success();
-    return AiRequestResult.partialSuccess(failedPhraseIds.toList());
-  }
-}
+  Future<void> _updateWordIndexForPhrases(List<Phrase> phrases) async {
+    if (phrases.isEmpty) return;
 
-class PhraseOutcome {
-  final int phraseId;
-  final bool ok;
-  const PhraseOutcome({required this.phraseId, required this.ok});
+    try {
+      final List<WordIndex> newIndices = [];
+      final videoIds = phrases.map((p) => p.videoId).whereType<int>().toSet();
+      final Map<int, Video> videoMap = {};
+      for (var vid in videoIds) {
+        final v = await phraseService.db.videos.get(vid);
+        if (v != null) videoMap[vid] = v;
+      }
+
+      final phraseIds = phrases.map((p) => p.id).toList();
+
+      await phraseService.db.writeTxn(() async {
+        // 1. Batch delete existing indices for all phrases in this batch
+        final existing = await phraseService.db.wordIndexs
+            .filter()
+            .anyOf(phraseIds, (q, int id) => q.phraseIdEqualTo(id))
+            .findAll();
+        
+        if (existing.isNotEmpty) {
+          await phraseService.db.wordIndexs.deleteAll(existing.map((e) => e.id).toList());
+        }
+
+        // 2. Prepare new indices
+        for (var phrase in phrases) {
+          if (phrase.originalTokens == null) continue;
+          final video = videoMap[phrase.videoId];
+
+          for (var token in phrase.originalTokens!) {
+            if (token.lemma == null || token.lemma!.isEmpty) continue;
+            
+            newIndices.add(WordIndex(
+              lemma: token.lemma!,
+              pos: token.pos,
+              videoId: phrase.videoId ?? 0,
+              seriesName: video?.seriesName ?? video?.fileName,
+              phraseId: phrase.id,
+              contextOriginal: phrase.originalPhrase,
+              contextTranslated: phrase.translatedPhrase,
+              wordPosition: token.wordPosition,
+              blockId: token.blockId,
+            ));
+          }
+        }
+
+        // 3. Batch insert new indices
+        if (newIndices.isNotEmpty) {
+          await phraseService.db.wordIndexs.putAll(newIndices);
+        }
+      });
+    } catch (e) {
+      logger.e('[Handler] Failed to update WordIndex', error: e);
+    }
+  }
 }

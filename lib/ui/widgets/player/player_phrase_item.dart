@@ -3,115 +3,123 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../backend/database/schemas/phrase.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
+import '../../../providers/services/translation_provider.dart';
 import '../subtitles/windowed_subtitle.dart';
 
 class PlayerPhraseItem extends HookConsumerWidget {
   final Phrase phrase;
   final bool isActive;
+  final bool isPast;
+  final bool isFuture;
 
   const PlayerPhraseItem({
     super.key,
     required this.phrase,
     this.isActive = false,
+    this.isPast = false,
+    this.isFuture = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAutoScrollEnabled = ref.watch(isAutoScrollEnabledProvider);
-    final currentTime = ref.watch(playerTimeProvider);
+    // Removed playerTimeProvider watch to prevent high-frequency rebuilds
 
     final startBase = DateTime(1970, 1, 1);
-    final phraseEnd = phrase.endTime?.difference(startBase) ?? Duration.zero;
-    final isPast = currentTime > phraseEnd;
-
-    final isFuture = currentTime < (phrase.startTime?.difference(startBase) ?? Duration.zero);
 
     // Transparency logic for both text and time
     double itemOpacity = 1.0;
     if (isActive) {
       itemOpacity = 1.0;
     } else if (isPast) {
-      itemOpacity = 0.35; // Past is now the most transparent
+      itemOpacity = 0.5; // Increased from 0.35 to ensure processing animations are visible
     } else if (isFuture) {
-      itemOpacity = 0.65; // Future is dimmed but clearer than past
+      itemOpacity = 0.7; // Slightly increased for better overall balance
     }
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        if (phrase.startTime != null) {
-          final position = phrase.startTime!.difference(startBase);
-          ref.read(playerProvider.notifier).seekTo(position);
-          ref.read(playerProvider.notifier).setAutoScroll(true);
-        }
-        // Clear word selection when tapping background
-        ref.read(playerProvider.notifier).clearSelection();
-        ref.read(playerProvider.notifier).setPlaying(true);
-      },
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.only(
-          left: isActive ? 8 : (isAutoScrollEnabled ? 16 : 8),
-          right: 16,
-          top: 14,
-          bottom: 14,
-        ),
-        decoration: BoxDecoration(
-          gradient: isActive
-              ? const LinearGradient(
-                  colors: [
-                    Color(0xB2EEF2FF), // EEF2FF @ 70%
-                    Color(0x4DEEF2FF), // EEF2FF @ 30%
-                    Colors.transparent,
-                  ],
-                  stops: [0.0, 0.5, 1.0],
-                )
-              : null,
-          color: isActive ? null : Colors.white,
-          border: Border(
-            bottom: const BorderSide(color: Color(0xFFF1F5F9)),
-            left: isActive ? const BorderSide(color: Color(0xFF3B66F5), width: 4) : BorderSide.none,
+    return RepaintBoundary(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          if (phrase.startTime != null) {
+            final position = phrase.startTime!.difference(startBase);
+            ref.read(playerProvider.notifier).seekTo(position);
+            ref.read(playerProvider.notifier).setAutoScroll(true);
+            
+            // If not translated, trigger a focused translation request for this part of video
+            if (!phrase.isTranslated && !phrase.isTranslating) {
+              ref.read(translationProvider.notifier).checkAndTranslateRealtime(position);
+            }
+          }
+          // Clear word selection when tapping background
+          ref.read(playerProvider.notifier).clearSelection();
+          ref.read(playerProvider.notifier).setPlaying(true);
+        },
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.only(
+            left: isActive ? 8 : (isAutoScrollEnabled ? 16 : 8),
+            right: 16,
+            top: 14,
+            bottom: 14,
           ),
-        ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Opacity(
-              opacity: itemOpacity,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (!isAutoScrollEnabled)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: _buildTimeColumn(phrase, isActive),
-                    ),
-                  Expanded(
-                    child: WindowedSubtitle(
-                      phrase: phrase,
-                      isPast: isPast,
-                    ),
-                  ),
-                ],
-              ),
+          decoration: BoxDecoration(
+            gradient: isActive
+                ? const LinearGradient(
+                    colors: [
+                      Color(0xB2EEF2FF), // EEF2FF @ 70%
+                      Color(0x4DEEF2FF), // EEF2FF @ 30%
+                      Colors.transparent,
+                    ],
+                    stops: [0.0, 0.5, 1.0],
+                  )
+                : null,
+            color: isActive ? null : Colors.white,
+            border: Border(
+              bottom: const BorderSide(color: Color(0xFFF1F5F9)),
+              left: isActive ? const BorderSide(color: Color(0xFF3B66F5), width: 4) : BorderSide.none,
             ),
-            if (isActive)
-              Positioned(
-                right: -14,
-                top: 0,
-                bottom: 0,
-                child: Center(
-                  child: Container(
-                    width: 2,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3B66F5).withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(1),
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Opacity(
+                opacity: itemOpacity,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (!isAutoScrollEnabled)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: _buildTimeColumn(phrase, isActive),
+                      ),
+                    Expanded(
+                      child: WindowedSubtitle(
+                        phrase: phrase,
+                        isPast: isPast,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isActive)
+                Positioned(
+                  right: -14,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: Container(
+                      width: 2,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3B66F5).withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(1),
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

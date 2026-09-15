@@ -1,4 +1,4 @@
-import '../../database/schemas/word.dart';
+import '../../database/schemas/phrase.dart';
 import 'tokenizer_base.dart';
 
 class JapaneseTokenizer extends TokenizerBase {

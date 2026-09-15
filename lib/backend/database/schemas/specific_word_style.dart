@@ -10,15 +10,15 @@ class SpecificWordStyle {
   String? name;
 
   int colorValue = 0xFFFFFFFF;
-  
+
   int fontWeightIndex = 3;
 
   int borderColorValue = 0xFFFFFFFF;
 
   int borderSize = 0;
-  
+
   SpecificWordStyle();
-  
+
   factory SpecificWordStyle.create({
     required String name,
     Color color = Colors.white,
@@ -33,7 +33,7 @@ class SpecificWordStyle {
       ..borderColorValue = borderColor?.value ?? color.value
       ..borderSize = borderSize;
   }
-  
+
   @ignore
   Color get color => Color(colorValue);
 

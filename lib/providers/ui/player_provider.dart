@@ -11,6 +11,7 @@ import '../services/isar_services_providers.dart';
 import 'video_data_providers.dart';
 import 'package:isar_community/isar.dart';
 import '../services/app_configs_provider.dart';
+import '../../../utils/logger.dart';
 
 class PlayerState {
   final int? videoId;
@@ -36,6 +37,7 @@ class PlayerState {
   final Set<int> highlightedWordIds;
   final Set<int> highlightedTranslationIds;
   final Offset? clickedWordPosition;
+  final LayerLink? selectionLayerLink;
 
   PlayerState({
     this.videoId,
@@ -59,6 +61,7 @@ class PlayerState {
     this.highlightedWordIds = const {},
     this.highlightedTranslationIds = const {},
     this.clickedWordPosition,
+    this.selectionLayerLink,
   });
 
   PlayerState copyWith({
@@ -83,6 +86,7 @@ class PlayerState {
     Set<int>? highlightedWordIds,
     Set<int>? highlightedTranslationIds,
     Offset? clickedWordPosition,
+    LayerLink? selectionLayerLink,
     bool clearSelection = false,
     // The regular `resizableHeight ?? this.resizableHeight` pattern below
     // can only ever *set* a value — it can never null one back out, because
@@ -113,6 +117,7 @@ class PlayerState {
       highlightedWordIds: clearSelection ? const {} : (highlightedWordIds ?? this.highlightedWordIds),
       highlightedTranslationIds: clearSelection ? const {} : (highlightedTranslationIds ?? this.highlightedTranslationIds),
       clickedWordPosition: clearSelection ? null : (clickedWordPosition ?? this.clickedWordPosition),
+      selectionLayerLink: clearSelection ? null : (selectionLayerLink ?? this.selectionLayerLink),
     );
   }
 }
@@ -141,7 +146,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   void updateSystemUI() {
     if (state.isFullscreen || state.isLocked) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      if (state.isFullscreen && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
         windowManager.setFullScreen(true);
       }
     } else {
@@ -399,6 +404,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       highlightedWordIds: linkedWords,
       highlightedTranslationIds: linkedTranslations,
       clickedTranslationWordId: translationId,
+      clickedWordPosition: null, // Clear old position to avoid jumping
+      selectionLayerLink: LayerLink(), // New link for new selection
     );
   }
 
@@ -410,6 +417,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       highlightedWordIds: linkedWords,
       highlightedTranslationIds: linkedTranslations,
       clickedWordId: wordId,
+      clickedWordPosition: null, // Clear old position to avoid jumping
+      selectionLayerLink: LayerLink(), // New link for new selection
     );
   }
 
@@ -463,22 +472,25 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   void toggleLock(Orientation currentOrientation) {
     final nextLockState = !state.isLocked;
-    state = state.copyWith(
-      isLocked: nextLockState,
-      isFullscreen: true, // Always enter fullscreen when locking
-    );
+    state = state.copyWith(isLocked: nextLockState);
 
     updateSystemUI();
 
     if (!(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       if (nextLockState) {
-        // Hard lock strictly to landscape (16:9) orientation
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-        ]);
+        // SYSTEM HARD LOCK: Strictly fix to current physical orientation
+        if (currentOrientation == Orientation.landscape) {
+          SystemChrome.setPreferredOrientations([
+            DeviceOrientation.landscapeLeft,
+            DeviceOrientation.landscapeRight,
+          ]);
+        } else {
+          SystemChrome.setPreferredOrientations([
+            DeviceOrientation.portraitUp,
+          ]);
+        }
       } else {
-        // Release lock and allow all orientations
+        // UNLOCK: Allow all orientations again
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.portraitUp,
           DeviceOrientation.landscapeLeft,
@@ -503,12 +515,10 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     updateSystemUI();
 
     if (value) {
-      // Always reset auto-lock and hide timers on entering fullscreen
       _cancelAutoLockTimer();
       showControls();
       _resetAutoLockTimer();
     } else {
-      // Strictly cancel auto-lock timer when exiting fullscreen so it never runs outside fullscreen
       _cancelAutoLockTimer();
     }
 
@@ -516,29 +526,20 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
         if (value) {
           windowManager.setFullScreen(true);
-          // Auto-hide controls when entering fullscreen on desktop
           hideControls();
         } else {
           windowManager.setFullScreen(false);
           showControls();
         }
       } else {
-        if (!(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
-          if (value) {
-            // Allow landscape and portrait so sensor can trigger auto-exit
-            SystemChrome.setPreferredOrientations([
-              DeviceOrientation.landscapeLeft,
-              DeviceOrientation.landscapeRight,
-              DeviceOrientation.portraitUp,
-            ]);
-          } else {
-            // When explicitly exiting, prefer portrait
-            SystemChrome.setPreferredOrientations([
-              DeviceOrientation.portraitUp,
-              DeviceOrientation.landscapeLeft,
-              DeviceOrientation.landscapeRight,
-            ]);
-          }
+        // SMART ORIENTATION: Do not force landscape if not locked.
+        // This allows rotating back to portrait to trigger auto-exit.
+        if (!state.isLocked) {
+          SystemChrome.setPreferredOrientations([
+            DeviceOrientation.landscapeLeft,
+            DeviceOrientation.landscapeRight,
+            DeviceOrientation.portraitUp,
+          ]);
         }
       }
     }

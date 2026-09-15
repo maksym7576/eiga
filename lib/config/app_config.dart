@@ -176,7 +176,7 @@ class AppConfig {
 
   int get getSecondsAhead => _prefs.getInt(_keySecondsAhead) ?? defaultSecondsAhead;
 
-  int get getNumberOfPhrases => _prefs.getInt(_keySecondsAhead) ?? defaultPhrasesPerRequest;
+  int get getNumberOfPhrases => _prefs.getInt(_keyNumberOfPhrases) ?? defaultPhrasesPerRequest;
 
   int get getMaxConcurrentProcesses => _prefs.getInt(_keyMaxConcurrentProcesses) ?? defaultMaxConcurrentProcesses;
 

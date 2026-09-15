@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../../../backend/database/schemas/word.dart';
-import '../../../backend/database/schemas/translation_word.dart';
+import '../../../backend/database/schemas/phrase.dart';
 import '../../../backend/database/schemas/specific_word_style.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
@@ -70,8 +69,6 @@ class WordDetailsPopover extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final clickedWordAsync = ref.watch(clickedWordProvider);
-    final clickedTranslationWordAsync = ref.watch(clickedTranslationWordProvider);
     final highlightedWordIds = ref.watch(highlightedWordIdsProvider);
     final highlightedTranslationIds = ref.watch(highlightedTranslationIdsProvider);
 
@@ -79,9 +76,21 @@ class WordDetailsPopover extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
+    final phraseId = ref.watch(stickyActivePhraseIdProvider);
+    if (phraseId == null) return const SizedBox.shrink();
+
+    final phraseAsync = ref.watch(phrasesStreamProvider);
+    final phrase = phraseAsync.value?.where((p) => p.id == phraseId).firstOrNull;
+    if (phrase == null) return const SizedBox.shrink();
+
+    // Calculate index synchronously for the popover
+    final index = PhraseLinkIndex(phrase.originalTokens ?? [], phrase.translatedWords ?? []);
+
     final stylesAsync = ref.watch(specificWordStylesStreamProvider);
-    final link = ref.watch(blockLayerLinkProvider);
+    final link = ref.watch(selectionLayerLinkProvider);
     final clickedPosition = ref.watch(clickedWordPositionProvider);
+
+    if (link == null) return const SizedBox.shrink();
 
     final screenWidth = MediaQuery.of(context).size.width;
     const popoverWidth = 320.0;
@@ -90,7 +99,6 @@ class WordDetailsPopover extends ConsumerWidget {
     final isFullscreen = ref.watch(playerProvider.select((s) => s.isFullscreen));
 
     if (isFullscreen) {
-      // Fullscreen mode: render as a clean, centered overlay card above the subtitle block
       return Positioned(
         bottom: 120,
         left: (screenWidth - popoverWidth) / 2,
@@ -120,7 +128,7 @@ class WordDetailsPopover extends ConsumerWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _buildMainContent(context, ref, highlightedWordIds, highlightedTranslationIds),
+                        _buildMainContent(context, ref, phrase, index, highlightedWordIds, highlightedTranslationIds),
                         _buildBottomStyles(ref, stylesAsync, highlightedWordIds),
                       ],
                     ),
@@ -133,7 +141,6 @@ class WordDetailsPopover extends ConsumerWidget {
       );
     }
 
-    // Windowed mode: standard CompositedTransformFollower above the tapped word
     return CompositedTransformFollower(
       link: link,
       showWhenUnlinked: false,
@@ -174,11 +181,12 @@ class WordDetailsPopover extends ConsumerWidget {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            _buildMainContent(context, ref, highlightedWordIds, highlightedTranslationIds),
+                            _buildMainContent(context, ref, phrase, index, highlightedWordIds, highlightedTranslationIds),
                             _buildBottomStyles(ref, stylesAsync, highlightedWordIds),
                           ],
                         ),
                       ),
+
                       // Arrow
                       Positioned(
                         bottom: -6,
@@ -207,13 +215,7 @@ class WordDetailsPopover extends ConsumerWidget {
     );
   }
 
-  Widget _buildMainContent(BuildContext context, WidgetRef ref, Set<int> wordIds, Set<int> tIds) {
-    final clickedWordAsync = ref.watch(clickedWordProvider);
-    final clickedTWordAsync = ref.watch(clickedTranslationWordProvider);
-    
-    final phraseId = clickedWordAsync.value?.phraseId ?? clickedTWordAsync.value?.phraseId ?? 0;
-    if (phraseId == 0) return const SizedBox.shrink();
-
+  Widget _buildMainContent(BuildContext context, WidgetRef ref, Phrase phrase, PhraseLinkIndex index, Set<int> wordIds, Set<int> tIds) {
     return Stack(
       children: [
         Padding(
@@ -221,47 +223,42 @@ class WordDetailsPopover extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildWordsHeader(ref, wordIds, phraseId, isCompact: true),
+              _buildWordsHeader(phrase, wordIds, isCompact: true),
               const SizedBox(height: 12),
-              _buildMinimalTranslation(ref, tIds, phraseId),
+              _buildMinimalTranslation(phrase, index, tIds),
               const SizedBox(height: 16),
-              _buildDetailsButton(context, ref, wordIds, tIds, phraseId),
+              _buildDetailsButton(context, ref, phrase, index, wordIds, tIds),
             ],
           ),
         ),
         Positioned(
           top: 16,
           right: 16,
-          child: _buildPosBadge(ref, wordIds, phraseId),
+          child: _buildPosBadge(phrase, wordIds),
         ),
       ],
     );
   }
 
-  Widget _buildMinimalTranslation(WidgetRef ref, Set<int> tIds, int phraseId) {
-    final tokensAsync = ref.watch(phraseTranslationTokensProvider(phraseId));
-    return tokensAsync.maybeWhen(
-      data: (tokens) {
-        final text = tokens.where((ts) => tIds.contains(ts.token.id)).map((ts) => ts.token.text).join(' ');
-        if (text.isEmpty) return const SizedBox.shrink();
-        return Text(
-          text,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: AppColors.slate600, // Changed from brandBlue to slate
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        );
-      },
-      orElse: () => const SizedBox.shrink(),
+  Widget _buildMinimalTranslation(Phrase phrase, PhraseLinkIndex index, Set<int> tIds) {
+    final tokens = phrase.translatedWords ?? [];
+    final text = tokens.where((t) => tIds.contains(t.translatedWordPosition)).map((t) => t.text).join(' ');
+    if (text.isEmpty) return const SizedBox.shrink();
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: AppColors.slate600,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 
-  Widget _buildDetailsButton(BuildContext context, WidgetRef ref, Set<int> wordIds, Set<int> tIds, int phraseId) {
+  Widget _buildDetailsButton(BuildContext context, WidgetRef ref, Phrase phrase, PhraseLinkIndex index, Set<int> wordIds, Set<int> tIds) {
     return GestureDetector(
-      onTap: () => _showDetailDialog(context, ref, wordIds, tIds, phraseId),
+      onTap: () => _showDetailDialog(context, ref, phrase, index, wordIds, tIds),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -270,9 +267,9 @@ class WordDetailsPopover extends ConsumerWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w900,
-              color: AppColors.brandBlue, // Changed to brand blue
+              color: AppColors.brandBlue,
               letterSpacing: 0.2,
-              decoration: TextDecoration.underline, // Added underline for clear clickability
+              decoration: TextDecoration.underline,
               decorationColor: AppColors.brandBlue.withValues(alpha: 0.4),
             ),
           ),
@@ -283,138 +280,114 @@ class WordDetailsPopover extends ConsumerWidget {
     );
   }
 
-  Widget _buildPosBadge(WidgetRef ref, Set<int> wordIds, int phraseId) {
-    return Consumer(builder: (context, ref, _) {
-      final wordsAsync = ref.watch(phraseWordsProvider(phraseId));
-      return wordsAsync.maybeWhen(
-        data: (allWords) {
-          final word = allWords.where((ws) => wordIds.contains(ws.word.id)).firstOrNull?.word;
-          if (word == null) return const SizedBox.shrink();
-          
-          String short = _posNames[word.pos]?.substring(0, 1).toUpperCase() ?? '?';
-          // Specific Japanese handling if needed (like 名 for noun)
-          if (word.pos == WordPos.n) short = '名'; 
-          else if (word.pos == WordPos.v) short = '動';
-          else if (word.pos == WordPos.i) short = '形';
+  Widget _buildPosBadge(Phrase phrase, Set<int> wordIds) {
+    final originalTokens = phrase.originalTokens ?? [];
+    final word = originalTokens.where((t) => wordIds.contains(t.wordPosition)).firstOrNull;
+    if (word == null) return const SizedBox.shrink();
+    
+    String short = _posNames[word.pos]?.substring(0, 1).toUpperCase() ?? '?';
+    if (word.pos == WordPos.n) short = '名'; 
+    else if (word.pos == WordPos.v) short = '動';
+    else if (word.pos == WordPos.i) short = '形';
 
-          return Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.brandBlue.withValues(alpha: 0.3), width: 1),
-              boxShadow: [
-                BoxShadow(color: AppColors.brandBlue.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2)),
-              ],
-            ),
-            child: Text(
-              short,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-                color: AppColors.brandBlue,
-              ),
-            ),
-          );
-        },
-        orElse: () => const SizedBox.shrink(),
-      );
-    });
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.brandBlue.withValues(alpha: 0.3), width: 1),
+        boxShadow: [
+          BoxShadow(color: AppColors.brandBlue.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Text(
+        short,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w900,
+          color: AppColors.brandBlue,
+        ),
+      ),
+    );
   }
 
-  Widget _buildWordsHeader(WidgetRef ref, Set<int> wordIds, int phraseId, {bool isCompact = false}) {
-    return Consumer(builder: (context, ref, _) {
-      final wordsAsync = ref.watch(phraseWordsProvider(phraseId));
-      return wordsAsync.when(
-        data: (allWords) {
-          final words = allWords.where((ws) => wordIds.contains(ws.word.id)).map((ws) => ws.word).toList();
-          if (words.isEmpty) return const SizedBox.shrink();
+  Widget _buildWordsHeader(Phrase phrase, Set<int> wordIds, {bool isCompact = false}) {
+    final originalTokens = phrase.originalTokens ?? [];
+    final words = originalTokens.where((t) => wordIds.contains(t.wordPosition)).toList();
+    if (words.isEmpty) return const SizedBox.shrink();
 
-          return Column(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: words.map((w) {
+        final otherVersions = w.versions
+            .where((v) => v.text != w.mainText && v.text != null && v.text!.isNotEmpty)
+            .map((v) => v.text!)
+            .join('  ');
+
+        return Padding(
+          padding: EdgeInsets.only(bottom: isCompact ? 4 : 12),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: words.map((w) {
-              final otherVersions = w.versions
-                  .where((v) => v.text != w.mainText && v.text != null && v.text!.isNotEmpty)
-                  .map((v) => v.text!)
-                  .join('  ');
-
-              return Padding(
-                padding: EdgeInsets.only(bottom: isCompact ? 4 : 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          w.mainText,
-                          style: TextStyle(
-                            fontSize: isCompact ? 20 : 24,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.slate900,
-                            letterSpacing: -0.5,
-                          ),
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    w.mainText,
+                    style: TextStyle(
+                      fontSize: isCompact ? 20 : 24,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.slate900,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  if (otherVersions.isNotEmpty) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        otherVersions,
+                        style: TextStyle(
+                          fontSize: isCompact ? 13 : 14,
+                          color: AppColors.slate500,
+                          fontWeight: FontWeight.w500,
                         ),
-                        if (otherVersions.isNotEmpty) ...[
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              otherVersions,
-                              style: TextStyle(
-                                fontSize: isCompact ? 13 : 14,
-                                color: AppColors.slate500,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ],
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
-                ),
-              );
-            }).toList(),
-          );
-        },
-        loading: () => const LinearProgressIndicator(),
-        error: (_, __) => const SizedBox.shrink(),
-      );
-    });
+                ],
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
   }
 
-  Widget _buildMetadataTable(WidgetRef ref, Set<int> wordIds, Set<int> tIds, int phraseId) {
-    return Consumer(builder: (context, ref, _) {
-      final wordsAsync = ref.watch(phraseWordsProvider(phraseId));
-      return wordsAsync.when(
-        data: (allWords) {
-          final words = allWords.where((ws) => wordIds.contains(ws.word.id)).map((ws) => ws.word).toList();
-          if (words.isEmpty) return const SizedBox.shrink();
+  Widget _buildMetadataTable(Phrase phrase, PhraseLinkIndex index, Set<int> wordIds, Set<int> tIds) {
+    final originalTokens = phrase.originalTokens ?? [];
+    final words = originalTokens.where((t) => wordIds.contains(t.wordPosition)).toList();
+    if (words.isEmpty) return const SizedBox.shrink();
 
-          final first = words.first;
-          final posLabel = _posNames[first.pos] ?? 'Other';
-          final gfLabel = _gfNames[first.grammarFunction] ?? 'None';
-          final wordsInBlock = words.map((w) => '${w.mainText} (#${w.wordPosition})').join(' + ');
-          final connection = '${words.length} source → ${tIds.length} translation';
+    final first = words.first;
+    final posLabel = _posNames[first.pos] ?? 'Other';
+    final gfLabel = _gfNames[first.grammarFunction] ?? 'None';
+    final wordsInBlock = words.map((w) => '${w.mainText} (#${w.wordPosition})').join(' + ');
+    final connection = '${words.length} source → ${tIds.length} translation';
 
-          return Table(
-            columnWidths: const {
-              0: FlexColumnWidth(1.2),
-              1: FlexColumnWidth(1),
-            },
-            children: [
-              _buildMetaRow('PART OF SPEECH', posLabel),
-              _buildMetaRow('GRAMMAR ROLE', gfLabel),
-              _buildMetaRow('WORDS IN BLOCK', wordsInBlock),
-              _buildMetaRow('CONNECTION', connection),
-            ],
-          );
-        },
-        loading: () => const SizedBox.shrink(),
-        error: (_, __) => const SizedBox.shrink(),
-      );
-    });
+    return Table(
+      columnWidths: const {
+        0: FlexColumnWidth(1.2),
+        1: FlexColumnWidth(1),
+      },
+      children: [
+        _buildMetaRow('PART OF SPEECH', posLabel),
+        _buildMetaRow('GRAMMAR ROLE', gfLabel),
+        _buildMetaRow('WORDS IN BLOCK', wordsInBlock),
+        _buildMetaRow('CONNECTION', connection),
+      ],
+    );
   }
 
   TableRow _buildMetaRow(String label, String value) {
@@ -449,106 +422,92 @@ class WordDetailsPopover extends ConsumerWidget {
     );
   }
 
-  Widget _buildExplanationBox(WidgetRef ref, Set<int> wordIds, Set<int> tIds, int phraseId) {
-    return Consumer(builder: (context, ref, _) {
-      final wordsAsync = ref.watch(phraseWordsProvider(phraseId));
-      return wordsAsync.when(
-        data: (allWords) {
-          final words = allWords.where((ws) => wordIds.contains(ws.word.id)).map((ws) => ws.word).toList();
-          if (words.isEmpty) return const SizedBox.shrink();
+  Widget _buildExplanationBox(Phrase phrase, Set<int> wordIds) {
+    final originalTokens = phrase.originalTokens ?? [];
+    final words = originalTokens.where((t) => wordIds.contains(t.wordPosition)).toList();
+    if (words.isEmpty) return const SizedBox.shrink();
 
-          String explanation = '';
-          final first = words.first;
+    String explanation = '';
+    final first = words.first;
 
-          if (words.length > 1) {
-            explanation = 'Compound concept. Multiple source words are merged into a single logical unit in the translation.';
-          } else if (first.grammarFunction != GrammarFunction.none) {
-            explanation = _grammarExplanations[first.grammarFunction] ?? 'Special grammar role determined by sentence context.';
-          } else if (first.pos == WordPos.p) {
-            explanation = 'Grammar particle. Defines relationships between words and establishes sentence structure.';
-          } else if (first.pos == WordPos.n) {
-            explanation = 'Standard noun. Represents a person, place, thing, or idea in this phrase.';
-          } else if (first.pos == WordPos.v) {
-            explanation = 'Action or state. Describes the activity or condition mentioned in the subtitle.';
-          } else {
-            explanation = 'Vocabulary entry. Contributes to the core meaning of this specific segment.';
-          }
+    if (words.length > 1) {
+      explanation = 'Compound concept. Multiple source words are merged into a single logical unit in the translation.';
+    } else if (first.grammarFunction != GrammarFunction.none) {
+      explanation = _grammarExplanations[first.grammarFunction] ?? 'Special grammar role determined by sentence context.';
+    } else if (first.pos == WordPos.p) {
+      explanation = 'Grammar particle. Defines relationships between words and establishes sentence structure.';
+    } else if (first.pos == WordPos.n) {
+      explanation = 'Standard noun. Represents a person, place, thing, or idea in this phrase.';
+    } else if (first.pos == WordPos.v) {
+      explanation = 'Action or state. Describes the activity or condition mentioned in the subtitle.';
+    } else {
+      explanation = 'Vocabulary entry. Contributes to the core meaning of this specific segment.';
+    }
 
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(16),
-              border: const Border(
-                left: BorderSide(color: AppColors.brandBlue, width: 4),
-              ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: const Border(
+          left: BorderSide(color: AppColors.brandBlue, width: 4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Analysis & Logic',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              color: AppColors.brandBlue,
+              letterSpacing: 0.5,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Analysis & Logic',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.brandBlue,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  explanation,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.5,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.slate600,
-                  ),
-                ),
-              ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            explanation,
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
+              color: AppColors.slate600,
             ),
-          );
-        },
-        loading: () => const SizedBox.shrink(),
-        error: (_, __) => const SizedBox.shrink(),
-      );
-    });
+          ),
+        ],
+      ),
+    );
   }
 
-  Widget _buildTranslationFooter(WidgetRef ref, Set<int> tIds, int phraseId) {
-    final tokensAsync = ref.watch(phraseTranslationTokensProvider(phraseId));
-    return tokensAsync.when(
-      data: (tokens) {
-        final selected = tokens.where((ts) => tIds.contains(ts.token.id)).map((ts) => ts.token.text).join(' ');
-        if (selected.isEmpty) return const SizedBox.shrink();
+  Widget _buildTranslationFooter(Phrase phrase, PhraseLinkIndex index, Set<int> tIds) {
+    final tokens = phrase.translatedWords ?? [];
+    final selected = tokens.where((t) => tIds.contains(t.translatedWordPosition)).map((t) => t.text).join(' ');
+    if (selected.isEmpty) return const SizedBox.shrink();
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'TRANSLATION OF BLOCK',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: AppColors.slate400,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              selected,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.slate700, // Changed from brandBlue to slate
-              ),
-            ),
-          ],
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'TRANSLATION OF BLOCK',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: AppColors.slate400,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          selected,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.slate700,
+          ),
+        ),
+      ],
     );
   }
 
@@ -582,30 +541,27 @@ class WordDetailsPopover extends ConsumerWidget {
 
   Future<void> _updateStyle(WidgetRef ref, int? styleId) async {
     final statusService = ref.read(knownWordStatusServiceProvider);
+    final phraseService = ref.read(phraseServiceProvider);
     final highlightedIds = ref.read(highlightedWordIdsProvider);
-    final clickedWordAsync = ref.read(clickedWordProvider);
-    final clickedTWordAsync = ref.read(clickedTranslationWordProvider);
     
-    final phraseId = clickedWordAsync.value?.phraseId ?? clickedTWordAsync.value?.phraseId ?? 0;
-    if (phraseId == 0) return;
+    final phraseId = ref.read(stickyActivePhraseIdProvider);
+    if (phraseId == null) return;
 
-    final wordService = ref.read(wordServiceProvider);
-    final allWordsInPhrase = await wordService.getWordsByPhraseId(phraseId);
+    final phrase = await phraseService.getPhraseById(phraseId);
+    if (phrase == null || phrase.originalTokens == null) return;
     
-    // We update the expression base (all highlighted words in order)
-    final highlightedWords = allWordsInPhrase.where((w) => highlightedIds.contains(w.id)).toList();
+    final allWordsInPhrase = phrase.originalTokens!;
+    final highlightedWords = allWordsInPhrase.where((w) => highlightedIds.contains(w.wordPosition)).toList();
     highlightedWords.sort((a, b) => (a.wordPosition ?? 0).compareTo(b.wordPosition ?? 0));
     
     final expressionBase = highlightedWords.map((w) => w.lemma ?? '').join(' ').trim();
 
-    // 1. Update the block expression itself
     if (expressionBase.isNotEmpty) {
       await statusService.setStyleForBase(expressionBase, styleId: styleId);
     }
 
-    // 2. Also update each individual lemma in the expression for full coverage
     for (final wId in highlightedIds) {
-      final w = allWordsInPhrase.where((e) => e.id == wId).firstOrNull;
+      final w = allWordsInPhrase.where((e) => e.wordPosition == wId).firstOrNull;
       if (w != null && w.lemma != null && w.lemma!.isNotEmpty && w.lemma != expressionBase) {
         await statusService.setStyleForBase(w.lemma!, styleId: styleId);
       }
@@ -614,7 +570,7 @@ class WordDetailsPopover extends ConsumerWidget {
     ref.read(playerProvider.notifier).clearSelection();
   }
 
-  void _showDetailDialog(BuildContext context, WidgetRef ref, Set<int> wordIds, Set<int> tIds, int phraseId) {
+  void _showDetailDialog(BuildContext context, WidgetRef ref, Phrase phrase, PhraseLinkIndex index, Set<int> wordIds, Set<int> tIds) {
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -649,13 +605,13 @@ class WordDetailsPopover extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                _buildWordsHeader(ref, wordIds, phraseId),
+                _buildWordsHeader(phrase, wordIds),
                 const SizedBox(height: 24),
-                _buildMetadataTable(ref, wordIds, tIds, phraseId),
+                _buildMetadataTable(phrase, index, wordIds, tIds),
                 const SizedBox(height: 24),
-                _buildExplanationBox(ref, wordIds, tIds, phraseId),
+                _buildExplanationBox(phrase, wordIds),
                 const SizedBox(height: 24),
-                _buildTranslationFooter(ref, tIds, phraseId),
+                _buildTranslationFooter(phrase, index, tIds),
                 const SizedBox(height: 12),
               ],
             ),
@@ -663,7 +619,6 @@ class WordDetailsPopover extends ConsumerWidget {
         ),
       ),
     ).then((_) {
-      // Resume playback when the dialog is dismissed
       ref.read(playerProvider.notifier).resumeFromInteraction();
     });
   }

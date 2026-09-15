@@ -4,12 +4,10 @@ import '../../backend/database/services/ai_model_service.dart';
 import '../../backend/database/services/video_service.dart';
 import '../../backend/database/services/video_storage_service.dart';
 import '../../backend/database/services/phrase_service.dart';
-import '../../backend/database/services/word_service.dart';
-import '../../backend/database/services/block_service.dart';
+import '../../backend/database/services/word_index_service.dart';
 import '../../backend/database/services/language_service.dart';
 import '../../backend/database/services/specific_word_style_service.dart';
 import '../../backend/database/services/translation_job_service.dart';
-import '../../backend/database/services/translation_word_service.dart';
 import '../../backend/database/services/known_word_status_service.dart';
 import '../../backend/services/sync/audio_sync_service.dart';
 import '../database/isar_providers.dart';
@@ -35,6 +33,11 @@ final phraseServiceProvider = Provider<PhraseService>((ref) {
   return PhraseService(isar);
 });
 
+final wordIndexServiceProvider = Provider<WordIndexService>((ref) {
+  final isar = ref.watch(isarProvider);
+  return WordIndexService(isar);
+});
+
 final videoServiceProvider = Provider<VideoService>((ref) {
   final isar = ref.watch(isarProvider);
   return VideoService(isar);
@@ -46,16 +49,6 @@ final videoStorageServiceProvider = Provider<VideoStorageService>((ref) {
   return VideoStorageService(isar, videoService);
 });
 
-final wordServiceProvider = Provider<WordService>((ref) {
-  final isar = ref.watch(isarProvider);
-  return WordService(isar);
-});
-
-final blockServiceProvider = Provider<BlockService>((ref) {
-  final isar = ref.watch(isarProvider);
-  return BlockService(isar);
-});
-
 final languageServiceProvider = Provider<LanguageService>((ref) {
   final isar = ref.watch(isarProvider);
   return LanguageService(isar);
@@ -64,11 +57,6 @@ final languageServiceProvider = Provider<LanguageService>((ref) {
 final translationJobServiceProvider = Provider<TranslationJobService>((ref) {
   final isar = ref.watch(isarProvider);
   return TranslationJobService(isar);
-});
-
-final translationWordServiceProvider = Provider<TranslationWordService>((ref) {
-  final isar = ref.watch(isarProvider);
-  return TranslationWordService(isar);
 });
 
 final knownWordStatusServiceProvider = Provider<KnownWordStatusService>((ref) {

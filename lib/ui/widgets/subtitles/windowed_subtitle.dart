@@ -20,20 +20,37 @@ class WindowedSubtitle extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final uiStatus = phrase.uiStatus;
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (phrase.isTranslating && !isPast) {
-          return _buildTranslatingContent(context, ref, constraints.maxWidth);
-        } else if (phrase.isTranslated || isPast) {
+        // Priority 1: If we have a translation text, show it using the rich content widget
+        if (phrase.translatedPhrase != null && phrase.translatedPhrase!.isNotEmpty) {
+          final isMorphologyRunning = uiStatus.activeStageKey == StageKey.morphology;
+          
+          final content = _buildTranslatedContent(context, ref, constraints.maxWidth);
+          if (isMorphologyRunning) {
+            return ShimmerText(child: content);
+          }
+          return content;
+        } 
+        
+        // Priority 2: If no text yet, but the pipeline is active
+        if (uiStatus.isProcessing) {
+          return _buildTranslatingContent(context, ref, constraints.maxWidth, uiStatus.activeStageKey);
+        } 
+        
+        // Priority 3: Fully completed (redundant but safe)
+        if (uiStatus.isDone) {
           return _buildTranslatedContent(context, ref, constraints.maxWidth);
-        } else {
-          return _buildQueuedContent(context, ref, constraints.maxWidth);
-        }
+        } 
+        
+        // Fallback: Queued or Untranslated
+        return _buildQueuedContent(context, ref, constraints.maxWidth);
       },
     );
   }
 
-  Widget _buildTranslatingContent(BuildContext context, WidgetRef ref, double width) {
+  Widget _buildTranslatingContent(BuildContext context, WidgetRef ref, double width, String? activeStageKey) {
     final hasTranslation = phrase.translatedPhrase != null && phrase.translatedPhrase!.isNotEmpty;
     final scaleFactor = ref.watch(sidebarSubtitleFontSizeProvider);
     final fontSize = SubtitleScaling.calculateFontSize(width, scaleFactor);
@@ -58,7 +75,7 @@ class WindowedSubtitle extends ConsumerWidget {
             child: Text(
               phrase.translatedPhrase!,
               style: TextStyle(
-                fontSize: fontSize * 0.75, // Proportional translation size
+                fontSize: fontSize * 0.75,
                 color: const Color(0xFF64748B),
                 height: 1.5,
                 fontWeight: FontWeight.w500,

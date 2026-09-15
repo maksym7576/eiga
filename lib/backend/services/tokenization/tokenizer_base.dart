@@ -1,4 +1,4 @@
-import '../../database/schemas/word.dart';
+import '../../database/schemas/phrase.dart';
 
 abstract class TokenizerBase {
   /// Splits a phrase into logical word units.

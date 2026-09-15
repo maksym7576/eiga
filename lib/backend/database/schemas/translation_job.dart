@@ -1,7 +1,23 @@
 import 'package:isar_community/isar.dart';
-import 'video.dart'; // For AiStageHistory if kept there, but better to move it or re-declare
+export 'translation_pipeline_step.dart';
+import 'translation_pipeline_step.dart';
 
 part 'translation_job.g.dart';
+
+@embedded
+class AiStageHistory {
+  String? stageName;
+  int? durationMs;
+  String? status; // 'success', 'error'
+  String? modelName;
+
+  AiStageHistory({
+    this.stageName,
+    this.durationMs,
+    this.status,
+    this.modelName,
+  });
+}
 
 @collection
 class TranslationJob {
@@ -13,7 +29,8 @@ class TranslationJob {
   String? modelName;
   String? pipelineId;
   String? status; // 'active', 'success', 'error'
-  String? phase; 
+  String? phase;
+
   DateTime? startTime;
   DateTime? endTime;
   DateTime? translatedAt;
@@ -21,6 +38,7 @@ class TranslationJob {
   String? errorStage;
   int? processedPhrases;
   int? totalPhrases;
+  List<int>? phraseOrders;
   bool? isAuto;
 
   String? executionPlan; // JSON list of steps
@@ -41,6 +59,7 @@ class TranslationJob {
     this.errorStage,
     this.processedPhrases,
     this.totalPhrases,
+    this.phraseOrders,
     this.isAuto,
     this.executionPlan,
     this.completedSteps,
