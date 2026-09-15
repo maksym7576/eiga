@@ -7,11 +7,13 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:eiga/config/app_config.dart';
 import 'package:eiga/config/secure_storage.dart';
+import 'package:eiga/backend/services/cache_service.dart';
 
 class JimakuService {
   static const String baseUrl = AppConfig.jimakuBaseUrl;
 
   final String apiKey;
+  final CacheService _cacheService = CacheService();
 
   JimakuService._(this.apiKey);
 
@@ -120,30 +122,16 @@ class JimakuService {
   Future<String> downloadAndCacheFile(
     String url, {
     String? preferredName,
-    Duration maxAge = const Duration(hours: 1),
+    Duration? maxAge,
   }) async {
-    final tempDir = await getTemporaryDirectory();
-    final cacheDir = Directory(p.join(tempDir.path, 'jimaku_cache'));
+    final fileName = preferredName ?? '${DateTime.now().microsecondsSinceEpoch}_${p.basename(url)}';
 
-    if (!await cacheDir.exists()) {
-      await cacheDir.create(recursive: true);
+    final cachedPath = await _cacheService.getCachedFilePath(CacheType.jimaku, fileName);
+    if (cachedPath != null) {
+      return cachedPath;
     }
 
-    await _cleanOldCache(cacheDir, maxAge);
-
-    final fileName =
-        preferredName ??
-        '${DateTime.now().microsecondsSinceEpoch}_${p.basename(url)}';
-
-    final localPath = p.join(cacheDir.path, fileName);
-    final file = File(localPath);
-
-    if (await file.exists()) {
-      final stat = await file.stat();
-      if (DateTime.now().difference(stat.modified) < maxAge) {
-        return localPath;
-      }
-    }
+    await _cacheService.cleanExpiredCache();
 
     final response = await http.get(Uri.parse(url), headers: headers).timeout(AppConfig.defaultTimeout);
 
@@ -153,30 +141,11 @@ class JimakuService {
     if (response.statusCode != 200) {
       throw Exception('Error: ${response.statusCode}');
     }
-    await file.writeAsBytes(response.bodyBytes);
 
-    return localPath;
-  }
-
-  Future<void> _cleanOldCache(Directory dir, Duration maxAge) async {
-    try {
-      final now = DateTime.now();
-      await for (final entry in dir.list()) {
-        if (entry is File) {
-          final stat = await entry.stat();
-          if (now.difference(stat.modified) > maxAge) {
-            await entry.delete();
-          }
-        }
-      }
-    } catch (_) {}
+    return await _cacheService.cacheBytes(response.bodyBytes, CacheType.jimaku, fileName);
   }
 
   Future<void> clearCache() async {
-    final tempDir = await getTemporaryDirectory();
-    final cacheDir = Directory(p.join(tempDir.path, 'jimaku_cache'));
-    if (await cacheDir.exists()) {
-      await cacheDir.delete(recursive: true);
-    }
+    await _cacheService.clearCache(CacheType.jimaku);
   }
 }

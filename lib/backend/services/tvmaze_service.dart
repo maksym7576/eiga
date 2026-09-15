@@ -1,12 +1,10 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 import 'package:eiga/config/app_config.dart';
 import 'package:eiga/backend/database/dto/media_dto.dart';
+import 'package:eiga/backend/services/cache_service.dart';
 
 /// Кидається, коли TVmaze повертає помилку, яку варто показати окремо
 /// (напр. show lookup не знайшов збігу — HTTP 404).
@@ -26,6 +24,8 @@ class TVmazeService {
     'User-Agent': 'EigaApp/1.0.0 (https://github.com/your-username/eiga)',
   };
 
+  final CacheService _cacheService = CacheService();
+
   // ---------------------------------------------------------------------
   // Пошук
   // ---------------------------------------------------------------------
@@ -33,10 +33,29 @@ class TVmazeService {
   /// /search/shows?q=:query — нечіткий пошук, повертає список збігів
   /// разом з "score" релевантності.
   Future<List<UnifiedMetadataDTO>> searchShows(String query) async {
-    final uri = Uri.parse('$_baseUrl/search/shows').replace(
-      queryParameters: {'q': query},
-    );
-    final data = await _getJson(uri);
+    final cacheKey = 'tvmaze_search_${query.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}.json';
+    dynamic data;
+
+    try {
+      final cachedBody = await _cacheService.getCachedString(CacheType.metadata, cacheKey);
+      if (cachedBody != null) {
+        data = jsonDecode(cachedBody);
+      } else {
+        final uri = Uri.parse('$_baseUrl/search/shows').replace(
+          queryParameters: {'q': query},
+        );
+        data = await _getJson(uri);
+        if (data != null) {
+          await _cacheService.cacheString(jsonEncode(data), CacheType.metadata, cacheKey);
+        }
+      }
+    } catch (_) {
+      final uri = Uri.parse('$_baseUrl/search/shows').replace(
+        queryParameters: {'q': query},
+      );
+      data = await _getJson(uri);
+    }
+
     if (data == null) return [];
 
     final list = data as List<dynamic>;
@@ -83,11 +102,28 @@ class TVmazeService {
   /// /shows/:id — основна інформація. embed напр. 'cast', 'episodes',
   /// або декілька через '&embed[]=...' (тут — простий одинарний embed).
   Future<UnifiedMetadataDTO?> getShowById(int id, {String? embed, bool downloadImage = false}) async {
-    // Force embed episodes if not specified, to get episode count
     final effectiveEmbed = embed ?? 'episodes';
-    final params = {'embed': effectiveEmbed};
-    final uri = Uri.parse('$_baseUrl/shows/$id').replace(queryParameters: params);
-    final data = await _getJson(uri);
+    final cacheKey = 'tvmaze_id_${id}_embed_$effectiveEmbed.json';
+    dynamic data;
+
+    try {
+      final cachedBody = await _cacheService.getCachedString(CacheType.metadata, cacheKey);
+      if (cachedBody != null) {
+        data = jsonDecode(cachedBody);
+      } else {
+        final params = {'embed': effectiveEmbed};
+        final uri = Uri.parse('$_baseUrl/shows/$id').replace(queryParameters: params);
+        data = await _getJson(uri);
+        if (data != null) {
+          await _cacheService.cacheString(jsonEncode(data), CacheType.metadata, cacheKey);
+        }
+      }
+    } catch (_) {
+      final params = {'embed': effectiveEmbed};
+      final uri = Uri.parse('$_baseUrl/shows/$id').replace(queryParameters: params);
+      data = await _getJson(uri);
+    }
+
     if (data == null) return null;
 
     var dto = _mapTVmazeToUnified(data as Map<String, dynamic>);
@@ -301,15 +337,11 @@ class TVmazeService {
   Future<String?> _downloadAndSave(String url, int id, {required String suffix}) async {
     try {
       final extension = _extractExtension(url);
-      final dir = await getApplicationDocumentsDirectory();
-      final imagesDir = Directory(p.join(dir.path, 'tvmaze_images'));
-      if (!await imagesDir.exists()) {
-        await imagesDir.create(recursive: true);
-      }
+      final imageName = 'tvmaze_${id}_$suffix.$extension';
 
-      final file = File(p.join(imagesDir.path, '${id}_$suffix.$extension'));
-      if (await file.exists() && await file.length() > 0) {
-        return file.path;
+      final existingPath = await _cacheService.getCachedFilePath(CacheType.photo, imageName);
+      if (existingPath != null) {
+        return existingPath;
       }
 
       final response = await http.get(Uri.parse(url), headers: {
@@ -324,8 +356,7 @@ class TVmazeService {
         return null;
       }
 
-      await file.writeAsBytes(response.bodyBytes);
-      return file.path;
+      return await _cacheService.cacheBytes(response.bodyBytes, CacheType.photo, imageName);
     } catch (e, st) {
       developer.log('Failed to download image: $url', name: 'TVmazeService', error: e, stackTrace: st);
       return null;

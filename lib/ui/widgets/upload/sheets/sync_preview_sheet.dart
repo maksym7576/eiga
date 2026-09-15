@@ -1,0 +1,267 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
+import '../../../../backend/database/schemas/phrase.dart';
+import '../../../styles/additional_window_theme.dart';
+import '../../dialogs/app_bottom_sheet.dart';
+
+class SyncPreviewSheet extends StatefulWidget {
+  final String videoPath;
+  final List<Phrase> phrases;
+
+  const SyncPreviewSheet({
+    super.key,
+    required this.videoPath,
+    required this.phrases,
+  });
+
+  @override
+  State<SyncPreviewSheet> createState() => _SyncPreviewSheetState();
+}
+
+class _SyncPreviewSheetState extends State<SyncPreviewSheet> {
+  late Player _player;
+  late VideoController _videoController;
+  bool _isInitialized = false;
+  int _currentPhraseIndex = 0;
+  String _activeSubtitle = '';
+  bool _isManualSeeking = false;
+  
+  StreamSubscription? _posSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _initPlayer();
+  }
+
+  Future<void> _initPlayer() async {
+    _player = Player();
+    _videoController = VideoController(_player);
+    
+    try {
+      _posSub = _player.stream.position.listen(_onPositionChanged);
+      await _player.open(Media(widget.videoPath), play: false);
+      
+      setState(() => _isInitialized = true);
+      
+      if (widget.phrases.isNotEmpty) {
+        _seekToPhrase(0);
+      }
+    } catch (e) {
+      debugPrint('Error initializing preview player: $e');
+    }
+  }
+
+  void _onPositionChanged(Duration pos) {
+    if (!mounted || _isManualSeeking) return;
+    
+    final now = DateTime(1970, 1, 1);
+    
+    // Find matching phrase
+    final matchIndex = widget.phrases.indexWhere((p) {
+      if (p.startTime == null || p.endTime == null) return false;
+      final start = p.startTime!.difference(now);
+      final end = p.endTime!.difference(now);
+      return pos >= start && pos <= end;
+    });
+
+    if (matchIndex != -1) {
+      if (matchIndex != _currentPhraseIndex || _activeSubtitle.isEmpty) {
+        setState(() {
+          _currentPhraseIndex = matchIndex;
+          _activeSubtitle = widget.phrases[matchIndex].originalPhrase ?? '';
+        });
+      }
+    } else {
+      if (_activeSubtitle.isNotEmpty) {
+        setState(() => _activeSubtitle = '');
+      }
+    }
+  }
+
+  Future<void> _seekToPhrase(int index) async {
+    if (index < 0 || index >= widget.phrases.length) return;
+    
+    final startTime = widget.phrases[index].startTime;
+    if (startTime != null) {
+      final now = DateTime(1970, 1, 1);
+      final offset = startTime.difference(now);
+      
+      setState(() {
+        _isManualSeeking = true;
+        _currentPhraseIndex = index;
+        _activeSubtitle = widget.phrases[index].originalPhrase ?? '';
+      });
+
+      await _player.seek(offset);
+      
+      // Small delay to let player settle before resuming auto-tracking
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (mounted) setState(() => _isManualSeeking = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _posSub?.cancel();
+    _player.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AdditionalWindowTheme.of(context);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const AppBottomSheetHeader(
+          title: 'Sync Preview',
+        ),
+
+        // Video & Subtitle Area
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                width: double.infinity,
+                color: Colors.black,
+                child: _isInitialized
+                    ? AspectRatio(
+                        aspectRatio: 16 / 9, // Video widget doesn't provide ratio easily like VideoPlayerValue
+                        child: Stack(
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            Video(controller: _videoController),
+                            // Subtitle Overlay
+                            if (_activeSubtitle.isNotEmpty)
+                              Positioned(
+                                bottom: 20,
+                                left: 20,
+                                right: 20,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.6),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    _activeSubtitle,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      shadows: [
+                                        Shadow(
+                                          blurRadius: 4,
+                                          color: Colors.black,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      )
+                    : const AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+              ),
+            ),
+          ),
+
+          // Controls Area
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+            child: Column(
+              children: [
+                StreamBuilder<bool>(
+                  stream: _player.stream.playing,
+                  builder: (context, snapshot) {
+                    final isPlaying = snapshot.data ?? false;
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _ControlBtn(
+                          icon: Icons.skip_previous_rounded,
+                          onTap: () => _seekToPhrase(_currentPhraseIndex - 1),
+                          enabled: _currentPhraseIndex > 0,
+                          theme: theme,
+                        ),
+                        const SizedBox(width: 32),
+                        GestureDetector(
+                          onTap: () {
+                            _player.playOrPause();
+                          },
+                          child: Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              color: theme.primaryAccent,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: theme.primaryAccent.withOpacity(0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                )
+                              ],
+                            ),
+                            child: Icon(
+                              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                              color: Colors.white,
+                              size: 36,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 32),
+                        _ControlBtn(
+                          icon: Icons.skip_next_rounded,
+                          onTap: () => _seekToPhrase(_currentPhraseIndex + 1),
+                          enabled: _currentPhraseIndex < widget.phrases.length - 1,
+                          theme: theme,
+                        ),
+                      ],
+                    );
+                  }
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Phrase ${_currentPhraseIndex + 1} of ${widget.phrases.length}',
+                  style: TextStyle(color: theme.mutedText, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+  }
+}
+
+class _ControlBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool enabled;
+  final AdditionalWindowTheme theme;
+
+  const _ControlBtn({required this.icon, required this.onTap, this.enabled = true, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: enabled ? onTap : null,
+      icon: Icon(
+        icon, 
+        color: enabled ? theme.titleColor : theme.mutedText.withOpacity(0.3), 
+        size: 32
+      ),
+    );
+  }
+}

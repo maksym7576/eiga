@@ -5,7 +5,7 @@ import 'package:hooks_riverpod/legacy.dart';
 import '../../../providers/services/app_configs_provider.dart';
 import '../../../providers/services/ai_services_providers.dart';
 import '../../../providers/services/ai_request_state.dart';
-import '../../../providers/services/database_services_providers.dart';
+import '../../../providers/services/isar_services_providers.dart';
 import '../../../providers/ui/ai_models_state_provider.dart';
 import '../../database/schemas/phrase.dart';
 import '../../database/schemas/translation_pipeline_step.dart';

@@ -2,7 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/backend/database/schemas/video.dart';
-import 'package:eiga/providers/videoComponentsProvider.dart';
+import 'package:eiga/providers/services/isar_services_providers.dart';
+import 'package:eiga/providers/ui/language_provider.dart';
+import 'package:eiga/ui/styles/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -127,15 +129,28 @@ class VideoLibraryCard extends ConsumerWidget {
                     Positioned(
                       top: 8,
                       right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                        child: const Icon(Icons.more_vert, size: 16, color: Colors.white),
-                      ),
+                      child: _VideoCardMenu(video: video),
                     ),
+                    
+                    if (video.isCached)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.8),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.offline_pin_rounded, size: 10, color: Colors.white),
+                              SizedBox(width: 4),
+                              Text('OFFLINE', style: TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -161,6 +176,96 @@ class VideoLibraryCard extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _VideoCardMenu extends ConsumerWidget {
+  final Video video;
+  const _VideoCardMenu({required this.video});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return PopupMenuButton<String>(
+      icon: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.2),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.more_vert, size: 16, color: Colors.white),
+      ),
+      onSelected: (value) async {
+        final storage = ref.read(videoStorageServiceProvider);
+        if (value == 'cache') {
+          final success = await storage.cacheVideo(video);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(success ? 'Video cached successfully' : 'Failed to cache video')),
+            );
+          }
+        } else if (value == 'remove_cache') {
+          await storage.removeVideoCache(video);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Local cache removed')),
+            );
+          }
+        } else if (value == 'delete') {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Delete video?'),
+              content: const Text('This will remove the video, all phrases, and analytical data permanently.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true), 
+                  child: const Text('Delete Everything', style: TextStyle(color: Colors.red))
+                ),
+              ],
+            ),
+          );
+          if (confirmed == true) {
+            await storage.deleteEverything(video);
+          }
+        }
+      },
+      itemBuilder: (context) => [
+        if (!video.isCached)
+          const PopupMenuItem(
+            value: 'cache',
+            child: Row(
+              children: [
+                Icon(Icons.download_rounded, size: 18),
+                SizedBox(width: 8),
+                Text('Cache for Offline'),
+              ],
+            ),
+          )
+        else
+          const PopupMenuItem(
+            value: 'remove_cache',
+            child: Row(
+              children: [
+                Icon(Icons.no_sim_rounded, size: 18),
+                SizedBox(width: 8),
+                Text('Remove Local Cache'),
+              ],
+            ),
+          ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Delete Everything', style: TextStyle(color: Colors.red)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

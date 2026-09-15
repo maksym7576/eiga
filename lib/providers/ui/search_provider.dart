@@ -7,7 +7,8 @@ import '../services/app_configs_provider.dart';
 import 'package:eiga/backend/database/dto/media_dto.dart';
 import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
 
-import '../service_status_providers.dart';
+import '../services/service_health_providers.dart';
+
 
 enum MetadataProviderType { anilist, shikimori, tvmaze, manual }
 enum ServiceStatus { active, down }
@@ -115,11 +116,8 @@ class JimakuSummary {
   }) : episodes = episodes ?? List<int>.generate(episodeCount, (index) => index + 1);
 }
 
-final jimakuSummaryProvider =
-    StateProvider.family<JimakuSummary?, int>((ref, entryId) => null);
-
-final wyzieSummaryProvider =
-    StateProvider.family<JimakuSummary?, String>((ref, entryId) => null);
+final cloudSummaryProvider =
+    StateProvider.family<JimakuSummary?, (String, String)>((ref, id) => null);
 
 extension JimakuProviders on WidgetRef {
   List<UnifiedMetadataDTO> watchJimakuResults() {

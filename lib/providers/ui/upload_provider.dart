@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:developer' as developer;
+import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/legacy.dart';
 import 'package:file_picker/file_picker.dart';
@@ -7,12 +8,13 @@ import 'package:path/path.dart' as p;
 import '../../backend/database/schemas/phrase.dart';
 import '../../backend/database/schemas/video.dart';
 import '../../backend/services/depacker_subtitles/season_episode_info.dart';
-import '../services/database_services_providers.dart';
+import '../services/isar_services_providers.dart';
 import '../services/subtitle_depacker_providers.dart';
-import '../videoComponentsProvider.dart';
+import 'language_provider.dart';
 import 'package:eiga/backend/database/dto/media_dto.dart';
 import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
-import 'dto_providers.dart';
+import 'metadata_state_provider.dart';
+import 'package:eiga/providers/services/external_api_providers.dart';
 import 'search_provider.dart';
 import 'video_data_providers.dart';
 import '../../backend/services/sync/audio_sync_service.dart';
@@ -246,12 +248,13 @@ class UploadNotifier extends Notifier<UploadState> {
     }
 
     state = UploadState(
-      subtitleSource: defaultSource
+      subtitleSource: defaultSource,
+      isInitialized: true,
     );
     
     ref.invalidate(playerIdProvider);
-    ref.invalidate(playerTimeProvider);
-    ref.invalidate(isPlayingProvider);
+    ref.read(playerProvider.notifier).updatePosition(Duration.zero);
+    ref.read(playerProvider.notifier).setPlaying(false);
     ref.read(audioSyncServiceProvider).clearCache();
     
     ref.read(selectedEntryProvider(SearchSourceKeys.jimaku).notifier).state = null;

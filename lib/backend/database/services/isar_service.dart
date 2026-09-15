@@ -60,55 +60,49 @@ class IsarService {
   }
 
   static Future<void> _runDataMigration(Isar isar) async {
-    // We'll use a specific language seed or metadata to mark migration as done, 
-    // or just check if any particle lemma has a colon.
-    final particles = await isar.words.filter().posEqualTo(WordPos.p).findAll();
-    final migrationNeeded = particles.any((w) => w.lemma != null && !w.lemma!.contains(':'));
+    // Only fetch particles (pos == p) that haven't been migrated yet.
+    // Migration is needed if a particle's lemma doesn't contain a colon ':'.
+    final particlesToMigrate = await isar.words.filter()
+        .posEqualTo(WordPos.p)
+        .and()
+        .not().lemmaContains(':')
+        .findAll();
 
-    if (!migrationNeeded) return;
+    if (particlesToMigrate.isEmpty) return;
 
-    print('DB: Running lemma/base migration...');
+    print('DB: Running optimized lemma/base migration for ${particlesToMigrate.length} particles...');
 
     await isar.writeTxn(() async {
-      final allWords = await isar.words.where().findAll();
-      for (var word in allWords) {
+      final List<Word> wordsToUpdate = [];
+      
+      for (var word in particlesToMigrate) {
         bool changed = false;
         
-        if (word.pos == WordPos.p) {
-          // 1. Move old grammar-lemma to grammarFunction if none
-          if (word.lemma != null && word.grammarFunction == GrammarFunction.none) {
-            final val = word.lemma!.toLowerCase();
-            for (final e in GrammarFunction.values) {
-              if (e.name == val) {
-                word.grammarFunction = e;
-                break;
-              }
+        // 1. Move old grammar-lemma to grammarFunction if none
+        if (word.lemma != null && word.grammarFunction == GrammarFunction.none) {
+          final val = word.lemma!.toLowerCase();
+          for (final e in GrammarFunction.values) {
+            if (e.name == val) {
+              word.grammarFunction = e;
+              break;
             }
           }
-          // 2. Set lemma to particle:function
-          final newLemma = '${word.mainText}:${word.grammarFunction.name}';
-          if (word.lemma != newLemma) {
-            word.lemma = newLemma;
-            changed = true;
-          }
+        }
+        
+        // 2. Set lemma to particle:function
+        final newLemma = '${word.mainText}:${word.grammarFunction.name}';
+        if (word.lemma != newLemma) {
+          word.lemma = newLemma;
+          changed = true;
         }
 
         if (changed) {
-          await isar.words.put(word);
+          wordsToUpdate.add(word);
         }
       }
 
-      // Also migrate KnownWordStatus: any old 'base' that was actually a dictionary form 
-      // is still valid as it now matches 'lemma'. 
-      // But for particles, we need to update 'base' to 'particle:function'.
-      final statuses = await isar.knownWordStatus.where().findAll();
-      for (var status in statuses) {
-        if (status.base != null && !status.base!.contains(':')) {
-          // Check if this base matches any particle's old base/original text
-          // This is tricky without knowing if it's a particle. 
-          // If it's a particle original text, it should probably be word:top etc.
-          // For now, if we can't be sure, we'll leave lexical ones as they are.
-        }
+      if (wordsToUpdate.isNotEmpty) {
+        await isar.words.putAll(wordsToUpdate);
       }
     });
 

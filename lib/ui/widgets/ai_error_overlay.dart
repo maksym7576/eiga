@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../../providers/ui/ai_error_state_provider.dart';
+import 'package:eiga/providers/ui/ai_error_state_provider.dart';
 import '../styles/app_colors.dart';
 
 class AiErrorOverlay extends HookConsumerWidget {

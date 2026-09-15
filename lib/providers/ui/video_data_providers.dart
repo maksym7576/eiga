@@ -12,7 +12,9 @@ import '../../backend/database/schemas/language.dart';
 import '../../backend/database/schemas/specific_word_style.dart';
 import '../../backend/database/schemas/known_word_status.dart';
 import '../../backend/services/depacker_subtitles/season_episode_info.dart';
-import '../services/database_services_providers.dart';
+import '../services/isar_services_providers.dart';
+
+import 'player_provider.dart';
 
 // Providers for video-related data
 final playerIdProvider = StateProvider<int?>((ref) {
@@ -40,20 +42,14 @@ final phraseDataPrefetcherProvider = Provider<void>((ref) {
   }
 });
 
-final selectedBlockIdProvider = StateProvider<int?>((ref) => null);
-
-final clickedWordIdProvider = StateProvider<int?>((ref) => null);
-
-final clickedTranslationWordIdProvider = StateProvider<int?>((ref) => null);
-
-enum SelectionAnchor { word, translation }
-final selectionAnchorTypeProvider = StateProvider<SelectionAnchor?>((ref) => null);
-
-final highlightedWordIdsProvider = StateProvider<Set<int>>((ref) => {});
-final highlightedTranslationIdsProvider = StateProvider<Set<int>>((ref) => {});
+final selectedBlockIdProvider = Provider<int?>((ref) => ref.watch(playerProvider.select((s) => s.selectedBlockId)));
+final clickedWordIdProvider = Provider<int?>((ref) => ref.watch(playerProvider.select((s) => s.clickedWordId)));
+final clickedTranslationWordIdProvider = Provider<int?>((ref) => ref.watch(playerProvider.select((s) => s.clickedTranslationWordId)));
+final selectionAnchorTypeProvider = Provider<SelectionAnchor?>((ref) => ref.watch(playerProvider.select((s) => s.selectionAnchorType)));
+final highlightedWordIdsProvider = Provider<Set<int>>((ref) => ref.watch(playerProvider.select((s) => s.highlightedWordIds)));
+final highlightedTranslationIdsProvider = Provider<Set<int>>((ref) => ref.watch(playerProvider.select((s) => s.highlightedTranslationIds)));
 final infoPanelTextProvider = StateProvider<String?>((ref) => null);
-
-final clickedWordPositionProvider = StateProvider<Offset?>((ref) => null);
+final clickedWordPositionProvider = Provider<Offset?>((ref) => ref.watch(playerProvider.select((s) => s.clickedWordPosition)));
 
 class PhraseLinkIndex {
   final Map<int, List<TranslationWord>> wordToTranslations = {};
@@ -132,18 +128,6 @@ final blockLayerLinkProvider = Provider<LayerLink>((ref) => LayerLink());
 final specificWordStylesStreamProvider = StreamProvider<List<SpecificWordStyle>>((ref) {
   final service = ref.read(specificWordStyleServiceProvider);
   return service.watchAllStyles();
-});
-
-final playerTimeProvider = StateProvider<Duration>((ref) {
-  return Duration.zero;
-});
-
-final isPlayingProvider = StateProvider<bool>((ref) {
-  return false;
-});
-
-final isAutoScrollEnabledProvider = StateProvider<bool>((ref) {
-  return true;
 });
 
 final seasonEpisodeProvider = StateProvider<SeasonEpisodeInfo?>((ref) {

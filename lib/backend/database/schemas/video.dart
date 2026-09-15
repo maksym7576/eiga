@@ -51,6 +51,8 @@ class Video {
   bool? isResearchDone = false;
   String? researchInformation;
 
+  bool isCached = false;
+
   Video();
 
   @ignore
@@ -101,6 +103,7 @@ class Video {
     String? pipelineIndetificator,
     bool? isResearchDone,
     String? researchInformation,
+    bool? isCached,
   }) {
     return Video()
       ..id = id ?? this.id
@@ -138,7 +141,8 @@ class Video {
       ..colorThemeValue = colorThemeValue ?? this.colorThemeValue
       ..pipelineIndetificator = pipelineIndetificator ?? this.pipelineIndetificator
       ..isResearchDone = isResearchDone ?? this.isResearchDone
-      ..researchInformation = researchInformation ?? this.researchInformation;
+      ..researchInformation = researchInformation ?? this.researchInformation
+      ..isCached = isCached ?? this.isCached;
   }
 }
 

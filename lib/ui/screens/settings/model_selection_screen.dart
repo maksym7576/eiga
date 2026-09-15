@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../backend/database/schemas/ai_model.dart';
 import '../../../backend/database/schemas/translation_pipeline_step.dart';
-import '../../../providers/ui/ai_models_state_provider.dart';
+import 'package:eiga/providers/ui/ai_models_state_provider.dart';
 import '../../styles/additional_window_theme.dart';
 import '../../widgets/model_selection/model_selection_card.dart';
 

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:eiga/ui/navigators/app_navigator.dart';
-import 'package:eiga/ui/screens/main_screen.dart';
-import 'package:eiga/ui/screens/upload_screen.dart';
-import 'package:eiga/ui/screens/settings_screen.dart';
-import 'package:eiga/ui/screens/video_screen.dart';
+import 'package:eiga/ui/screens/main/main_screen.dart';
+import 'package:eiga/ui/screens/upload/upload_screen.dart';
+import 'package:eiga/ui/screens/settings/settings_screen.dart';
+import 'package:eiga/ui/screens/video/video_screen.dart';
 import 'package:eiga/ui/screens/full_vocabulary_screen.dart';
 import 'package:eiga/ui/screens/library_screen.dart';
 import 'package:eiga/ui/screens/startup_screen.dart';

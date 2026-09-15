@@ -7,11 +7,13 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:eiga/config/app_config.dart';
 import 'package:eiga/config/secure_storage.dart';
+import 'package:eiga/backend/services/cache_service.dart';
 
 class WyzieService {
   static const String baseUrl = AppConfig.wyzieBaseUrl;
 
   final String apiKey;
+  final CacheService _cacheService = CacheService();
 
   WyzieService._(this.apiKey);
 
@@ -95,41 +97,27 @@ class WyzieService {
   Future<String> downloadAndCacheFile(
     String url, {
     String? preferredName,
-    Duration maxAge = const Duration(hours: 1),
+    Duration? maxAge,
   }) async {
-    final tempDir = await getTemporaryDirectory();
-    final cacheDir = Directory(p.join(tempDir.path, 'wyzie_cache'));
-
-    if (!await cacheDir.exists()) {
-      await cacheDir.create(recursive: true);
-    }
-
     final fileName = preferredName ?? '${DateTime.now().microsecondsSinceEpoch}_${p.basename(url)}';
-    final localPath = p.join(cacheDir.path, fileName);
-    final file = File(localPath);
 
-    if (await file.exists()) {
-      final stat = await file.stat();
-      if (DateTime.now().difference(stat.modified) < maxAge) {
-        return localPath;
-      }
+    final cachedPath = await _cacheService.getCachedFilePath(CacheType.jimaku, fileName);
+    if (cachedPath != null) {
+      return cachedPath;
     }
+
+    await _cacheService.cleanExpiredCache();
 
     final response = await http.get(Uri.parse(url), headers: headers).timeout(AppConfig.defaultTimeout);
 
     if (response.statusCode != 200) {
       throw Exception('Wyzie download error: ${response.statusCode}');
     }
-    await file.writeAsBytes(response.bodyBytes);
 
-    return localPath;
+    return await _cacheService.cacheBytes(response.bodyBytes, CacheType.jimaku, fileName);
   }
 
   Future<void> clearCache() async {
-    final tempDir = await getTemporaryDirectory();
-    final cacheDir = Directory(p.join(tempDir.path, 'wyzie_cache'));
-    if (await cacheDir.exists()) {
-      await cacheDir.delete(recursive: true);
-    }
+    await _cacheService.clearCache(CacheType.jimaku);
   }
 }

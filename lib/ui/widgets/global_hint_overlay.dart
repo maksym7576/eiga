@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../../providers/ui/hint_provider.dart';
+import 'package:eiga/providers/ui/hint_provider.dart';
 import '../styles/app_colors.dart';
 
 class GlobalHintOverlay extends HookConsumerWidget {

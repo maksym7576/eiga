@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../styles/additional_window_theme.dart';
-import '../../../providers/ui/search_provider.dart';
+import 'package:eiga/providers/ui/search_provider.dart';
 import 'package:eiga/backend/database/dto/media_dto.dart';
 import 'package:eiga/ui/widgets/search/search_source_abstract.dart';
 import 'package:eiga/ui/widgets/search/shared/unified_search_entry_card.dart';
-import 'package:eiga/ui/widgets/search/jimaku/jimaku_subtitle_source.dart';
+import 'package:eiga/ui/widgets/search/cloud/cloud_subtitle_source.dart';
 import 'package:eiga/utils/debounce.dart';
 
 class SearchPickerWidget<TEntry, TFile> extends ConsumerStatefulWidget {
@@ -198,7 +198,7 @@ class _SearchPickerWidgetState<TEntry, TFile>
     } catch (e) {
       if (mounted) {
         // Handle auto-select failure by closing silently or showing a hint
-        if (e is JimakuAutoSelectException) {
+        if (e is CloudAutoSelectException) {
           Navigator.pop(context); // Close search modal
           
           ScaffoldMessenger.of(context).showSnackBar(
@@ -267,13 +267,11 @@ class _SearchPickerWidgetState<TEntry, TFile>
                           Consumer(
                             builder: (context, ref, child) {
                               String? subtitle;
-                              if (showDetails && widget.source is JimakuSubtitleSource) {
-                                final id = int.tryParse(widget.source.entryId(selectedEntry as TEntry));
-                                if (id != null) {
-                                  final summary = ref.watch(jimakuSummaryProvider(id));
-                                  if (summary != null) {
-                                    subtitle = '${summary.totalFileCount} Files • ${summary.episodeCount} Episodes';
-                                  }
+                              if (showDetails && widget.source is CloudSubtitleSource) {
+                                final id = widget.source.entryId(selectedEntry as TEntry);
+                                final summary = ref.watch(cloudSummaryProvider((_key, id)));
+                                if (summary != null) {
+                                  subtitle = '${summary.totalFileCount} Files • ${summary.episodeCount} Episodes';
                                 }
                               }
 

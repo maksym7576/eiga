@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../backend/database/schemas/word.dart';
 import '../../../backend/database/schemas/translation_word.dart';
 import '../../../backend/database/schemas/specific_word_style.dart';
-import '../../../providers/ui/main_hub_providers.dart';
+import 'package:eiga/providers/ui/vocabulary_provider.dart';
 import '../../styles/additional_window_theme.dart';
 import '../../styles/app_colors.dart';
 

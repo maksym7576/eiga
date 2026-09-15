@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../styles/additional_window_theme.dart';
 
 class AppWarningBanner extends StatelessWidget {
   final String message;

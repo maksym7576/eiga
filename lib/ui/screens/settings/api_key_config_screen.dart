@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../config/secure_storage.dart';
-import '../../../providers/services/token_provider.dart';
+import 'package:eiga/providers/services/token_provider.dart';
 import '../../../models/settings/guide_step.dart';
 import '../../styles/additional_window_theme.dart';
 import '../../styles/app_colors.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../../../providers/services/database_services_providers.dart';
-import '../../../providers/videoComponentsProvider.dart';
+import 'package:eiga/providers/services/isar_services_providers.dart';
+import 'package:eiga/providers/ui/language_provider.dart';
 import '../../styles/additional_window_theme.dart';
 import 'language_tokenization_screen.dart';
 

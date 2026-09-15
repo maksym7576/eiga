@@ -4,7 +4,7 @@ import '../../backend/services/ai_service.dart';
 import '../../backend/services/petition_ai/gemini/gemini_service.dart';
 import '../../backend/services/petition_ai/gemini/gemini_streaming_service.dart';
 import '../../backend/services/petition_ai/parsers/phrase_response_handler.dart';
-import 'database_services_providers.dart';
+import 'isar_services_providers.dart';
 
 final phraseResponseHandlerProvider = Provider<PhraseResponseHandler>((ref) {
   return PhraseResponseHandler(

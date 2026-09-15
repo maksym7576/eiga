@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 import 'package:eiga/config/app_config.dart';
 import 'package:eiga/backend/database/dto/media_dto.dart';
+import 'package:eiga/backend/services/cache_service.dart';
 
 class ShikimoriRequestException implements Exception {
   final String message;
@@ -30,19 +28,43 @@ class ShikimoriService {
     'User-Agent': 'EigaApp/1.0 (https://github.com/your-username/eiga)',
   };
 
+  final CacheService _cacheService = CacheService();
+
   Future<List<UnifiedMetadataDTO>> searchAnime(String query, {int page = 1, int limit = 10}) async {
     final cleanedQuery = query.trim();
     if (cleanedQuery.isEmpty) return [];
 
-    final uri = Uri.parse('$_baseUrl/animes').replace(
-      queryParameters: {
-        'search': cleanedQuery,
-        'page': page.toString(),
-        'limit': limit.toString(),
-      },
-    );
+    final cacheKey = 'shikimori_search_${cleanedQuery.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_p${page}_l$limit.json';
+    dynamic data;
 
-    final data = await _getJson(uri);
+    try {
+      final cachedBody = await _cacheService.getCachedString(CacheType.metadata, cacheKey);
+      if (cachedBody != null) {
+        data = jsonDecode(cachedBody);
+      } else {
+        final uri = Uri.parse('$_baseUrl/animes').replace(
+          queryParameters: {
+            'search': cleanedQuery,
+            'page': page.toString(),
+            'limit': limit.toString(),
+          },
+        );
+        data = await _getJson(uri);
+        if (data != null) {
+          await _cacheService.cacheString(jsonEncode(data), CacheType.metadata, cacheKey);
+        }
+      }
+    } catch (_) {
+      final uri = Uri.parse('$_baseUrl/animes').replace(
+        queryParameters: {
+          'search': cleanedQuery,
+          'page': page.toString(),
+          'limit': limit.toString(),
+        },
+      );
+      data = await _getJson(uri);
+    }
+
     if (data is! List) return [];
 
     return data
@@ -51,8 +73,24 @@ class ShikimoriService {
   }
 
   Future<UnifiedMetadataDTO?> getAnimeById(int id, {bool downloadImages = true}) async {
-    final uri = Uri.parse('$_baseUrl/animes/$id');
-    final data = await _getJson(uri);
+    final cacheKey = 'shikimori_id_$id.json';
+    dynamic data;
+
+    try {
+      final cachedBody = await _cacheService.getCachedString(CacheType.metadata, cacheKey);
+      if (cachedBody != null) {
+        data = jsonDecode(cachedBody);
+      } else {
+        final uri = Uri.parse('$_baseUrl/animes/$id');
+        data = await _getJson(uri);
+        if (data != null) {
+          await _cacheService.cacheString(jsonEncode(data), CacheType.metadata, cacheKey);
+        }
+      }
+    } catch (_) {
+      final uri = Uri.parse('$_baseUrl/animes/$id');
+      data = await _getJson(uri);
+    }
 
     if (data is! Map<String, dynamic>) return null;
 
@@ -187,16 +225,14 @@ class ShikimoriService {
   Future<String?> _downloadAndSave(String url, int id, {required String suffix}) async {
     try {
       final uri = Uri.parse(url);
-      final extension = p.extension(uri.path).isEmpty ? '.jpg' : p.extension(uri.path);
-      final dir = await getApplicationDocumentsDirectory();
-      final imagesDir = Directory(p.join(dir.path, 'shikimori_images'));
-      if (!await imagesDir.exists()) {
-        await imagesDir.create(recursive: true);
-      }
+      final pathSegment = uri.path.split('/').last;
+      final dotIndex = pathSegment.lastIndexOf('.');
+      final extension = (dotIndex == -1) ? 'jpg' : pathSegment.substring(dotIndex + 1);
+      final imageName = 'shikimori_${id}_$suffix.$extension';
 
-      final file = File(p.join(imagesDir.path, '${id}_$suffix$extension'));
-      if (await file.exists() && await file.length() > 0) {
-        return file.path;
+      final existingPath = await _cacheService.getCachedFilePath(CacheType.photo, imageName);
+      if (existingPath != null) {
+        return existingPath;
       }
 
       final response = await http.get(uri, headers: _headers).timeout(_timeout);
@@ -206,8 +242,7 @@ class ShikimoriService {
         return null;
       }
 
-      await file.writeAsBytes(response.bodyBytes);
-      return file.path;
+      return await _cacheService.cacheBytes(response.bodyBytes, CacheType.photo, imageName);
     } catch (e, st) {
       developer.log('Failed to download image: $url', name: 'ShikimoriService', error: e, stackTrace: st);
       return null;

@@ -1,0 +1,119 @@
+import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import '../../../backend/database/schemas/phrase.dart';
+import 'package:eiga/providers/services/reading_type_provider.dart';
+import 'package:eiga/providers/ui/subtitle_settings_provider.dart';
+import 'package:eiga/providers/ui/player_provider.dart';
+import 'shimmer_text.dart';
+import 'subtitle_text_content.dart';
+import '../../utils/scaling_utils.dart';
+
+class WindowedSubtitle extends ConsumerWidget {
+  final Phrase phrase;
+  final bool isPast;
+
+  const WindowedSubtitle({
+    super.key,
+    required this.phrase,
+    this.isPast = false,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (phrase.isTranslating && !isPast) {
+          return _buildTranslatingContent(context, ref, constraints.maxWidth);
+        } else if (phrase.isTranslated || isPast) {
+          return _buildTranslatedContent(context, ref, constraints.maxWidth);
+        } else {
+          return _buildQueuedContent(context, ref, constraints.maxWidth);
+        }
+      },
+    );
+  }
+
+  Widget _buildTranslatingContent(BuildContext context, WidgetRef ref, double width) {
+    final hasTranslation = phrase.translatedPhrase != null && phrase.translatedPhrase!.isNotEmpty;
+    final scaleFactor = ref.watch(sidebarSubtitleFontSizeProvider);
+    final fontSize = SubtitleScaling.calculateFontSize(width, scaleFactor);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ShimmerText(
+          child: Text(
+            phrase.originalPhrase ?? '',
+            style: TextStyle(
+              fontFamily: 'Noto Serif JP',
+              fontSize: fontSize,
+              height: 1.8,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (hasTranslation)
+          ShimmerText(
+            child: Text(
+              phrase.translatedPhrase!,
+              style: TextStyle(
+                fontSize: fontSize * 0.75, // Proportional translation size
+                color: const Color(0xFF64748B),
+                height: 1.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          )
+        else
+          Container(
+            height: fontSize * 0.6,
+            width: width * 0.6,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildQueuedContent(BuildContext context, WidgetRef ref, double width) {
+    final scaleFactor = ref.watch(sidebarSubtitleFontSizeProvider);
+    final fontSize = SubtitleScaling.calculateFontSize(width, scaleFactor);
+    final settings = ref.watch(subtitleSettingsProvider);
+    
+    return Text(
+      phrase.originalPhrase ?? '',
+      style: TextStyle(
+        fontFamily: 'Noto Serif JP',
+        fontSize: fontSize * settings.windowed.originalScale,
+        color: const Color(0xFF0F172A),
+        height: 1.8,
+        fontWeight: FontWeight.w700,
+        letterSpacing: settings.windowed.letterSpacing,
+      ),
+    );
+  }
+
+  Widget _buildTranslatedContent(BuildContext context, WidgetRef ref, double width) {
+    final readingState = ref.watch(readingTypeNotifierProvider).value;
+    final mainOpt = readingState?.mainOption ?? 'original';
+    final addOpt = readingState?.additionalOption;
+    final showTranslation = readingState?.showTranslation ?? true;
+    
+    final scaleFactor = ref.watch(sidebarSubtitleFontSizeProvider);
+    final fontSize = SubtitleScaling.calculateFontSize(width, scaleFactor);
+
+    return SubtitleTextContent(
+      phrase: phrase,
+      mainOption: mainOpt,
+      additionalOption: addOpt,
+      showTranslation: showTranslation,
+      baseFontSize: fontSize,
+      textColor: const Color(0xFF0F172A),
+      useShadows: false,
+      isFullscreen: false,
+    );
+  }
+}

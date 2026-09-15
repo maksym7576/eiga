@@ -9,7 +9,7 @@ import '../../../database/services/block_service.dart';
 import '../../../database/services/word_service.dart';
 import '../../../database/services/translation_word_service.dart';
 import '../../utils/ai_exceptions.dart';
-import '../../../../providers/services/ai_request_state.dart';
+import 'package:eiga/providers/services/ai_request_state.dart';
 import 'response_parser_utils.dart';
 import '../../../../utils/logger.dart';
 

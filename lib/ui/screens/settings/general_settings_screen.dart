@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../../../providers/services/app_configs_provider.dart';
-import '../../../providers/ui/ai_models_state_provider.dart';
+import 'package:eiga/providers/services/app_configs_provider.dart';
+import 'package:eiga/providers/ui/ai_models_state_provider.dart';
 import '../../../backend/database/schemas/translation_pipeline_step.dart';
 import '../../styles/additional_window_theme.dart';
 import '../../styles/app_colors.dart';
 import 'model_selection_screen.dart';
 import 'processing_mode_screen.dart';
+
+import '../../widgets/app_bar/app_blur_header.dart';
 
 class GeneralSettingsScreen extends ConsumerStatefulWidget {
   const GeneralSettingsScreen({super.key});
@@ -24,20 +26,8 @@ class _GeneralSettingsScreenState extends ConsumerState<GeneralSettingsScreen> {
 
     return Scaffold(
       backgroundColor: theme.backgroundColor,
-      appBar: AppBar(
-        title: const Text('General Settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        backgroundColor: theme.backgroundColor.withValues(alpha: 0.9),
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: theme.dividerColor, height: 1),
-        ),
+      appBar: const AppBlurHeader(
+        title: 'General Settings',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -47,6 +37,19 @@ class _GeneralSettingsScreenState extends ConsumerState<GeneralSettingsScreen> {
             _buildSectionHeader(context, 'PROCESSING'),
             const SizedBox(height: 8),
             _buildProcessingModeCard(context),
+            const SizedBox(height: 24),
+            _buildSectionHeader(context, 'STORAGE'),
+            const SizedBox(height: 8),
+            _buildSwitchCard(
+              context,
+              title: 'Video Caching',
+              subtitle: 'Copy video files to app storage for offline access.',
+              value: config.getVideoCachingEnabled,
+              onChanged: (val) async {
+                await config.setVideoCachingEnabled(val);
+                setState(() {});
+              },
+            ),
             const SizedBox(height: 24),
             _buildSectionHeader(context, 'AI AUTOMATION'),
             const SizedBox(height: 8),

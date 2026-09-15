@@ -5,8 +5,9 @@ import 'package:eiga/backend/services/background/translation_background_manager.
 import 'package:eiga/providers/services/ai_services_providers.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/services/app_configs_provider.dart';
-import 'package:eiga/providers/services/database_services_providers.dart';
+import 'package:eiga/providers/services/isar_services_providers.dart';
 import '../../utils/logger.dart';
+import '../ui/player_provider.dart';
 
 class TranslationNotifier extends Notifier<void> {
   int? _currentVideoId;

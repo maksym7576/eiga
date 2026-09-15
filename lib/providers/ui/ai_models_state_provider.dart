@@ -2,8 +2,10 @@ import 'dart:async';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/backend/database/schemas/ai_model.dart';
 import 'package:eiga/backend/database/schemas/translation_pipeline_step.dart';
-import 'package:eiga/providers/database/database_providers.dart';
+import 'package:eiga/providers/database/isar_providers.dart';
 import 'package:eiga/providers/services/app_configs_provider.dart';
+
+import '../services/isar_services_providers.dart';
 
 /// Notifier to manage active model selection per step.
 class AiModelsNotifier extends Notifier<Map<TranslationPipelineStep, String>> {

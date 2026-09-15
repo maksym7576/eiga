@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../providers/services/reading_type_provider.dart';
+import 'package:eiga/providers/services/reading_type_provider.dart';
 import '../../styles/additional_window_theme.dart';
 
 abstract class ReadingTypeActions {
@@ -168,41 +168,43 @@ class _ReadingOptionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = AdditionalWindowTheme.of(context);
 
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        decoration: BoxDecoration(
-          color: isSelected ? theme.primaryAccent.withValues(alpha: 0.05) : Colors.transparent,
-          border: Border(
-            bottom: BorderSide(color: theme.dividerColor, width: 1),
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                  color: isSelected ? theme.primaryAccent : theme.normalText,
-                  letterSpacing: 0.5,
-                ),
-              ),
+    return Material(
+      color: isSelected ? theme.primaryAccent.withValues(alpha: 0.05) : Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: theme.dividerColor, width: 1),
             ),
-            if (isSelected)
-              Icon(Icons.check_circle_rounded, color: theme.primaryAccent, size: 20)
-            else
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: theme.dividerColor, width: 2),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    color: isSelected ? theme.primaryAccent : theme.normalText,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
-          ],
+              if (isSelected)
+                Icon(Icons.check_circle_rounded, color: theme.primaryAccent, size: 20)
+              else
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: theme.dividerColor, width: 2),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

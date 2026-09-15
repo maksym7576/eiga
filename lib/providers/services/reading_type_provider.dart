@@ -1,6 +1,6 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
-import 'package:eiga/providers/services/database_services_providers.dart';
+import 'package:eiga/providers/services/isar_services_providers.dart';
 import 'package:eiga/providers/services/app_configs_provider.dart';
 
 class ReadingTypeNotifier extends AsyncNotifier<ReadingTypeState> {

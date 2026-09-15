@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../config/secure_storage.dart';
-import '../../../providers/database/database_providers.dart';
-import '../../../providers/services/token_provider.dart';
-import '../../../providers/ui/redirect_providers.dart';
+import 'package:eiga/providers/database/isar_providers.dart';
+import 'package:eiga/providers/services/isar_services_providers.dart';
+import 'package:eiga/providers/services/token_provider.dart';
+import 'package:eiga/providers/ui/redirect_providers.dart';
 import '../../../models/settings/guide_step.dart';
 import '../../styles/additional_window_theme.dart';
 import '../../screens/settings/api_key_config_screen.dart';

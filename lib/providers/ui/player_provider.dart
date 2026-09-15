@@ -3,63 +3,154 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:video_player/video_player.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart' as mkv;
+import 'package:window_manager/window_manager.dart';
 import '../../backend/database/schemas/video.dart';
-import '../services/database_services_providers.dart';
+import '../services/isar_services_providers.dart';
 import 'video_data_providers.dart';
 import 'package:isar_community/isar.dart';
 import '../services/app_configs_provider.dart';
 
 class PlayerState {
-  final VideoPlayerController? controller;
+  final int? videoId;
+  final Player? player;
+  final mkv.VideoController? controller;
   final Duration duration;
+  final Duration position;
+  final bool isPlaying;
   final bool isLocked;
+  final bool isLocking;
   final bool isInitialized;
   final bool isFullscreen;
   final bool areControlsVisible;
-  
+  final bool isAutoScrollEnabled;
+  final bool isSettingsOpen;
+  final double? resizableHeight;
+
+  // Interaction State
+  final int? selectedBlockId;
+  final int? clickedWordId;
+  final int? clickedTranslationWordId;
+  final SelectionAnchor? selectionAnchorType;
+  final Set<int> highlightedWordIds;
+  final Set<int> highlightedTranslationIds;
+  final Offset? clickedWordPosition;
+
   PlayerState({
+    this.videoId,
+    this.player,
     this.controller,
     this.duration = Duration.zero,
+    this.position = Duration.zero,
+    this.isPlaying = false,
     this.isLocked = false,
+    this.isLocking = false,
     this.isInitialized = false,
     this.isFullscreen = false,
     this.areControlsVisible = true,
+    this.isAutoScrollEnabled = true,
+    this.isSettingsOpen = false,
+    this.resizableHeight,
+    this.selectedBlockId,
+    this.clickedWordId,
+    this.clickedTranslationWordId,
+    this.selectionAnchorType,
+    this.highlightedWordIds = const {},
+    this.highlightedTranslationIds = const {},
+    this.clickedWordPosition,
   });
 
   PlayerState copyWith({
-    VideoPlayerController? controller,
+    int? videoId,
+    Player? player,
+    mkv.VideoController? controller,
     Duration? duration,
+    Duration? position,
+    bool? isPlaying,
     bool? isLocked,
+    bool? isLocking,
     bool? isInitialized,
     bool? isFullscreen,
     bool? areControlsVisible,
+    bool? isAutoScrollEnabled,
+    bool? isSettingsOpen,
+    double? resizableHeight,
+    int? selectedBlockId,
+    int? clickedWordId,
+    int? clickedTranslationWordId,
+    SelectionAnchor? selectionAnchorType,
+    Set<int>? highlightedWordIds,
+    Set<int>? highlightedTranslationIds,
+    Offset? clickedWordPosition,
+    bool clearSelection = false,
+    // The regular `resizableHeight ?? this.resizableHeight` pattern below
+    // can only ever *set* a value — it can never null one back out, because
+    // passing `resizableHeight: null` is indistinguishable from "didn't
+    // pass it". This explicit flag is how callers (e.g. on orientation
+    // change) actually clear it back to "unset, recompute from screen size".
+    bool resetResizableHeight = false,
   }) {
     return PlayerState(
+      videoId: videoId ?? this.videoId,
+      player: player ?? this.player,
       controller: controller ?? this.controller,
       duration: duration ?? this.duration,
+      position: position ?? this.position,
+      isPlaying: isPlaying ?? this.isPlaying,
       isLocked: isLocked ?? this.isLocked,
+      isLocking: isLocking ?? this.isLocking,
       isInitialized: isInitialized ?? this.isInitialized,
       isFullscreen: isFullscreen ?? this.isFullscreen,
       areControlsVisible: areControlsVisible ?? this.areControlsVisible,
+      isAutoScrollEnabled: isAutoScrollEnabled ?? this.isAutoScrollEnabled,
+      isSettingsOpen: isSettingsOpen ?? this.isSettingsOpen,
+      resizableHeight: resetResizableHeight ? null : (resizableHeight ?? this.resizableHeight),
+      selectedBlockId: clearSelection ? null : (selectedBlockId ?? this.selectedBlockId),
+      clickedWordId: clearSelection ? null : (clickedWordId ?? this.clickedWordId),
+      clickedTranslationWordId: clearSelection ? null : (clickedTranslationWordId ?? this.clickedTranslationWordId),
+      selectionAnchorType: clearSelection ? null : (selectionAnchorType ?? this.selectionAnchorType),
+      highlightedWordIds: clearSelection ? const {} : (highlightedWordIds ?? this.highlightedWordIds),
+      highlightedTranslationIds: clearSelection ? const {} : (highlightedTranslationIds ?? this.highlightedTranslationIds),
+      clickedWordPosition: clearSelection ? null : (clickedWordPosition ?? this.clickedWordPosition),
     );
   }
 }
 
+enum SelectionAnchor { word, translation }
+
 class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   Timer? _hideTimer;
-  Timer? _autoLockTimer;
-  VideoPlayerController? _controller;
-  bool _isManuallyChangingPlaying = false;
+  Timer? _autoLockStage1Timer;
+  Timer? _autoLockStage2Timer;
+  Player? _player;
+  mkv.VideoController? _videoController;
+
+  StreamSubscription? _posSub;
+  StreamSubscription? _durSub;
+  StreamSubscription? _playingSub;
+
   bool _isPlayingBeforeInteraction = false;
+
+  // Tracks the last known orientation (derived from raw window metrics, not
+  // MediaQuery — this observer fires outside the widget build cycle) so we
+  // can tell a real rotation apart from other metric changes (keyboard
+  // opening, etc.) and only react to an actual portrait/landscape flip.
+  Orientation? _lastOrientation;
 
   void updateSystemUI() {
     if (state.isFullscreen || state.isLocked) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+        windowManager.setFullScreen(true);
+      }
     } else {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
       // Force status bar and navigation bar to be visible
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
+      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+        windowManager.setFullScreen(false);
+      }
     }
   }
 
@@ -70,49 +161,16 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
     // Initialize state
     final initialState = PlayerState();
-    
+
     // Auto-hide controls after start if not locked
     _startHideTimer();
 
-    // Sync with global isPlayingProvider
-    ref.listen(isPlayingProvider, (prev, next) {
-      if (_controller != null && _controller!.value.isInitialized) {
-        if (next && !_controller!.value.isPlaying) {
-          _isManuallyChangingPlaying = true;
-          _controller!.play().then((_) => _isManuallyChangingPlaying = false);
-        } else if (!next && _controller!.value.isPlaying) {
-          _isManuallyChangingPlaying = true;
-          _controller!.pause().then((_) => _isManuallyChangingPlaying = false);
-        }
-      }
-    });
-
-    // Sync with global playerTimeProvider (for seeking)
-    ref.listen(playerTimeProvider, (prev, next) {
-      if (_controller != null && _controller!.value.isInitialized) {
-        final currentPos = _controller!.value.position;
-        if ((next.inMilliseconds - currentPos.inMilliseconds).abs() > 1000) {
-          _controller!.seekTo(next);
-        }
-      }
-    });
-
-    // Handle video loading
-    ref.listen(currentVideoProvider, (prev, next) {
-      next.whenData((video) {
-        if (video != null) {
-          _initController(video.videoPath!);
-        } else {
-          _disposeController();
-        }
-      });
-    });
-
     ref.onDispose(() {
       WidgetsBinding.instance.removeObserver(this);
-      _disposeController();
+      disposeController();
       _hideTimer?.cancel();
-      _autoLockTimer?.cancel();
+      _autoLockStage1Timer?.cancel();
+      _autoLockStage2Timer?.cancel();
     });
 
     return initialState;
@@ -122,92 +180,169 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       // Force pause playback when app is backgrounded, ignoring lock
-      if (_controller != null && _controller!.value.isPlaying) {
-        ref.read(isPlayingProvider.notifier).state = false;
+      if (_player != null && _player!.state.playing) {
+        setPlaying(false);
       }
     }
   }
 
-  Future<void> _initController(String path) async {
-    await _disposeController();
+  @override
+  void didChangeMetrics() {
+    // Figure out the new orientation straight from the platform view size
+    // (physical pixels / device pixel ratio), since this callback fires
+    // outside of any widget's build — there's no BuildContext/MediaQuery
+    // available here.
+    final views = WidgetsBinding.instance.platformDispatcher.views;
+    if (views.isEmpty) return;
+    final view = views.first;
 
-    if (path.startsWith('http')) {
-      _controller = VideoPlayerController.networkUrl(Uri.parse(path));
-    } else {
-      _controller = VideoPlayerController.file(File(path));
+    final size = view.physicalSize / view.devicePixelRatio;
+    if (size.isEmpty) return;
+
+    final orientation = size.width > size.height ? Orientation.landscape : Orientation.portrait;
+
+    if (_lastOrientation != null && _lastOrientation != orientation) {
+      // No longer resetting resizableHeight here; clamp() in layout views
+      // correctly constrains the height during intermediate frames.
     }
+    _lastOrientation = orientation;
+  }
 
-    state = state.copyWith(controller: _controller, isInitialized: false);
+  Future<void> initController(int videoId, String path) async {
+    debugPrint('PlayerNotifier: Initializing Media Kit for video $videoId at path: $path');
+    state = state.copyWith(isInitialized: false, videoId: videoId);
+
+    await disposeController(keepVideoId: true);
+
+    _player = Player();
+    _videoController = mkv.VideoController(_player!);
+
+    state = state.copyWith(
+      player: _player,
+      controller: _videoController,
+    );
 
     try {
-      await _controller!.initialize();
-      _controller!.addListener(_videoListener);
-      
-      state = state.copyWith(
-        isInitialized: true,
-        duration: _controller!.value.duration,
-      );
-      
-      // Auto-play on load
-      setPlaying(true);
-      _controller!.play();
-      
-    } catch (e) {
-      // Error handling could be added here
-    }
-  }
+      debugPrint('PlayerNotifier: Loading media...');
 
-  void _videoListener() {
-    if (_controller == null || !_controller!.value.isInitialized || _isManuallyChangingPlaying) return;
-    
-    final currentPos = _controller!.value.position;
-    final providerPos = ref.read(playerTimeProvider);
-    
-    // Push position to provider if it differs significantly
-    if ((currentPos.inMilliseconds - providerPos.inMilliseconds).abs() > 500) {
-      ref.read(playerTimeProvider.notifier).state = currentPos;
-    }
+      // Listen to duration
+      _durSub = _player!.stream.duration.listen((duration) {
+        state = state.copyWith(duration: duration);
+      });
 
-    // Sync isPlaying state
-    if (_controller!.value.isPlaying != ref.read(isPlayingProvider)) {
-      ref.read(isPlayingProvider.notifier).state = _controller!.value.isPlaying;
-    }
-  }
+      // Listen to position
+      _posSub = _player!.stream.position.listen((position) {
+        if ((position.inMilliseconds - state.position.inMilliseconds).abs() > 500) {
+          state = state.copyWith(position: position);
+        }
+      });
 
-  Future<void> _disposeController() async {
-    if (_controller != null) {
-      _controller!.removeListener(_videoListener);
-      
-      // Explicitly pause before disposal to ensure audio stops immediately
-      if (_controller!.value.isPlaying) {
-        await _controller!.pause();
+      // Listen to playing state
+      _playingSub = _player!.stream.playing.listen((playing) {
+        if (playing != state.isPlaying) {
+          state = state.copyWith(isPlaying: playing);
+        }
+      });
+
+      await _player!.open(Media(path));
+      // Explicitly disable embedded subtitles
+      await _player!.setSubtitleTrack(SubtitleTrack.no());
+
+      if (state.videoId == videoId) {
+        state = state.copyWith(isInitialized: true);
+        setPlaying(true);
+      } else {
+        disposeController();
       }
-      
-      // Update provider directly to bypass lock check
-      ref.read(isPlayingProvider.notifier).state = false;
-      
-      await _controller!.dispose();
-      _controller = null;
-      state = state.copyWith(controller: null, isInitialized: false);
+    } catch (e) {
+      debugPrint('PlayerNotifier: FAILED to initialize Media Kit: $e');
+      state = state.copyWith(isInitialized: false);
     }
+  }
+
+  Future<void> disposeController({bool keepVideoId = false}) async {
+    _posSub?.cancel();
+    _durSub?.cancel();
+    _playingSub?.cancel();
+
+    final oldPlayer = _player;
+    _player = null;
+    _videoController = null;
+
+    state = state.copyWith(
+      player: null,
+      controller: null,
+      isInitialized: false,
+      videoId: keepVideoId ? state.videoId : null,
+      isPlaying: false,
+    );
+
+    if (oldPlayer != null) {
+      await oldPlayer.dispose();
+    }
+  }
+
+  void _cancelAutoLockTimer() {
+    _autoLockStage1Timer?.cancel();
+    _autoLockStage2Timer?.cancel();
+    if (state.isLocking) {
+      state = state.copyWith(isLocking: false);
+    }
+  }
+
+  void _resetAutoLockTimer({bool fromHover = false}) {
+    if (fromHover && state.isLocking) return;
+    _cancelAutoLockTimer();
+
+    // Auto-lock conditions: Fullscreen, Unlocked, Playing, Settings Closed
+    if (state.isFullscreen &&
+        !state.isLocked &&
+        state.isPlaying &&
+        !state.isSettingsOpen &&
+        ref.read(appConfigsServiceProvider).getIsAutoLockEnabled) {
+
+      _autoLockStage1Timer = Timer(const Duration(seconds: 10), () {
+        if (state.isFullscreen && !state.isLocked && state.isPlaying && !state.isSettingsOpen) {
+          state = state.copyWith(isLocking: true);
+          _autoLockStage2Timer = Timer(const Duration(seconds: 3), () {
+            if (state.isFullscreen && !state.isLocked && state.isLocking && state.isPlaying) {
+              state = state.copyWith(isLocking: false, isLocked: true);
+              updateSystemUI();
+            }
+          });
+        }
+      });
+    }
+  }
+
+  void setSettingsOpen(bool open) {
+    state = state.copyWith(isSettingsOpen: open);
+    _resetAutoLockTimer();
+  }
+
+  void updateResizableHeight(double height) {
+    state = state.copyWith(resizableHeight: height);
   }
 
   void _startHideTimer() {
     _hideTimer?.cancel();
     _hideTimer = Timer(const Duration(seconds: 3), () {
-      if (ref.read(isPlayingProvider) && !state.isLocked) {
+      if (state.isPlaying && !state.isLocked) {
         state = state.copyWith(areControlsVisible: false);
       }
     });
   }
 
   void resetHideTimer() {
+    _resetAutoLockTimer();
     if (state.areControlsVisible) {
       _startHideTimer();
     }
   }
 
-  void showControls() {
+  void showControls({bool fromHover = false}) {
+    if (fromHover && state.isLocking) return;
+    _resetAutoLockTimer(fromHover: fromHover);
     state = state.copyWith(areControlsVisible: true);
     _startHideTimer();
   }
@@ -218,6 +353,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   }
 
   void toggleControls() {
+    _resetAutoLockTimer();
     if (state.areControlsVisible) {
       hideControls();
     } else {
@@ -227,7 +363,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   void updatePosition(Duration pos) {
     if (!state.isLocked) {
-      ref.read(playerTimeProvider.notifier).state = pos;
+      state = state.copyWith(position: pos);
+      _player?.seek(pos);
     }
   }
 
@@ -236,39 +373,86 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   }
 
   void setPlaying(bool playing) {
-    if (!state.isLocked) {
-      ref.read(isPlayingProvider.notifier).state = playing;
+    state = state.copyWith(isPlaying: playing);
+    if (playing) {
+      _player?.play();
+    } else {
+      _player?.pause();
     }
+    _resetAutoLockTimer();
   }
 
   void togglePlaying() {
-    setPlaying(!ref.read(isPlayingProvider));
+    setPlaying(!state.isPlaying);
+  }
+
+  void setAutoScroll(bool enabled) {
+    state = state.copyWith(isAutoScrollEnabled: enabled);
+  }
+
+  // Selection Logic
+  void selectWord(int wordId, Set<int> linkedWords, Set<int> linkedTranslations, int? translationId, {bool shouldPause = true}) {
+    pauseForInteraction(force: shouldPause);
+    state = state.copyWith(
+      clickedWordId: wordId,
+      selectionAnchorType: SelectionAnchor.word,
+      highlightedWordIds: linkedWords,
+      highlightedTranslationIds: linkedTranslations,
+      clickedTranslationWordId: translationId,
+    );
+  }
+
+  void selectTranslation(int tId, Set<int> linkedWords, Set<int> linkedTranslations, int? wordId, {bool shouldPause = true}) {
+    pauseForInteraction(force: shouldPause);
+    state = state.copyWith(
+      clickedTranslationWordId: tId,
+      selectionAnchorType: wordId != null ? SelectionAnchor.word : SelectionAnchor.translation,
+      highlightedWordIds: linkedWords,
+      highlightedTranslationIds: linkedTranslations,
+      clickedWordId: wordId,
+    );
+  }
+
+  void clearSelection() {
+    state = state.copyWith(clearSelection: true);
+    resumeFromInteraction();
+  }
+
+  void setClickedWordPosition(Offset? pos) {
+    state = state.copyWith(clickedWordPosition: pos);
   }
 
   void setInitialized(bool initialized) {
     state = state.copyWith(isInitialized: initialized);
   }
 
-  void toggleLock(Orientation currentOrientation) {
-    final nextLockState = !state.isLocked;
-    state = state.copyWith(isLocked: nextLockState);
+  void handleLockTap(Orientation currentOrientation) {
+    if (state.isLocked) {
+      _cancelAutoLockTimer();
+      state = state.copyWith(isLocked: false, isLocking: false);
+      updateSystemUI();
+      _resetAutoLockTimer();
 
-    updateSystemUI();
-
-    if (nextLockState) {
-      // Hard lock to current orientation
-      if (currentOrientation == Orientation.landscape) {
+      if (!(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
         SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
           DeviceOrientation.landscapeLeft,
           DeviceOrientation.landscapeRight,
         ]);
-      } else {
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.portraitUp,
-        ]);
       }
     } else {
-      // Release lock and allow all orientations
+      _cancelAutoLockTimer();
+      toggleLock(currentOrientation);
+      state = state.copyWith(isLocking: false);
+    }
+  }
+
+  void resetLockAndFullscreen() {
+    state = state.copyWith(isLocked: false, isLocking: false, isFullscreen: false);
+    _cancelAutoLockTimer();
+    updateSystemUI();
+
+    if (!(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       SystemChrome.setPreferredOrientations([
         DeviceOrientation.portraitUp,
         DeviceOrientation.landscapeLeft,
@@ -277,35 +461,24 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     }
   }
 
-  void seekTo(Duration position) {
-    if (!state.isLocked) {
-      ref.read(playerTimeProvider.notifier).state = position;
-    }
-  }
+  void toggleLock(Orientation currentOrientation) {
+    final nextLockState = !state.isLocked;
+    state = state.copyWith(
+      isLocked: nextLockState,
+      isFullscreen: true, // Always enter fullscreen when locking
+    );
 
-  void setFullscreen(bool value, {bool updateSystem = true}) {
-    if (state.isFullscreen == value) return;
-    
-    state = state.copyWith(isFullscreen: value);
     updateSystemUI();
 
-    _autoLockTimer?.cancel();
-    if (value && ref.read(appConfigsServiceProvider).getIsAutoLockEnabled) {
-      _autoLockTimer = Timer(const Duration(seconds: 10), () {
-        if (state.isFullscreen && !state.isLocked) {
-          toggleLock(Orientation.landscape);
-        }
-      });
-    }
-
-    if (updateSystem) {
-      if (value) {
+    if (!(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      if (nextLockState) {
+        // Hard lock strictly to landscape (16:9) orientation
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.landscapeLeft,
           DeviceOrientation.landscapeRight,
         ]);
       } else {
-        // Allow all orientations to return control to the sensor
+        // Release lock and allow all orientations
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.portraitUp,
           DeviceOrientation.landscapeLeft,
@@ -315,31 +488,78 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     }
   }
 
+  void seekTo(Duration position) {
+    if (!state.isLocked) {
+      state = state.copyWith(position: position);
+      _player?.seek(position);
+      _resetAutoLockTimer();
+    }
+  }
+
+  void setFullscreen(bool value, {bool updateSystem = true}) {
+    if (state.isFullscreen == value) return;
+
+    state = state.copyWith(isFullscreen: value);
+    updateSystemUI();
+
+    if (value) {
+      // Always reset auto-lock and hide timers on entering fullscreen
+      _cancelAutoLockTimer();
+      showControls();
+      _resetAutoLockTimer();
+    } else {
+      // Strictly cancel auto-lock timer when exiting fullscreen so it never runs outside fullscreen
+      _cancelAutoLockTimer();
+    }
+
+    if (updateSystem) {
+      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+        if (value) {
+          windowManager.setFullScreen(true);
+          // Auto-hide controls when entering fullscreen on desktop
+          hideControls();
+        } else {
+          windowManager.setFullScreen(false);
+          showControls();
+        }
+      } else {
+        if (!(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+          if (value) {
+            // Allow landscape and portrait so sensor can trigger auto-exit
+            SystemChrome.setPreferredOrientations([
+              DeviceOrientation.landscapeLeft,
+              DeviceOrientation.landscapeRight,
+              DeviceOrientation.portraitUp,
+            ]);
+          } else {
+            // When explicitly exiting, prefer portrait
+            SystemChrome.setPreferredOrientations([
+              DeviceOrientation.portraitUp,
+              DeviceOrientation.landscapeLeft,
+              DeviceOrientation.landscapeRight,
+            ]);
+          }
+        }
+      }
+    }
+  }
+
   void toggleFullscreen() {
     setFullscreen(!state.isFullscreen);
   }
 
-  void resetLockAndFullscreen() {
-    state = state.copyWith(isLocked: false, isFullscreen: false);
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-    updateSystemUI();
-  }
-
-  void pauseForInteraction() {
-    if (_controller != null && _controller!.value.isPlaying) {
+  void pauseForInteraction({bool force = true}) {
+    if (!force) return;
+    if (_player != null && _player!.state.playing) {
       _isPlayingBeforeInteraction = true;
-      ref.read(isPlayingProvider.notifier).state = false;
+      setPlaying(false);
     }
   }
 
   void resumeFromInteraction() {
     if (_isPlayingBeforeInteraction) {
       _isPlayingBeforeInteraction = false;
-      ref.read(isPlayingProvider.notifier).state = true;
+      setPlaying(true);
     }
   }
 }
@@ -347,3 +567,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 final playerProvider = NotifierProvider<PlayerNotifier, PlayerState>(
   PlayerNotifier.new,
 );
+
+// Backward compatibility or shortcut providers
+final playerTimeProvider = Provider<Duration>((ref) => ref.watch(playerProvider.select((s) => s.position)));
+final isPlayingProvider = Provider<bool>((ref) => ref.watch(playerProvider.select((s) => s.isPlaying)));
+final isAutoScrollEnabledProvider = Provider<bool>((ref) => ref.watch(playerProvider.select((s) => s.isAutoScrollEnabled)));

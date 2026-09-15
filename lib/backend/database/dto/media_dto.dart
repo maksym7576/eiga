@@ -176,3 +176,9 @@ class MediaCastDTO {
     );
   }
 }
+
+/// A marker class used in the cache to indicate that a metadata lookup was 
+/// performed but no data was found. This prevents infinite loading spinners.
+class NoMetadataDTO {
+  const NoMetadataDTO();
+}

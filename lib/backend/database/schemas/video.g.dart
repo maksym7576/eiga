@@ -61,90 +61,91 @@ const VideoSchema = CollectionSchema(
     r'imdbId': PropertySchema(id: 9, name: r'imdbId', type: IsarType.string),
     r'isAdult': PropertySchema(id: 10, name: r'isAdult', type: IsarType.bool),
     r'isAnime': PropertySchema(id: 11, name: r'isAnime', type: IsarType.bool),
-    r'isMovie': PropertySchema(id: 12, name: r'isMovie', type: IsarType.bool),
+    r'isCached': PropertySchema(id: 12, name: r'isCached', type: IsarType.bool),
+    r'isMovie': PropertySchema(id: 13, name: r'isMovie', type: IsarType.bool),
     r'isResearchDone': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'isResearchDone',
       type: IsarType.bool,
     ),
     r'isUnverified': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'isUnverified',
       type: IsarType.bool,
     ),
-    r'malId': PropertySchema(id: 15, name: r'malId', type: IsarType.long),
+    r'malId': PropertySchema(id: 16, name: r'malId', type: IsarType.long),
     r'nameJumaku': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'nameJumaku',
       type: IsarType.string,
     ),
     r'originalLanguage': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'originalLanguage',
       type: IsarType.string,
     ),
     r'originalName': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'originalName',
       type: IsarType.string,
     ),
     r'pathSubtitle': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'pathSubtitle',
       type: IsarType.string,
     ),
     r'pipelineIndetificator': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'pipelineIndetificator',
       type: IsarType.string,
     ),
     r'researchInformation': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'researchInformation',
       type: IsarType.string,
     ),
-    r'score': PropertySchema(id: 22, name: r'score', type: IsarType.double),
-    r'season': PropertySchema(id: 23, name: r'season', type: IsarType.string),
+    r'score': PropertySchema(id: 23, name: r'score', type: IsarType.double),
+    r'season': PropertySchema(id: 24, name: r'season', type: IsarType.string),
     r'seriesName': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'seriesName',
       type: IsarType.string,
     ),
     r'shikimoriId': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'shikimoriId',
       type: IsarType.long,
     ),
-    r'status': PropertySchema(id: 26, name: r'status', type: IsarType.string),
+    r'status': PropertySchema(id: 27, name: r'status', type: IsarType.string),
     r'subtitleFileName': PropertySchema(
-      id: 27,
+      id: 28,
       name: r'subtitleFileName',
       type: IsarType.string,
     ),
     r'textFormat': PropertySchema(
-      id: 28,
+      id: 29,
       name: r'textFormat',
       type: IsarType.string,
     ),
     r'thetvdbId': PropertySchema(
-      id: 29,
+      id: 30,
       name: r'thetvdbId',
       type: IsarType.string,
     ),
-    r'tmdbId': PropertySchema(id: 30, name: r'tmdbId', type: IsarType.string),
+    r'tmdbId': PropertySchema(id: 31, name: r'tmdbId', type: IsarType.string),
     r'totalEpisodes': PropertySchema(
-      id: 31,
+      id: 32,
       name: r'totalEpisodes',
       type: IsarType.long,
     ),
     r'translatedLanguage': PropertySchema(
-      id: 32,
+      id: 33,
       name: r'translatedLanguage',
       type: IsarType.string,
     ),
-    r'tvmazeId': PropertySchema(id: 33, name: r'tvmazeId', type: IsarType.long),
+    r'tvmazeId': PropertySchema(id: 34, name: r'tvmazeId', type: IsarType.long),
     r'videoPath': PropertySchema(
-      id: 34,
+      id: 35,
       name: r'videoPath',
       type: IsarType.string,
     ),
@@ -330,29 +331,30 @@ void _videoSerialize(
   writer.writeString(offsets[9], object.imdbId);
   writer.writeBool(offsets[10], object.isAdult);
   writer.writeBool(offsets[11], object.isAnime);
-  writer.writeBool(offsets[12], object.isMovie);
-  writer.writeBool(offsets[13], object.isResearchDone);
-  writer.writeBool(offsets[14], object.isUnverified);
-  writer.writeLong(offsets[15], object.malId);
-  writer.writeString(offsets[16], object.nameJumaku);
-  writer.writeString(offsets[17], object.originalLanguage);
-  writer.writeString(offsets[18], object.originalName);
-  writer.writeString(offsets[19], object.pathSubtitle);
-  writer.writeString(offsets[20], object.pipelineIndetificator);
-  writer.writeString(offsets[21], object.researchInformation);
-  writer.writeDouble(offsets[22], object.score);
-  writer.writeString(offsets[23], object.season);
-  writer.writeString(offsets[24], object.seriesName);
-  writer.writeLong(offsets[25], object.shikimoriId);
-  writer.writeString(offsets[26], object.status);
-  writer.writeString(offsets[27], object.subtitleFileName);
-  writer.writeString(offsets[28], object.textFormat);
-  writer.writeString(offsets[29], object.thetvdbId);
-  writer.writeString(offsets[30], object.tmdbId);
-  writer.writeLong(offsets[31], object.totalEpisodes);
-  writer.writeString(offsets[32], object.translatedLanguage);
-  writer.writeLong(offsets[33], object.tvmazeId);
-  writer.writeString(offsets[34], object.videoPath);
+  writer.writeBool(offsets[12], object.isCached);
+  writer.writeBool(offsets[13], object.isMovie);
+  writer.writeBool(offsets[14], object.isResearchDone);
+  writer.writeBool(offsets[15], object.isUnverified);
+  writer.writeLong(offsets[16], object.malId);
+  writer.writeString(offsets[17], object.nameJumaku);
+  writer.writeString(offsets[18], object.originalLanguage);
+  writer.writeString(offsets[19], object.originalName);
+  writer.writeString(offsets[20], object.pathSubtitle);
+  writer.writeString(offsets[21], object.pipelineIndetificator);
+  writer.writeString(offsets[22], object.researchInformation);
+  writer.writeDouble(offsets[23], object.score);
+  writer.writeString(offsets[24], object.season);
+  writer.writeString(offsets[25], object.seriesName);
+  writer.writeLong(offsets[26], object.shikimoriId);
+  writer.writeString(offsets[27], object.status);
+  writer.writeString(offsets[28], object.subtitleFileName);
+  writer.writeString(offsets[29], object.textFormat);
+  writer.writeString(offsets[30], object.thetvdbId);
+  writer.writeString(offsets[31], object.tmdbId);
+  writer.writeLong(offsets[32], object.totalEpisodes);
+  writer.writeString(offsets[33], object.translatedLanguage);
+  writer.writeLong(offsets[34], object.tvmazeId);
+  writer.writeString(offsets[35], object.videoPath);
 }
 
 Video _videoDeserialize(
@@ -375,29 +377,30 @@ Video _videoDeserialize(
   object.imdbId = reader.readStringOrNull(offsets[9]);
   object.isAdult = reader.readBoolOrNull(offsets[10]);
   object.isAnime = reader.readBoolOrNull(offsets[11]);
-  object.isMovie = reader.readBoolOrNull(offsets[12]);
-  object.isResearchDone = reader.readBoolOrNull(offsets[13]);
-  object.isUnverified = reader.readBoolOrNull(offsets[14]);
-  object.malId = reader.readLongOrNull(offsets[15]);
-  object.nameJumaku = reader.readStringOrNull(offsets[16]);
-  object.originalLanguage = reader.readStringOrNull(offsets[17]);
-  object.originalName = reader.readStringOrNull(offsets[18]);
-  object.pathSubtitle = reader.readStringOrNull(offsets[19]);
-  object.pipelineIndetificator = reader.readStringOrNull(offsets[20]);
-  object.researchInformation = reader.readStringOrNull(offsets[21]);
-  object.score = reader.readDoubleOrNull(offsets[22]);
-  object.season = reader.readStringOrNull(offsets[23]);
-  object.seriesName = reader.readStringOrNull(offsets[24]);
-  object.shikimoriId = reader.readLongOrNull(offsets[25]);
-  object.status = reader.readStringOrNull(offsets[26]);
-  object.subtitleFileName = reader.readStringOrNull(offsets[27]);
-  object.textFormat = reader.readStringOrNull(offsets[28]);
-  object.thetvdbId = reader.readStringOrNull(offsets[29]);
-  object.tmdbId = reader.readStringOrNull(offsets[30]);
-  object.totalEpisodes = reader.readLongOrNull(offsets[31]);
-  object.translatedLanguage = reader.readStringOrNull(offsets[32]);
-  object.tvmazeId = reader.readLongOrNull(offsets[33]);
-  object.videoPath = reader.readStringOrNull(offsets[34]);
+  object.isCached = reader.readBool(offsets[12]);
+  object.isMovie = reader.readBoolOrNull(offsets[13]);
+  object.isResearchDone = reader.readBoolOrNull(offsets[14]);
+  object.isUnverified = reader.readBoolOrNull(offsets[15]);
+  object.malId = reader.readLongOrNull(offsets[16]);
+  object.nameJumaku = reader.readStringOrNull(offsets[17]);
+  object.originalLanguage = reader.readStringOrNull(offsets[18]);
+  object.originalName = reader.readStringOrNull(offsets[19]);
+  object.pathSubtitle = reader.readStringOrNull(offsets[20]);
+  object.pipelineIndetificator = reader.readStringOrNull(offsets[21]);
+  object.researchInformation = reader.readStringOrNull(offsets[22]);
+  object.score = reader.readDoubleOrNull(offsets[23]);
+  object.season = reader.readStringOrNull(offsets[24]);
+  object.seriesName = reader.readStringOrNull(offsets[25]);
+  object.shikimoriId = reader.readLongOrNull(offsets[26]);
+  object.status = reader.readStringOrNull(offsets[27]);
+  object.subtitleFileName = reader.readStringOrNull(offsets[28]);
+  object.textFormat = reader.readStringOrNull(offsets[29]);
+  object.thetvdbId = reader.readStringOrNull(offsets[30]);
+  object.tmdbId = reader.readStringOrNull(offsets[31]);
+  object.totalEpisodes = reader.readLongOrNull(offsets[32]);
+  object.translatedLanguage = reader.readStringOrNull(offsets[33]);
+  object.tvmazeId = reader.readLongOrNull(offsets[34]);
+  object.videoPath = reader.readStringOrNull(offsets[35]);
   return object;
 }
 
@@ -433,15 +436,15 @@ P _videoDeserializeProp<P>(
     case 11:
       return (reader.readBoolOrNull(offset)) as P;
     case 12:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 13:
       return (reader.readBoolOrNull(offset)) as P;
     case 14:
       return (reader.readBoolOrNull(offset)) as P;
     case 15:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 16:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 17:
       return (reader.readStringOrNull(offset)) as P;
     case 18:
@@ -453,15 +456,15 @@ P _videoDeserializeProp<P>(
     case 21:
       return (reader.readStringOrNull(offset)) as P;
     case 22:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 23:
       return (reader.readStringOrNull(offset)) as P;
+    case 23:
+      return (reader.readDoubleOrNull(offset)) as P;
     case 24:
       return (reader.readStringOrNull(offset)) as P;
     case 25:
-      return (reader.readLongOrNull(offset)) as P;
-    case 26:
       return (reader.readStringOrNull(offset)) as P;
+    case 26:
+      return (reader.readLongOrNull(offset)) as P;
     case 27:
       return (reader.readStringOrNull(offset)) as P;
     case 28:
@@ -471,12 +474,14 @@ P _videoDeserializeProp<P>(
     case 30:
       return (reader.readStringOrNull(offset)) as P;
     case 31:
-      return (reader.readLongOrNull(offset)) as P;
-    case 32:
       return (reader.readStringOrNull(offset)) as P;
-    case 33:
+    case 32:
       return (reader.readLongOrNull(offset)) as P;
+    case 33:
+      return (reader.readStringOrNull(offset)) as P;
     case 34:
+      return (reader.readLongOrNull(offset)) as P;
+    case 35:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2093,6 +2098,16 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(property: r'isAnime', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> isCachedEqualTo(
+    bool value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'isCached', value: value),
       );
     });
   }
@@ -5143,6 +5158,18 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> sortByIsCached() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCached', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByIsCachedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCached', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> sortByIsMovie() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isMovie', Sort.asc);
@@ -5565,6 +5592,18 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> thenByIsCached() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCached', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByIsCachedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCached', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> thenByIsMovie() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isMovie', Sort.asc);
@@ -5930,6 +5969,12 @@ extension VideoQueryWhereDistinct on QueryBuilder<Video, Video, QDistinct> {
     });
   }
 
+  QueryBuilder<Video, Video, QDistinct> distinctByIsCached() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isCached');
+    });
+  }
+
   QueryBuilder<Video, Video, QDistinct> distinctByIsMovie() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isMovie');
@@ -6190,6 +6235,12 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
   QueryBuilder<Video, bool?, QQueryOperations> isAnimeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isAnime');
+    });
+  }
+
+  QueryBuilder<Video, bool, QQueryOperations> isCachedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isCached');
     });
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../../../providers/services/reading_type_provider.dart';
+import 'package:eiga/providers/services/reading_type_provider.dart';
 import '../../styles/additional_window_theme.dart';
 import '../../styles/app_colors.dart';
 import '../../widgets/settings/reading_option_selector.dart';

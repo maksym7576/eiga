@@ -4,6 +4,8 @@ import '../animations/eiga_logo_animation.dart';
 import 'eiga_logo.dart';
 import '../../styles/app_colors.dart';
 
+import 'package:eiga/ui/utils/responsive_helper.dart';
+
 class LoadingSplash extends StatelessWidget {
   final bool useAlternativeLogo;
 
@@ -15,6 +17,7 @@ class LoadingSplash extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = AdditionalWindowTheme.of(context);
+    final isDesktop = ResponsiveHelper.isDesktopOrTablet(context);
     
     return Scaffold(
       backgroundColor: theme.backgroundColor,

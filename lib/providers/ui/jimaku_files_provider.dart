@@ -1,48 +1,18 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:eiga/backend/database/dto/media_dto.dart';
 import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
-import 'package:eiga/backend/services/jimaku_service.dart';
 import 'package:eiga/backend/services/utils/jimaku_clustering_util.dart';
-import 'dto_providers.dart';
-import 'search_provider.dart';
+import 'cloud_files_state.dart';
+import 'metadata_state_provider.dart';
+import 'package:eiga/providers/services/external_api_providers.dart';
 
-class JimakuFilesState {
-  final List<JimakuFileOrGroupDTO> files;
-  final bool isLoading;
-  final Set<String> expandedGroups;
-  final List<FileJimakuDTO> rawFiles;
-
-  JimakuFilesState({
-    this.files = const [],
-    this.isLoading = false,
-    this.expandedGroups = const {},
-    this.rawFiles = const [],
-  });
-
-  JimakuFilesState copyWith({
-    List<JimakuFileOrGroupDTO>? files,
-    bool? isLoading,
-    Set<String>? expandedGroups,
-    List<FileJimakuDTO>? rawFiles,
-  }) {
-    return JimakuFilesState(
-      files: files ?? this.files,
-      isLoading: isLoading ?? this.isLoading,
-      expandedGroups: expandedGroups ?? this.expandedGroups,
-      rawFiles: rawFiles ?? this.rawFiles,
-    );
-  }
-}
-
-class JimakuFilesNotifier extends Notifier<JimakuFilesState> {
-  final int entryId;
-  JimakuFilesNotifier(this.entryId);
+class JimakuFilesNotifier extends Notifier<CloudFilesState> {
+  final String arg;
+  JimakuFilesNotifier(this.arg);
 
   @override
-  JimakuFilesState build() {
-    // Initial fetch if needed
+  CloudFilesState build() {
     Future.microtask(() => loadFiles());
-    return JimakuFilesState();
+    return CloudFilesState();
   }
 
   Future<void> loadFiles() async {
@@ -51,7 +21,13 @@ class JimakuFilesNotifier extends Notifier<JimakuFilesState> {
     state = state.copyWith(isLoading: true);
     try {
       final service = await ref.read(jimakuServiceProvider.future);
-      final rawFiles = await service.getFiles(entryId);
+      final entryIdInt = int.tryParse(arg);
+      if (entryIdInt == null) {
+         state = state.copyWith(isLoading: false);
+         return;
+      }
+
+      final rawFiles = await service.getFiles(entryIdInt);
       
       final groups = JimakuClusteringUtil.groupFiles(rawFiles);
       final flattened = _flatten(groups, state.expandedGroups);
@@ -105,6 +81,6 @@ class JimakuFilesNotifier extends Notifier<JimakuFilesState> {
   }
 }
 
-final jimakuFilesProvider = NotifierProvider.family<JimakuFilesNotifier, JimakuFilesState, int>(
+final jimakuFilesProvider = NotifierProvider.family<JimakuFilesNotifier, CloudFilesState, String>(
   JimakuFilesNotifier.new,
 );

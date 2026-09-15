@@ -24,12 +24,6 @@ class EnrichedMetadata {
   });
 }
 
-/// A marker class used in the cache to indicate that a metadata lookup was 
-/// performed but no data was found. This prevents infinite loading spinners.
-class NoMetadataDTO {
-  const NoMetadataDTO();
-}
-
 final metadataEnrichmentProvider = Provider.family.autoDispose<EnrichedMetadata, dynamic>((ref, entry) {
   if (entry is! UnifiedMetadataDTO) {
      return const EnrichedMetadata(title: 'Unknown');
@@ -50,13 +44,13 @@ final metadataEnrichmentProvider = Provider.family.autoDispose<EnrichedMetadata,
   String? imdbId = entry.imdbId;
   String? thetvdbId = entry.thetvdbId;
   
-  // Check background analysis summary for Jimaku if applicable
+  // Check background analysis summary for cloud sources if applicable
   if (entry.linkUrl?.contains('jimaku.cc') == true) {
-    final id = int.tryParse(entry.sourceId);
-    if (id != null) {
-      final summary = ref.watch(jimakuSummaryProvider(id));
-      episodes = summary?.episodeCount ?? episodes;
-    }
+    final summary = ref.watch(cloudSummaryProvider((SearchSourceKeys.jimaku, entry.sourceId)));
+    episodes = summary?.episodeCount ?? episodes;
+  } else if (entry.linkUrl?.contains('wyzie.xyz') == true) {
+    final summary = ref.watch(cloudSummaryProvider((SearchSourceKeys.wyzie, entry.sourceId)));
+    episodes = summary?.episodeCount ?? episodes;
   }
 
   // 2. Enrich based on active provider

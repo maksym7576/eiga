@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../../providers/ui/main_hub_providers.dart';
+import 'package:eiga/providers/ui/vocabulary_provider.dart';
 import '../widgets/main_hub/vocabulary_feed_item.dart';
 import '../styles/additional_window_theme.dart';
 import '../styles/app_colors.dart';

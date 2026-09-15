@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../widgets/shared/loading_splash.dart';
-import '../../providers/ui/redirect_providers.dart';
+import 'package:eiga/providers/ui/redirect_providers.dart';
 
 class StartupScreen extends ConsumerStatefulWidget {
   const StartupScreen({super.key});
@@ -28,10 +28,18 @@ class _StartupScreenState extends ConsumerState<StartupScreen> {
   }
 
   Future<void> _startTransition() async {
-    // Show animation for 3 seconds
+    print('StartupScreen: Starting 3 seconds delay...');
     await Future.delayed(const Duration(seconds: 3));
+    print('StartupScreen: Delay complete. Mounted: $mounted');
     if (mounted) {
-      context.go('/main');
+      try {
+        print('StartupScreen: Navigating to /main...');
+        context.go('/main');
+        print('StartupScreen: Navigation call successful.');
+      } catch (e, stack) {
+        print('StartupScreen: Error during navigation: $e');
+        print(stack);
+      }
     }
   }
 
