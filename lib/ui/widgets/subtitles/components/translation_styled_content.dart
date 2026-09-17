@@ -5,6 +5,7 @@ import '../../../../backend/database/schemas/specific_word_style.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/ui/subtitle_settings_provider.dart';
+import 'package:eiga/providers/services/app_configs_provider.dart';
 import 'outlined_text.dart';
 
 class TranslationStyledContent extends HookConsumerWidget {
@@ -22,6 +23,7 @@ class TranslationStyledContent extends HookConsumerWidget {
   final bool useShadows;
   final bool isFullscreen;
   final bool isLocked;
+  final Set<int> hiddenTranslationIds;
 
   const TranslationStyledContent({
     super.key,
@@ -39,11 +41,14 @@ class TranslationStyledContent extends HookConsumerWidget {
     required this.useShadows,
     required this.isFullscreen,
     required this.isLocked,
+    this.hiddenTranslationIds = const {},
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tokens = phrase.translatedWords ?? [];
+    final bool hideBrackets = ref.watch(appConfigsServiceProvider.select((c) => c.getHideParenthesesContent));
+
+    List<TranslationTokenEntry> tokens = phrase.translatedWords ?? [];
 
     final settings = ref.watch(subtitleSettingsProvider);
     final modeSettings = isFullscreen ? settings.fullscreen : settings.windowed;
@@ -52,8 +57,17 @@ class TranslationStyledContent extends HookConsumerWidget {
         ? (baseFontSize * 0.05) * modeSettings.translationOutlineWidth 
         : 0.0;
 
+    if (hideBrackets) {
+      tokens = tokens.where((t) => !hiddenTranslationIds.contains(t.translatedWordPosition)).toList();
+    }
+
     if (tokens.isEmpty) {
-      final text = phrase.translatedPhrase ?? '';
+      String text = phrase.translatedPhrase ?? '';
+      if (hideBrackets) {
+        final bracketRegExp = RegExp(r'[([{（［｛].*?[)]}）］｝]');
+        text = text.replaceAll(bracketRegExp, '').trim();
+      }
+      
       if (text.isEmpty) return const SizedBox.shrink();
 
       return Padding(

@@ -5,6 +5,7 @@ import '../../../../backend/database/schemas/specific_word_style.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/ui/subtitle_settings_provider.dart';
+import 'package:eiga/providers/services/app_configs_provider.dart';
 import 'ruby_text.dart';
 import 'outlined_text.dart';
 
@@ -26,6 +27,7 @@ class PhraseOriginalContent extends HookConsumerWidget {
   final bool useShadows;
   final bool isFullscreen;
   final bool isLocked;
+  final Set<int> hiddenWordIds;
 
   const PhraseOriginalContent({
     super.key,
@@ -46,11 +48,13 @@ class PhraseOriginalContent extends HookConsumerWidget {
     this.useShadows = false,
     required this.isFullscreen,
     required this.isLocked,
+    this.hiddenWordIds = const {},
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final languageAsync = ref.watch(videoLanguageProvider);
+    final bool hideBrackets = ref.watch(appConfigsServiceProvider.select((c) => c.getHideParenthesesContent));
 
     final settings = ref.watch(subtitleSettingsProvider);
     final modeSettings = isFullscreen ? settings.fullscreen : settings.windowed;
@@ -60,10 +64,23 @@ class PhraseOriginalContent extends HookConsumerWidget {
         ? (baseFontSize * 0.055) * modeSettings.originalOutlineWidth 
         : 0.0;
 
-    final originalTokens = phrase.originalTokens ?? [];
+    List<TokenEntry> originalTokens = phrase.originalTokens ?? [];
+
+    if (hideBrackets) {
+      originalTokens = originalTokens.where((t) => !hiddenWordIds.contains(t.wordPosition)).toList();
+    }
 
     if (originalTokens.isEmpty) {
-      final trimmedFallback = fallbackText?.trim() ?? '';
+      String trimmedFallback = fallbackText?.trim() ?? '';
+      if (hideBrackets) {
+        final bracketRegExp = RegExp(r'[([{（［｛].*?[)]}）］｝]');
+        trimmedFallback = trimmedFallback.replaceAll(bracketRegExp, '').trim();
+      }
+      
+      if (trimmedFallback.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
       return Padding(
         padding: EdgeInsets.symmetric(
           horizontal: baseFontSize * 0.15,
