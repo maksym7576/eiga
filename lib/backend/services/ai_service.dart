@@ -225,6 +225,11 @@ class AiService {
             result = await _executeMorphologyBatch(stepIds, pipelineResult.stepOf(PipelineStepType.morphemes), jobId);
             await phraseService.setStages(stepIds.cast<int>(), StageKey.morphology, result.phase == AiRequestPhase.success ? StageState.completed : StageState.error);
             break;
+          case 'grammar_role':
+            await phraseService.setStages(stepIds.cast<int>(), StageKey.grammarRole, StageState.processing);
+            result = await _executeGrammarRoleBatch(stepIds, pipelineResult.stepOf(PipelineStepType.grammarRole), jobId);
+            await phraseService.setStages(stepIds.cast<int>(), StageKey.grammarRole, result.phase == AiRequestPhase.success ? StageState.completed : StageState.error);
+            break;
           default:
             result = AiRequestResult.success();
         }
@@ -246,7 +251,7 @@ class AiService {
           currentJob.completedSteps = i + 1;
           
           // Update processed count incrementally for terminal stages
-          if (type == 'morphology' || type == 'translation') {
+          if (type == 'grammar_role' || type == 'translation') {
             final int currentProcessed = currentJob.processedPhrases ?? 0;
             currentJob.processedPhrases = (currentProcessed + stepIds.length).clamp(0, currentJob.totalPhrases ?? 0);
           }
@@ -273,7 +278,8 @@ class AiService {
     final toTranslateIds = phrases.where((p) => p.translatedPhrase == null || p.translatedPhrase!.isEmpty).map((e) => e.id).toList();
     final toTokenizeOrigIds = phrases.where((p) => p.originalTokens == null || p.originalTokens!.isEmpty).map((e) => e.id).toList();
     final toTokenizeDestIds = phrases.where((p) => p.translatedWords == null || p.translatedWords!.isEmpty).toList();
-    final toMorphIds = phrases.where((p) => !p.isTranslated).map((e) => e.id).toList();
+    final toMorphIds = phrases.where((p) => p.stageStatuses[StageKey.morphology] != 'completed').map((e) => e.id).toList();
+    final toGrammarRoleIds = phrases.where((p) => p.stageStatuses[StageKey.grammarRole] != 'completed').map((e) => e.id).toList();
 
     if (video.isResearchDone != true) {
       plan.add({
@@ -317,6 +323,16 @@ class AiService {
       _addBatchesToPlan(plan, 'morphology', morphologyNeededIds, config.getBatchSizeMorphemes, extra: {'method': 'ai'});
     }
 
+    // 5. Grammar Role & Sentence Diagram (Predictive)
+    final List<int> grammarRoleNeededIds = {
+      ...morphologyNeededIds,
+      ...toGrammarRoleIds,
+    }.toList();
+
+    if (grammarRoleNeededIds.isNotEmpty) {
+      _addBatchesToPlan(plan, 'grammar_role', grammarRoleNeededIds, config.getBatchSizeGrammarRole, extra: {'method': 'ai'});
+    }
+
     return plan;
   }
 
@@ -326,6 +342,7 @@ class AiService {
       case 'translation': return PipelineStepType.translation;
       case 'tokenize': return PipelineStepType.tokenize;
       case 'morphology': return PipelineStepType.morphemes;
+      case 'grammar_role': return PipelineStepType.grammarRole;
       default: return null;
     }
   }
@@ -537,5 +554,75 @@ class AiService {
       };
     }).toList();
     return '$basePrompt\n\nINPUT:\n${jsonEncode({'lines': lines})}';
+  }
+
+  Future<AiRequestResult> _executeGrammarRoleBatch(List<dynamic> ids, PipelineStepResult step, int jobId) async {
+    final phraseService = ref.read(phraseServiceProvider);
+    final List<Phrase> batch = [];
+    for (var id in ids) {
+      final p = await phraseService.getPhraseById(id);
+      if (p != null && p.originalTokens != null && p.originalTokens!.isNotEmpty) {
+        batch.add(p);
+      } else if (p != null) {
+        logger.w('[AiService] Skipping phrase ${p.id} for GrammarRole: missing original tokens');
+      }
+    }
+
+    if (batch.isEmpty) {
+      await _updateStageProgress(jobId, 'GrammarRole', status: 'success', modelName: 'Skipped (No Data)');
+      return AiRequestResult.success();
+    }
+    
+    await _updateStageProgress(jobId, 'GrammarRole', modelName: step.model.name);
+
+    try {
+      final url = await _buildUrl(step.model, forceStreaming: false);
+      final prompt = _formGrammarRoleBatchPrompt(step.prompt, batch);
+      final response = await geminiService.sendRequest(url, prompt, model: step.model);
+      await geminiService.phraseResponseHandler.processGrammarRoleBatch(jsonDecode(response), batch);
+      await _updateStageProgress(jobId, 'GrammarRole', status: 'success');
+      return AiRequestResult.success();
+    } catch (e) {
+      return AiRequestResult.failure(AiErrorType.unknown, message: e.toString(), stepType: 'grammar_role', model: step.model);
+    }
+  }
+
+  String _formGrammarRoleBatchPrompt(String basePrompt, List<Phrase> phrases) {
+    final jaTokensLine = phrases.map((p) {
+      return {
+        'id': p.id,
+        'tokens': (p.originalTokens ?? []).map((t) {
+          final Map<String, dynamic> map = {
+            "wordPosition": t.wordPosition,
+            "partOfSpeech": t.pos.name,
+            "lemma": t.lemma,
+          };
+          for (var v in t.versions) {
+            if (v.key == 'original') {
+              map['text'] = v.text;
+            }
+          }
+          return map;
+        }).toList(),
+      };
+    }).toList();
+
+    final grammarCodesLine = phrases.map((p) {
+      return {
+        'id': p.id,
+        'grammarCodes': (p.originalTokens ?? [])
+            .where((t) => t.grammarCode != null && t.grammarCode!.isNotEmpty)
+            .map((t) => {
+                  "wordPosition": t.wordPosition,
+                  "code": t.grammarCode,
+                })
+            .toList(),
+      };
+    }).toList();
+
+    String prompt = basePrompt;
+    prompt = prompt.replaceAll('{JAPANESE_TOKENS_JSON}', jsonEncode({'lines': jaTokensLine}));
+    prompt = prompt.replaceAll('{GRAMMAR_CODES_JSON}', jsonEncode({'lines': grammarCodesLine}));
+    return prompt;
   }
 }

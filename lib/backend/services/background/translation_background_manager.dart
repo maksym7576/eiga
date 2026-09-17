@@ -233,6 +233,7 @@ class TranslationBackgroundManager {
       case 'translation': return TranslationPipelineStep.translate;
       case 'tokenization': return TranslationPipelineStep.tokenize;
       case 'morphology': return TranslationPipelineStep.morphemes;
+      case 'grammar_role': return TranslationPipelineStep.grammarRole;
       default: return null;
     }
   }

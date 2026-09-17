@@ -475,12 +475,14 @@ const _AiModelsupportedStepsEnumValueMap = {
   r'translate': r'translate',
   r'tokenize': r'tokenize',
   r'morphemes': r'morphemes',
+  r'grammarRole': r'grammarRole',
 };
 const _AiModelsupportedStepsValueEnumMap = {
   r'research': TranslationPipelineStep.research,
   r'translate': TranslationPipelineStep.translate,
   r'tokenize': TranslationPipelineStep.tokenize,
   r'morphemes': TranslationPipelineStep.morphemes,
+  r'grammarRole': TranslationPipelineStep.grammarRole,
 };
 
 Id _aiModelGetId(AiModel object) {

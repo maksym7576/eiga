@@ -2,7 +2,8 @@ enum TranslationPipelineStep {
   research,
   translate,
   tokenize,
-  morphemes;
+  morphemes,
+  grammarRole;
 
   String get displayName {
     switch (this) {
@@ -14,6 +15,8 @@ enum TranslationPipelineStep {
         return 'Tokenization';
       case TranslationPipelineStep.morphemes:
         return 'Morphology';
+      case TranslationPipelineStep.grammarRole:
+        return 'Grammar Roles & Diagram';
     }
   }
 }

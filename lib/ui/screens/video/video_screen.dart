@@ -97,7 +97,7 @@ class VideoScreen extends HookConsumerWidget {
           // Only trigger if orientation has actually changed
           if (prevOrientation != null && prevOrientation != currentOrientation) {
              Future.microtask(() {
-              if (context.mounted) {
+              if (context.mounted && !ref.read(playerProvider).isLocked) {
                 ref.read(playerProvider.notifier).setFullscreen(isLandscape, updateSystem: true);
               }
             });

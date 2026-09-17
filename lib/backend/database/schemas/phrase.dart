@@ -40,6 +40,20 @@ class Phrase {
   // тепер повністю embedded, приходять разом із Phrase в одному запиті.
   List<TokenEntry>? originalTokens;
   List<TranslationTokenEntry>? translatedWords;
+  List<LinkGroup>? linkGroups;
+  
+  @ignore
+  List<List<int>>? idiomSpans;
+
+  List<String> get idiomSpansIsar {
+    return idiomSpans?.map((span) => span.join(',')).toList() ?? [];
+  }
+
+  set idiomSpansIsar(List<String> values) {
+    idiomSpans = values
+        .map((s) => s.split(',').map((e) => int.tryParse(e)).whereType<int>().toList())
+        .toList();
+  }
 
   List<String> stageKeys = [];
   List<String> stageValues = [];
@@ -54,6 +68,8 @@ class Phrase {
     this.isActive = false,
     this.originalTokens,
     this.translatedWords,
+    this.linkGroups,
+    this.idiomSpans,
     Map<String, String>? stageStatuses,
   }) {
     if (stageStatuses != null) {
@@ -105,6 +121,7 @@ class Phrase {
       case StageKey.tokenizeSource: return 'Analyzing source';
       case StageKey.tokenizeTranslation: return 'Analyzing translation';
       case StageKey.morphology: return 'Building links';
+      case StageKey.grammarRole: return 'Building sentence diagram';
       default: return 'Processing';
     }
   }
@@ -113,7 +130,42 @@ class Phrase {
 enum WordPos { v, i, d, n, p, x, s, o, unknown }
 
 enum GrammarFunction {
-  obj, subj, top, loc, dir, tim, mns, src, rsn, cnd, q, quo, emp, ctr, dep, tgt, cmp, cnj, oth, none
+  subj, obj, obj2, top, ctr, poss, mod, apos,
+  loc, dir, src, tgt, tim, mns, rsn, prp, cnd, cnc, cmp, lim, deg,
+  quo, cnj, emp, q, itj, pred, dep, oth, none
+}
+
+enum GroupRole { head, particle, auxiliary, suffix, prefix, inflection, punct }
+
+enum AttachMode { merge, modify, none }
+
+enum Tense { none, nonPast, past }
+
+enum Aspect { none, progressive, resultative, perfective, preparatory, attempt, inceptive, continuative, iterative, benefactive }
+
+enum Polarity { affirmative, negative }
+
+enum Politeness { plain, polite, humble, honorific }
+
+enum Modality { none, hearsay, appearance, conjecture, likelihood, certainty, obligation, permission, prohibition, desire, volition, ability, passive, causative, causativePassive, conditional }
+
+@embedded
+class LinkGroup {
+  int? groupId;
+  List<int> sourcePositions = [];
+  List<int> targetPositions = [];
+  int? headSourcePosition;
+  List<int> relatedGroupIds = [];
+  bool isIdiom = false;
+
+  LinkGroup({
+    this.groupId,
+    this.sourcePositions = const [],
+    this.targetPositions = const [],
+    this.headSourcePosition,
+    this.relatedGroupIds = const [],
+    this.isIdiom = false,
+  });
 }
 
 // Слово оригіналу (колишня колекція Word) — тепер embedded у Phrase.originalTokens
@@ -127,7 +179,34 @@ class TokenEntry {
   @enumerated
   GrammarFunction grammarFunction = GrammarFunction.none;
 
+  @enumerated
+  GroupRole groupRole = GroupRole.head;
+
+  @enumerated
+  AttachMode attachMode = AttachMode.none;
+
+  int? headPosition;
+  int? linkGroupId;
   String? lemma;
+  String? surface;
+  String? grammarCode;
+  String? relationLabel;
+
+  @enumerated
+  Tense tense = Tense.none;
+
+  @enumerated
+  Aspect aspect = Aspect.none;
+
+  @enumerated
+  Polarity polarity = Polarity.affirmative;
+
+  @enumerated
+  Politeness politeness = Politeness.plain;
+
+  @enumerated
+  Modality modality = Modality.none;
+
   int? blockId; // групування в межах ЦІЄЇ фрази, не глобальний FK
 
   List<ReadingItem> versions = [];
@@ -147,7 +226,19 @@ class TokenEntry {
     this.wordPosition,
     this.pos = WordPos.unknown,
     this.grammarFunction = GrammarFunction.none,
+    this.groupRole = GroupRole.head,
+    this.attachMode = AttachMode.none,
+    this.headPosition,
+    this.linkGroupId,
     this.lemma,
+    this.surface,
+    this.grammarCode,
+    this.relationLabel,
+    this.tense = Tense.none,
+    this.aspect = Aspect.none,
+    this.polarity = Polarity.affirmative,
+    this.politeness = Politeness.plain,
+    this.modality = Modality.none,
     this.blockId,
     this.versions = const [],
     this.isClickable = true,
@@ -162,6 +253,7 @@ class TranslationTokenEntry {
   String? text;
   bool isInferred = false;
   List<int> sourceWordPositions = [];
+  int? linkGroupId;
 
   @ignore
   int get id => translatedWordPosition ?? 0;
@@ -172,6 +264,7 @@ class TranslationTokenEntry {
     this.text,
     this.isInferred = false,
     this.sourceWordPositions = const [],
+    this.linkGroupId,
   });
 }
 
@@ -189,6 +282,7 @@ class StageKey {
   static const tokenizeSource = 'tokenize_source';
   static const tokenizeTranslation = 'tokenize_translation';
   static const morphology = 'morphology';
+  static const grammarRole = 'grammar_role';
 
   static const List<String> order = [
     context,
@@ -196,6 +290,7 @@ class StageKey {
     tokenizeSource,
     tokenizeTranslation,
     morphology,
+    grammarRole,
   ];
 }
 

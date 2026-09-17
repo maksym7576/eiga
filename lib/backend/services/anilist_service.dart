@@ -22,7 +22,7 @@ class AniListService {
   static const _headers = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'User-Agent': 'EigaApp/1.0.0 (https://github.com/your-username/eiga)',
+    'User-Agent': 'EigaApp/0.1.0 (https://github.com/your-username/eiga)',
   };
 
   static const _query = r'''

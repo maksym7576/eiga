@@ -21,7 +21,7 @@ class TVmazeService {
 
   static const _headers = {
     'Accept': 'application/json',
-    'User-Agent': 'EigaApp/1.0.0 (https://github.com/your-username/eiga)',
+    'User-Agent': 'EigaApp/0.1.0 (https://github.com/your-username/eiga)',
   };
 
   final CacheService _cacheService = CacheService();

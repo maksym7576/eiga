@@ -24,6 +24,7 @@ class VideoDesktopView extends ConsumerWidget {
     final video = ref.watch(currentVideoProvider).value;
 
     return Stack(
+      fit: StackFit.expand,
       children: [
         if (isFullscreen)
           MouseRegion(

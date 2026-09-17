@@ -1,8 +1,6 @@
 import 'dart:math';
 import 'dart:developer' as developer;
 import 'package:eiga/providers/ui/player_provider.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:hooks_riverpod/legacy.dart';
@@ -69,9 +67,13 @@ class UploadState {
   final String? episode;
   final String? season;
   final List<Phrase> previewPhrases;
+  final List<Phrase> originalPreviewPhrases;
   final bool isParsing;
   final bool isSaving;
   final bool isInitialized;
+
+  final int appliedPaddingMs;
+  final bool appliedFillGaps;
 
   final bool isCheckingSync;
   final SyncMatchStatus syncStatus;
@@ -105,11 +107,14 @@ class UploadState {
     this.episode,
     this.season,
     this.previewPhrases = const [],
+    this.originalPreviewPhrases = const [],
     this.availableStreams = const {},
     this.selectedStreamKey,
     this.isParsing = false,
     this.isSaving = false,
     this.isInitialized = false,
+    this.appliedPaddingMs = 0,
+    this.appliedFillGaps = false,
     this.isCheckingSync = false,
     this.syncStatus = SyncMatchStatus.idle,
     this.suggestedOffset,
@@ -138,11 +143,14 @@ class UploadState {
     String? episode,
     String? season,
     List<Phrase>? previewPhrases,
+    List<Phrase>? originalPreviewPhrases,
     Map<String, List<Phrase>>? availableStreams,
     String? selectedStreamKey,
     bool? isParsing,
     bool? isSaving,
     bool? isInitialized,
+    int? appliedPaddingMs,
+    bool? appliedFillGaps,
     bool? isCheckingSync,
     SyncMatchStatus? syncStatus,
     Duration? suggestedOffset,
@@ -170,11 +178,14 @@ class UploadState {
       episode: episode ?? this.episode,
       season: season ?? this.season,
       previewPhrases: previewPhrases ?? this.previewPhrases,
+      originalPreviewPhrases: originalPreviewPhrases ?? this.originalPreviewPhrases,
       availableStreams: availableStreams ?? this.availableStreams,
       selectedStreamKey: selectedStreamKey ?? this.selectedStreamKey,
       isParsing: isParsing ?? this.isParsing,
       isSaving: isSaving ?? this.isSaving,
       isInitialized: isInitialized ?? this.isInitialized,
+      appliedPaddingMs: appliedPaddingMs ?? this.appliedPaddingMs,
+      appliedFillGaps: appliedFillGaps ?? this.appliedFillGaps,
       isCheckingSync: isCheckingSync ?? this.isCheckingSync,
       syncStatus: syncStatus ?? this.syncStatus,
       suggestedOffset: suggestedOffset ?? this.suggestedOffset,
@@ -336,7 +347,10 @@ class UploadNotifier extends Notifier<UploadState> {
         availableStreams: streams,
         selectedStreamKey: defaultKey,
         previewPhrases: phrases,
+        originalPreviewPhrases: List.from(phrases),
         isParsing: false,
+        appliedPaddingMs: 0,
+        appliedFillGaps: false,
       );
       checkSynchronization();
     } catch (e) {
@@ -349,8 +363,81 @@ class UploadNotifier extends Notifier<UploadState> {
     state = state.copyWith(
       selectedStreamKey: streamKey,
       previewPhrases: phrases,
+      originalPreviewPhrases: List.from(phrases),
+      appliedPaddingMs: 0,
+      appliedFillGaps: false,
     );
     checkSynchronization();
+  }
+
+  void optimizeTimings(int paddingMs, {bool fillGaps = false}) {
+    if (state.originalPreviewPhrases.isEmpty) return;
+
+    final baseDate = DateTime(1970, 1, 1);
+    final List<Phrase> optimized = [];
+    final original = state.originalPreviewPhrases;
+
+    for (int i = 0; i < original.length; i++) {
+      final p = original[i];
+      if (p.startTime == null || p.endTime == null) {
+        optimized.add(p);
+        continue;
+      }
+
+      // 1. Base Expansion (work with offsets from 1970-01-01)
+      Duration newStart = p.startTime!.difference(baseDate) - Duration(milliseconds: paddingMs);
+      Duration newEnd = p.endTime!.difference(baseDate) + Duration(milliseconds: paddingMs);
+
+      // Clamp start to 0
+      if (newStart.isNegative) newStart = Duration.zero;
+
+      // 2. Collision & Gap Filling Logic
+      if (i > 0) {
+        final prev = optimized[i - 1];
+        if (prev.endTime != null) {
+          final prevEndOffset = prev.endTime!.difference(baseDate);
+          
+          final gapMs = newStart.inMilliseconds - prevEndOffset.inMilliseconds;
+          const int minTechnicalGapMs = 20;
+
+          // If overlapping or gap is too small, or if fillGaps is requested for small gaps
+          bool shouldJoin = false;
+          if (gapMs < minTechnicalGapMs) {
+            shouldJoin = true;
+          } else if (fillGaps && gapMs < 1000) {
+            // Fill gaps smaller than 1 second
+            shouldJoin = true;
+          }
+
+          if (shouldJoin) {
+            newStart = prevEndOffset + const Duration(milliseconds: minTechnicalGapMs);
+            // In case prevEnd + 20ms is later than our intended end, clamp it
+            if (newStart.inMilliseconds > newEnd.inMilliseconds) {
+              newEnd = newStart + const Duration(milliseconds: 100); // Minimal visible duration
+            }
+          }
+        }
+      }
+
+      optimized.add(Phrase(
+        videoId: p.videoId,
+        phraseOrder: p.phraseOrder,
+        originalPhrase: p.originalPhrase,
+        translatedPhrase: p.translatedPhrase,
+        startTime: baseDate.add(newStart),
+        endTime: baseDate.add(newEnd),
+        isActive: p.isActive,
+        originalTokens: p.originalTokens,
+        translatedWords: p.translatedWords,
+        stageStatuses: p.stageStatuses,
+      ));
+    }
+
+    state = state.copyWith(
+      previewPhrases: optimized,
+      appliedPaddingMs: paddingMs,
+      appliedFillGaps: fillGaps,
+    );
   }
 
   Future<void> checkSynchronization() async {

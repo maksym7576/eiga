@@ -25,6 +25,8 @@ class WordIndex {
 
   int? wordPosition;
   int? blockId;
+  int? linkGroupId;
+  String? grammarCode;
 
   WordIndex({
     required this.lemma,
@@ -36,5 +38,7 @@ class WordIndex {
     this.contextTranslated,
     this.wordPosition,
     this.blockId,
+    this.linkGroupId,
+    this.grammarCode,
   });
 }

@@ -215,7 +215,7 @@ class ModelSelectionCard extends StatelessWidget {
                 _labeledBar('Speed', _segmentBar(active: _speedSegmentsActive, total: 4, activeColor: Colors.blue, offColor: theme.segmentOffColor), theme),
                 const SizedBox(height: 8),
                 _labeledBar('Power', _segmentBar(active: _qualitySegmentsActive, total: 4, activeColor: theme.primaryAccent, offColor: theme.segmentOffColor), theme),
-                if (step == TranslationPipelineStep.morphemes) ...[
+                if (step == TranslationPipelineStep.morphemes || step == TranslationPipelineStep.grammarRole) ...[
                   const SizedBox(height: 12),
                   Align(alignment: Alignment.bottomRight, child: _streamingToggle(theme)),
                 ],

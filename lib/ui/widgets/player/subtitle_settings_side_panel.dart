@@ -119,34 +119,79 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                     
                     const SizedBox(height: 16),
                     
-                    // Letter Spacing (Now always visible)
+                    // Letter Spacing (Split)
                     _buildSection(
-                      title: 'Letter Spacing',
-                      value: settings.fullscreen.letterSpacing.toStringAsFixed(1),
+                      title: 'Original Spacing',
+                      value: settings.fullscreen.originalLetterSpacing.toStringAsFixed(1),
                       child: SliderTheme(
                         data: _sliderTheme(context),
                         child: Slider(
-                          value: settings.fullscreen.letterSpacing,
+                          value: settings.fullscreen.originalLetterSpacing,
                           min: 0.0,
                           max: 10.0,
-                          onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setLetterSpacingFs(val),
+                          onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setOriginalLetterSpacingFs(val),
+                        ),
+                      ),
+                    ),
+
+                    _buildSection(
+                      title: 'Translation Spacing',
+                      value: settings.fullscreen.translationLetterSpacing.toStringAsFixed(1),
+                      child: SliderTheme(
+                        data: _sliderTheme(context),
+                        child: Slider(
+                          value: settings.fullscreen.translationLetterSpacing,
+                          min: 0.0,
+                          max: 10.0,
+                          onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setTranslationLetterSpacingFs(val),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Font Weight
+                    _buildSection(
+                      title: 'Word Thickness',
+                      value: '${(settings.fullscreen.fontWeight * 100).toInt()}%',
+                      child: SliderTheme(
+                        data: _sliderTheme(context),
+                        child: Slider(
+                          value: settings.fullscreen.fontWeight,
+                          min: 0.0,
+                          max: 1.0,
+                          onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setFontWeightFs(val),
                         ),
                       ),
                     ),
 
                     const SizedBox(height: 32),
 
-                    // Outline
+                    // Outline (Split)
                     _buildSection(
-                      title: 'Outline Thickness',
-                      value: settings.outlineWidth.toStringAsFixed(1),
+                      title: 'Original Outline',
+                      value: settings.fullscreen.originalOutlineWidth.toStringAsFixed(1),
                       child: SliderTheme(
                         data: _sliderTheme(context),
                         child: Slider(
-                          value: settings.outlineWidth,
+                          value: settings.fullscreen.originalOutlineWidth,
                           min: 0.5,
                           max: 4.0,
-                          onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setOutlineWidth(val),
+                          onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setOriginalOutlineWidthFs(val),
+                        ),
+                      ),
+                    ),
+
+                    _buildSection(
+                      title: 'Translation Outline',
+                      value: settings.fullscreen.translationOutlineWidth.toStringAsFixed(1),
+                      child: SliderTheme(
+                        data: _sliderTheme(context),
+                        child: Slider(
+                          value: settings.fullscreen.translationOutlineWidth,
+                          min: 0.5,
+                          max: 4.0,
+                          onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setTranslationOutlineWidthFs(val),
                         ),
                       ),
                     ),

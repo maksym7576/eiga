@@ -102,6 +102,9 @@ class _ProgressRingState extends State<ProgressRing> with TickerProviderStateMix
             ? 0.35 + (_opacityController.value * 0.65)
             : 1.0;
 
+        // If progress is 0 but we are animating, show a pulsing glow background
+        final bool showPulseGlow = widget.isAnimating && widget.progress <= 0;
+
         return SizedBox(
           width: widget.size,
           height: widget.size,
@@ -109,12 +112,20 @@ class _ProgressRingState extends State<ProgressRing> with TickerProviderStateMix
             alignment: Alignment.center,
             children: [
               // Inner Background Knob Circle
-              Container(
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 700),
                 width: widget.size,
                 height: widget.size,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF1C1C28),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1C1C28),
                   shape: BoxShape.circle,
+                  boxShadow: showPulseGlow ? [
+                    BoxShadow(
+                      color: activeColor.withOpacity(opacity * 0.3),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                    )
+                  ] : null,
                 ),
               ),
               CustomPaint(
@@ -124,6 +135,7 @@ class _ProgressRingState extends State<ProgressRing> with TickerProviderStateMix
                   strokeWidth: widget.strokeWidth,
                   activeColor: activeColor.withOpacity(opacity),
                   inactiveColor: widget.inactiveColor,
+                  isPulsing: showPulseGlow,
                 ),
               ),
               Text(
@@ -150,12 +162,14 @@ class _ProgressRingPainter extends CustomPainter {
   final double strokeWidth;
   final Color activeColor;
   final Color inactiveColor;
+  final bool isPulsing;
 
   _ProgressRingPainter({
     required this.progress,
     required this.strokeWidth,
     required this.activeColor,
     required this.inactiveColor,
+    this.isPulsing = false,
   });
 
   @override
@@ -169,6 +183,16 @@ class _ProgressRingPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth;
     canvas.drawCircle(center, radius, backgroundPaint);
+
+    // If pulsing at 0%, draw a very faint full circle to show "something is happening"
+    if (isPulsing && progress <= 0) {
+      final pulsePaint = Paint()
+        ..color = activeColor.withOpacity(activeColor.opacity * 0.5)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+      canvas.drawCircle(center, radius, pulsePaint);
+    }
 
     // Progress arc
     if (progress > 0) {
@@ -192,6 +216,7 @@ class _ProgressRingPainter extends CustomPainter {
   bool shouldRepaint(_ProgressRingPainter oldDelegate) {
     return oldDelegate.progress != progress ||
         oldDelegate.activeColor != activeColor ||
-        oldDelegate.inactiveColor != inactiveColor;
+        oldDelegate.inactiveColor != inactiveColor ||
+        oldDelegate.isPulsing != isPulsing;
   }
 }

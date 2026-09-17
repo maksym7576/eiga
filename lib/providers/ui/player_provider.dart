@@ -28,8 +28,10 @@ class PlayerState {
   final bool isAutoScrollEnabled;
   final bool isSettingsOpen;
   final double? resizableHeight;
+  final double playbackRate;
 
   // Interaction State
+  final int? selectedPhraseId;
   final int? selectedBlockId;
   final int? clickedWordId;
   final int? clickedTranslationWordId;
@@ -54,6 +56,8 @@ class PlayerState {
     this.isAutoScrollEnabled = true,
     this.isSettingsOpen = false,
     this.resizableHeight,
+    this.playbackRate = 1.0,
+    this.selectedPhraseId,
     this.selectedBlockId,
     this.clickedWordId,
     this.clickedTranslationWordId,
@@ -79,6 +83,8 @@ class PlayerState {
     bool? isAutoScrollEnabled,
     bool? isSettingsOpen,
     double? resizableHeight,
+    double? playbackRate,
+    int? selectedPhraseId,
     int? selectedBlockId,
     int? clickedWordId,
     int? clickedTranslationWordId,
@@ -110,6 +116,8 @@ class PlayerState {
       isAutoScrollEnabled: isAutoScrollEnabled ?? this.isAutoScrollEnabled,
       isSettingsOpen: isSettingsOpen ?? this.isSettingsOpen,
       resizableHeight: resetResizableHeight ? null : (resizableHeight ?? this.resizableHeight),
+      playbackRate: playbackRate ?? this.playbackRate,
+      selectedPhraseId: clearSelection ? null : (selectedPhraseId ?? this.selectedPhraseId),
       selectedBlockId: clearSelection ? null : (selectedBlockId ?? this.selectedBlockId),
       clickedWordId: clearSelection ? null : (clickedWordId ?? this.clickedWordId),
       clickedTranslationWordId: clearSelection ? null : (clickedTranslationWordId ?? this.clickedTranslationWordId),
@@ -381,10 +389,16 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     state = state.copyWith(isPlaying: playing);
     if (playing) {
       _player?.play();
+      _player?.setRate(state.playbackRate); // Ensure rate is applied
     } else {
       _player?.pause();
     }
     _resetAutoLockTimer();
+  }
+
+  void setPlaybackRate(double rate) {
+    state = state.copyWith(playbackRate: rate);
+    _player?.setRate(rate);
   }
 
   void togglePlaying() {
@@ -396,29 +410,31 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   }
 
   // Selection Logic
-  void selectWord(int wordId, Set<int> linkedWords, Set<int> linkedTranslations, int? translationId, {bool shouldPause = true}) {
+  void selectWord(int phraseId, int wordId, Set<int> linkedWords, Set<int> linkedTranslations, int? translationId, {bool shouldPause = true, Offset? position}) {
     pauseForInteraction(force: shouldPause);
     state = state.copyWith(
+      selectedPhraseId: phraseId,
       clickedWordId: wordId,
       selectionAnchorType: SelectionAnchor.word,
       highlightedWordIds: linkedWords,
       highlightedTranslationIds: linkedTranslations,
       clickedTranslationWordId: translationId,
-      clickedWordPosition: null, // Clear old position to avoid jumping
-      selectionLayerLink: LayerLink(), // New link for new selection
+      clickedWordPosition: position, // Use provided position immediately
+      selectionLayerLink: LayerLink(), 
     );
   }
 
-  void selectTranslation(int tId, Set<int> linkedWords, Set<int> linkedTranslations, int? wordId, {bool shouldPause = true}) {
+  void selectTranslation(int phraseId, int tId, Set<int> linkedWords, Set<int> linkedTranslations, int? wordId, {bool shouldPause = true, Offset? position}) {
     pauseForInteraction(force: shouldPause);
     state = state.copyWith(
+      selectedPhraseId: phraseId,
       clickedTranslationWordId: tId,
       selectionAnchorType: wordId != null ? SelectionAnchor.word : SelectionAnchor.translation,
       highlightedWordIds: linkedWords,
       highlightedTranslationIds: linkedTranslations,
       clickedWordId: wordId,
-      clickedWordPosition: null, // Clear old position to avoid jumping
-      selectionLayerLink: LayerLink(), // New link for new selection
+      clickedWordPosition: position, // Use provided position immediately
+      selectionLayerLink: LayerLink(),
     );
   }
 
@@ -510,6 +526,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   void setFullscreen(bool value, {bool updateSystem = true}) {
     if (state.isFullscreen == value) return;
+    
+    // IF LOCKED, DO NOT CHANGE ANYTHING
+    if (state.isLocked) return;
 
     state = state.copyWith(isFullscreen: value);
     updateSystemUI();
@@ -518,8 +537,33 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       _cancelAutoLockTimer();
       showControls();
       _resetAutoLockTimer();
+
+      // AUTO-ENTER ROTATION: Force to landscape when entering fullscreen
+      if (!(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      }
     } else {
       _cancelAutoLockTimer();
+      
+      // AUTO-EXIT ROTATION: Force back to portrait when exiting fullscreen
+      if (!(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+        ]);
+        // After a delay, allow normal rotation again
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (!state.isLocked) {
+            SystemChrome.setPreferredOrientations([
+              DeviceOrientation.portraitUp,
+              DeviceOrientation.landscapeLeft,
+              DeviceOrientation.landscapeRight,
+            ]);
+          }
+        });
+      }
     }
 
     if (updateSystem) {

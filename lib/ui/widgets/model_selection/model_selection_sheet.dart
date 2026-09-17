@@ -76,6 +76,8 @@ class _ModelSelectionSheetState extends ConsumerState<ModelSelectionSheet> {
                     return Icons.extension_rounded;
                   case TranslationPipelineStep.morphemes:
                     return Icons.auto_awesome_rounded;
+                  case TranslationPipelineStep.grammarRole:
+                    return Icons.schema_rounded;
                 }
               },
             ),

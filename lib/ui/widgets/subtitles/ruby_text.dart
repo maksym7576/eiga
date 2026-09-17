@@ -52,20 +52,6 @@ class RubyText extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (word.versions.isEmpty) return const SizedBox.shrink();
 
-    
-    useEffect(() {
-      if (isAnchor) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final RenderBox? box = context.findRenderObject() as RenderBox?;
-          if (box != null && box.hasSize) {
-            final position = box.localToGlobal(Offset(box.size.width / 2, 0));
-            ref.read(playerProvider.notifier).setClickedWordPosition(position);
-          }
-        });
-      }
-      return null;
-    }, [isAnchor]);
-
     String baseText = '';
     String? annotationText;
 
@@ -96,27 +82,29 @@ class RubyText extends HookConsumerWidget {
 
     final bool isPunctuation = RegExp(r'^[\p{P}\p{S}]+$', unicode: true).hasMatch(baseText.trim());
 
+    final bool showHighlight = isHighlighted && word.isClickable && !isPunctuation;
+
     final Widget baseTextWidget = Container(
       key: ValueKey('ruby_base_${word.id}_$isHighlighted'),
       padding: EdgeInsets.symmetric(
-        horizontal: (isHighlighted && word.isClickable && !isPunctuation) ? 3 : 0, 
+        horizontal: isPunctuation ? 0 : 3, 
         vertical: 1
       ),
       decoration: BoxDecoration(
-        color: (isHighlighted && word.isClickable && !isPunctuation) 
+        color: showHighlight
             ? (isFullscreen 
                 ? const Color(0xFF3B66F5).withValues(alpha: 0.4)
                 : AppColors.brandBlue.withValues(alpha: 0.35))
             : Colors.transparent,
         borderRadius: BorderRadius.circular(6),
-        border: (isHighlighted && word.isClickable && !isPunctuation)
-            ? Border.all(
-                color: isFullscreen 
-                    ? const Color(0xFF3B66F5).withValues(alpha: 0.6)
-                    : AppColors.brandBlue.withValues(alpha: 0.5),
-                width: 1.2,
-              )
-            : null,
+        border: Border.all(
+          color: showHighlight
+              ? (isFullscreen 
+                  ? const Color(0xFF3B66F5).withValues(alpha: 0.6)
+                  : AppColors.brandBlue.withValues(alpha: 0.5))
+              : Colors.transparent,
+          width: isPunctuation ? 0 : 1.2,
+        ),
       ),
       child: Text(baseText, style: effectiveBaseStyle),
     );
@@ -156,6 +144,12 @@ class RubyText extends HookConsumerWidget {
           if (isHighlighted && selectionAnchorType == SelectionAnchor.word) {
             playerNotifier.clearSelection();
           } else {
+            // Instant position calculation
+            final RenderBox? box = context.findRenderObject() as RenderBox?;
+            final position = box != null && box.hasSize 
+                ? box.localToGlobal(Offset(box.size.width / 2, 0))
+                : null;
+
             final linked = index.getLinkedIdsForWord(word.id);
             int? tId;
             if (linked['translations']!.isNotEmpty) {
@@ -163,11 +157,13 @@ class RubyText extends HookConsumerWidget {
             }
 
             playerNotifier.selectWord(
+              phraseId,
               word.id, 
               linked['words']!, 
               linked['translations']!, 
               tId,
               shouldPause: true,
+              position: position,
             );
           }
         },

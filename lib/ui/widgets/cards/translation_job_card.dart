@@ -269,6 +269,7 @@ class _StepperGrid extends StatelessWidget {
     'tokenize_source': 'Src Tok',
     'tokenize_translation': 'Trs Tok',
     'morphology': 'Morph',
+    'grammar_role': 'Grammar',
   };
 
   String _stepName(Map<String, dynamic> step) {
@@ -404,6 +405,7 @@ class _StepColumn extends HookConsumerWidget {
                     'tokenize_source': 'Source Tokenization',
                     'tokenize_translation': 'Translation Tokenization',
                     'morphology': 'Morphology Analysis',
+                    'grammar_role': 'Grammar Roles & Diagram',
                   };
                   final fullName = fullNames[stepType] ?? stepName;
                   

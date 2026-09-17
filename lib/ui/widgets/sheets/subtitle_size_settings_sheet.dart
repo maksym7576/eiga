@@ -39,16 +39,30 @@ class SubtitleSizeSettingsSheet extends HookConsumerWidget {
                 
                 const SizedBox(height: 24),
                 
-                // Letter Spacing (Always visible)
+                // Letter Spacing (Note: Forced to 0 in code per requirements)
                 _buildSliderSection(
                   ref: ref,
-                  title: 'Letter Spacing',
-                  subtitle: 'Space between characters',
-                  value: settings.windowed.letterSpacing,
+                  title: 'Original Letter Spacing',
+                  subtitle: 'Space between source characters (Forced 0 in windowed)',
+                  value: settings.windowed.originalLetterSpacing,
                   min: 0,
                   max: 10,
-                  label: settings.windowed.letterSpacing.toStringAsFixed(1),
-                  onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setLetterSpacingWin(val),
+                  label: settings.windowed.originalLetterSpacing.toStringAsFixed(1),
+                  onChanged: (_) {}, // No-op as forced to 0
+                ),
+
+                const SizedBox(height: 24),
+
+                // Font Weight
+                _buildSliderSection(
+                  ref: ref,
+                  title: 'Word Thickness',
+                  subtitle: 'Adjust font boldness',
+                  value: settings.windowed.fontWeight,
+                  min: 0,
+                  max: 1,
+                  label: '${(settings.windowed.fontWeight * 100).toInt()}%',
+                  onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setFontWeightWin(val),
                 ),
 
                 const SizedBox(height: 24),

@@ -108,7 +108,7 @@ class WindowedSubtitle extends ConsumerWidget {
         color: const Color(0xFF0F172A),
         height: 1.8,
         fontWeight: FontWeight.w700,
-        letterSpacing: settings.windowed.letterSpacing,
+        letterSpacing: settings.windowed.originalLetterSpacing,
       ),
     );
   }

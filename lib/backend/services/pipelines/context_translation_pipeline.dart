@@ -13,6 +13,7 @@ class ContextTranslationPipeline extends PipelineAbstract {
     PipelineStepType.translation,
     PipelineStepType.tokenize,
     PipelineStepType.morphemes,
+    PipelineStepType.grammarRole,
   ];
 
   @override
@@ -56,6 +57,14 @@ class ContextTranslationPipeline extends PipelineAbstract {
       case PipelineStepType.morphemes:
         return PromptManager.getPrompt(
           type: PromptType.morphology,
+          targetLanguage: targetLanguage,
+          sourceLanguage: sourceLanguage,
+          title: title,
+        );
+
+      case PipelineStepType.grammarRole:
+        return PromptManager.getPrompt(
+          type: PromptType.grammarRole,
           targetLanguage: targetLanguage,
           sourceLanguage: sourceLanguage,
           title: title,

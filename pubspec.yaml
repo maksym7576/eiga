@@ -1,7 +1,7 @@
 name: eiga
 description: "A new Flutter project."
 publish_to: 'none'
-version: 1.0.0+1
+version: 0.1.0+1
 
 environment:
   sdk: ^3.12.0
@@ -81,3 +81,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/models/silero_vad_v5.onnx
+    - assets/grammar/

@@ -1,7 +1,9 @@
 const String japaneseTranslationPrompt = """
 You are translating Japanese anime/TV dialogue into {TARGET_LANGUAGE}.
 
-Only translate — do not tokenize, romanize, or split into morphemes.
+Only translate — do not tokenize, romanize, or split into morphemes. Do not
+assign grammar codes or parts of speech. Your only two outputs per line are
+"cleanedOriginal" and "translation".
 
 CONTEXT:
 {CONTEXT_BLOCK}
@@ -15,6 +17,7 @@ RULES:
 3. FURIGANA GLOSSES: if the source has a kanji word immediately followed by a HALF-WIDTH parenthesis with no space, e.g. "彩色石(さいしょくせき)" — that is a pronunciation/reading gloss, not spoken/translatable content.
    - USE it to pick the correct reading and meaning of the kanji (some kanji have multiple readings with different meanings — the gloss tells you which one is intended).
    - REMOVE it from BOTH outputs: it must not appear in "translation" AND it must not appear in "cleanedOriginal" — output only the kanji/word itself, no parentheses or reading text left behind, no extra/missing spaces where it was removed.
+   - "cleanedOriginal" is the CANONICAL text that every later pipeline stage (tokenizer, grammar) will process. It must be byte-identical to the input except for furigana removal — do not fix typos, do not normalize spacing beyond what furigana removal requires.
 4. TAGS IN FULL-WIDTH PARENTHESES （ ） AT THE START OF A LINE (speaker names, sound effects, stage directions — e.g. （ココ）, （深呼吸）, （カドフォンの鳴き声）):
    - In "translation": convert to plain ASCII parentheses with NO spaces inside: "(Text)", never "( Text )". Always capitalize the first letter inside. Character/creature names → glossary form or natural transliteration, capitalized as proper nouns, consistent spelling every time. Plain sound/action tags → normal phrase, still capitalized as the first word only. Multiple tags stay as separate "(Tag) (Tag)" groups.
    - In "cleanedOriginal": keep the tag in the ORIGINAL Japanese, in the original full-width （ ） — do not translate, transliterate, or alter it. This field mirrors the source exactly (minus furigana per rule 3), so it stays 100% Japanese.
@@ -27,16 +30,23 @@ RULES:
 11. Honorifics: keep only if natural in {TARGET_LANGUAGE} subtitles; stay consistent across the episode either way.
 12. New recurring terms (names, techniques, items, creature names) → list under "newTerms", using the SAME capitalized form you used in the translation.
 
-INPUT:
+===== SELF-CHECK before output =====
+- lineCount equals input line count, ids/order preserved
+- no furigana parenthetical text remains in either cleanedOriginal or translation
+- every output line's first letter is uppercase in the translation
+- cleanedOriginal contains zero non-Japanese characters except the ASCII/full-width
+  punctuation already present in the source
+
+===== INPUT =====
 {"lines": [{"id": 1, "text": "<original Japanese line>"}, ...]}
 
-OUTPUT — valid JSON only, no markdown, no explanation, same order/count as input:
+===== OUTPUT SHAPE (valid JSON only, no markdown, no explanation) =====
 {
   "lineCount": <int, must equal input line count>,
   "lines": [
     {
       "id": 1,
-      "cleanedOriginal": "<source line with furigana glosses removed, otherwise byte-identical to input>",
+      "cleanedOriginal": "<source line with furigana glosses removed, otherwise byte-identical to input — this becomes the canonical text for tokenization>",
       "translation": "<translated line>"
     }
   ],

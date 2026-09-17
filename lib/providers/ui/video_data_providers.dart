@@ -56,50 +56,111 @@ final highlightedTranslationIdsProvider = Provider<Set<int>>((ref) => ref.watch(
 final infoPanelTextProvider = StateProvider<String?>((ref) => null);
 final clickedWordPositionProvider = Provider<Offset?>((ref) => ref.watch(playerProvider.select((s) => s.clickedWordPosition)));
 final selectionLayerLinkProvider = Provider<LayerLink?>((ref) => ref.watch(playerProvider.select((s) => s.selectionLayerLink)));
+final selectedPhraseIdProvider = Provider<int?>((ref) => ref.watch(playerProvider.select((s) => s.selectedPhraseId)));
 
-class PhraseLinkIndex {
-  final Map<int, List<TranslationTokenEntry>> wordToTranslations = {};
-  final Map<int, List<TokenEntry>> translationToWords = {};
+final dimmedWordIdsProvider = Provider<Set<int>>((ref) {
+  final phraseId = ref.watch(selectedPhraseIdProvider);
+  if (phraseId == null) return const {};
+  
+  final phrases = ref.watch(phrasesStreamProvider).value;
+  if (phrases == null || phrases.isEmpty) return const {};
+  
+  // Efficient lookup
+  final phrase = phrases.firstWhere((p) => p.id == phraseId, orElse: () => Phrase());
+  if (phrase.id == 0 || phrase.linkGroups == null || phrase.linkGroups!.isEmpty) return const {};
 
-  PhraseLinkIndex(List<TokenEntry> words, List<TranslationTokenEntry> tWords) {
-    final wordByPos = <int, TokenEntry>{
-      for (final w in words) 
-        if (w.wordPosition != null)
-          w.wordPosition!: w
-    };
+  final clickedWordId = ref.watch(clickedWordIdProvider);
+  final clickedTranslationId = ref.watch(clickedTranslationWordIdProvider);
 
-    for (final t in tWords) {
-      final List<TokenEntry> sourceWords = [];
-      for (final pos in t.sourceWordPositions) {
-        final w = wordByPos[pos];
-        if (w != null) {
-          sourceWords.add(w);
-        }
-      }
-
-      if (t.translatedWordPosition != null) {
-        translationToWords[t.translatedWordPosition!] = sourceWords;
-        for (final w in sourceWords) {
-          if (w.wordPosition != null) {
-            wordToTranslations.putIfAbsent(w.wordPosition!, () => []).add(t);
-          }
-        }
-      }
-    }
+  int? activeGid;
+  if (clickedWordId != null) {
+    final tok = phrase.originalTokens?.where((t) => t.wordPosition == clickedWordId).firstOrNull;
+    activeGid = tok?.linkGroupId;
+  } else if (clickedTranslationId != null) {
+    final tw = phrase.translatedWords?.where((t) => t.translatedWordPosition == clickedTranslationId).firstOrNull;
+    activeGid = tw?.linkGroupId;
   }
 
-  Map<String, Set<int>> getLinkedIdsForWord(int wordId) {
-    final translations = wordToTranslations[wordId] ?? [];
-    final Set<int> wordIds = {wordId};
-    final Set<int> translationIds = translations.map((t) => t.translatedWordPosition ?? 0).toSet();
+  if (activeGid == null) return const {};
+  final g = phrase.linkGroups!.where((lg) => lg.groupId == activeGid).firstOrNull;
+  if (g == null) return const {};
 
-    for (final tId in translationIds) {
-      final siblings = translationToWords[tId] ?? [];
-      for (final s in siblings) {
-        if (s.wordPosition != null) wordIds.add(s.wordPosition!);
+  final Set<int> result = {};
+  for (final rid in g.relatedGroupIds) {
+    final relatedG = phrase.linkGroups!.where((lg) => lg.groupId == rid).firstOrNull;
+    if (relatedG != null) {
+      result.addAll(relatedG.sourcePositions);
+    }
+  }
+  return result;
+});
+
+final dimmedTranslationIdsProvider = Provider<Set<int>>((ref) {
+  final phraseId = ref.watch(selectedPhraseIdProvider);
+  if (phraseId == null) return const {};
+  
+  final phrases = ref.watch(phrasesStreamProvider).value;
+  if (phrases == null || phrases.isEmpty) return const {};
+
+  final phrase = phrases.firstWhere((p) => p.id == phraseId, orElse: () => Phrase());
+  if (phrase.id == 0 || phrase.linkGroups == null || phrase.linkGroups!.isEmpty) return const {};
+
+  final clickedWordId = ref.watch(clickedWordIdProvider);
+  final clickedTranslationId = ref.watch(clickedTranslationWordIdProvider);
+
+  int? activeGid;
+  if (clickedWordId != null) {
+    final tok = phrase.originalTokens?.where((t) => t.wordPosition == clickedWordId).firstOrNull;
+    activeGid = tok?.linkGroupId;
+  } else if (clickedTranslationId != null) {
+    final tw = phrase.translatedWords?.where((t) => t.translatedWordPosition == clickedTranslationId).firstOrNull;
+    activeGid = tw?.linkGroupId;
+  }
+
+  if (activeGid == null) return const {};
+  final g = phrase.linkGroups!.where((lg) => lg.groupId == activeGid).firstOrNull;
+  if (g == null) return const {};
+
+  final Set<int> result = {};
+  for (final rid in g.relatedGroupIds) {
+    final relatedG = phrase.linkGroups!.where((lg) => lg.groupId == rid).firstOrNull;
+    if (relatedG != null) {
+      result.addAll(relatedG.targetPositions);
+    }
+  }
+  return result;
+});
+
+class PhraseLinkIndex {
+  final List<TokenEntry> words;
+  final List<TranslationTokenEntry> tWords;
+  final List<LinkGroup> linkGroups;
+
+  PhraseLinkIndex(this.words, this.tWords, [List<LinkGroup>? groups]) : linkGroups = groups ?? const [];
+
+  Map<String, Set<int>> getLinkedIdsForWord(int wordId) {
+    final tok = words.firstWhere((w) => w.wordPosition == wordId, orElse: () => TokenEntry());
+    if (tok.linkGroupId != null && linkGroups.isNotEmpty) {
+      final g = linkGroups.firstWhere((lg) => lg.groupId == tok.linkGroupId, orElse: () => LinkGroup());
+      if (g.groupId != null) {
+        return {
+          'words': g.sourcePositions.toSet(),
+          'translations': g.targetPositions.toSet(),
+        };
       }
     }
 
+    final Set<int> wordIds = {wordId};
+    final Set<int> translationIds = <int>{};
+    for (final t in tWords) {
+      if (t.sourceWordPositions.contains(wordId)) {
+        if (t.translatedWordPosition != null) translationIds.add(t.translatedWordPosition!);
+      }
+    }
+    for (final tId in translationIds) {
+      final t = tWords.firstWhere((tw) => tw.translatedWordPosition == tId, orElse: () => TranslationTokenEntry());
+      wordIds.addAll(t.sourceWordPositions);
+    }
     return {
       'words': wordIds,
       'translations': translationIds,
@@ -107,11 +168,41 @@ class PhraseLinkIndex {
   }
 
   Map<String, Set<int>> getLinkedIdsForTranslation(int translationId) {
-    final words = translationToWords[translationId] ?? [];
+    final tw = tWords.firstWhere((t) => t.translatedWordPosition == translationId, orElse: () => TranslationTokenEntry());
+    if (tw.linkGroupId != null && linkGroups.isNotEmpty) {
+      final g = linkGroups.firstWhere((lg) => lg.groupId == tw.linkGroupId, orElse: () => LinkGroup());
+      if (g.groupId != null) {
+        return {
+          'words': g.sourcePositions.toSet(),
+          'translations': g.targetPositions.toSet(),
+        };
+      }
+    }
+
     return {
-      'words': words.map((w) => w.wordPosition ?? 0).toSet(),
+      'words': tw.sourceWordPositions.toSet(),
       'translations': {translationId},
     };
+  }
+
+  Map<int, List<TokenEntry>> get translationToWords {
+    final Map<int, List<TokenEntry>> map = {};
+    for (final t in tWords) {
+      if (t.translatedWordPosition != null) {
+        map[t.translatedWordPosition!] = words.where((w) => t.sourceWordPositions.contains(w.wordPosition)).toList();
+      }
+    }
+    return map;
+  }
+
+  Map<int, List<TranslationTokenEntry>> get wordToTranslations {
+    final Map<int, List<TranslationTokenEntry>> map = {};
+    for (final w in words) {
+      if (w.wordPosition != null) {
+        map[w.wordPosition!] = tWords.where((t) => t.sourceWordPositions.contains(w.wordPosition)).toList();
+      }
+    }
+    return map;
   }
 }
 
@@ -252,7 +343,7 @@ final clickedWordProvider = FutureProvider<TokenEntry?>((ref) async {
   final wordId = ref.watch(clickedWordIdProvider);
   if (wordId == null) return null;
   
-  final phraseId = ref.watch(stickyActivePhraseIdProvider);
+  final phraseId = ref.watch(selectedPhraseIdProvider);
   if (phraseId == null) return null;
   
   final phraseService = ref.read(phraseServiceProvider);
@@ -264,7 +355,7 @@ final clickedTranslationWordProvider = FutureProvider<TranslationTokenEntry?>((r
   final twId = ref.watch(clickedTranslationWordIdProvider);
   if (twId == null) return null;
   
-  final phraseId = ref.watch(stickyActivePhraseIdProvider);
+  final phraseId = ref.watch(selectedPhraseIdProvider);
   if (phraseId == null) return null;
   
   final phraseService = ref.read(phraseServiceProvider);

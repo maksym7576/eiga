@@ -28,22 +28,32 @@ const WordIndexSchema = CollectionSchema(
       name: r'contextTranslated',
       type: IsarType.string,
     ),
-    r'lemma': PropertySchema(id: 3, name: r'lemma', type: IsarType.string),
-    r'phraseId': PropertySchema(id: 4, name: r'phraseId', type: IsarType.long),
-    r'pos': PropertySchema(
+    r'grammarCode': PropertySchema(
+      id: 3,
+      name: r'grammarCode',
+      type: IsarType.string,
+    ),
+    r'lemma': PropertySchema(id: 4, name: r'lemma', type: IsarType.string),
+    r'linkGroupId': PropertySchema(
       id: 5,
+      name: r'linkGroupId',
+      type: IsarType.long,
+    ),
+    r'phraseId': PropertySchema(id: 6, name: r'phraseId', type: IsarType.long),
+    r'pos': PropertySchema(
+      id: 7,
       name: r'pos',
       type: IsarType.byte,
       enumMap: _WordIndexposEnumValueMap,
     ),
     r'seriesName': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'seriesName',
       type: IsarType.string,
     ),
-    r'videoId': PropertySchema(id: 7, name: r'videoId', type: IsarType.long),
+    r'videoId': PropertySchema(id: 9, name: r'videoId', type: IsarType.long),
     r'wordPosition': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'wordPosition',
       type: IsarType.long,
     ),
@@ -96,6 +106,12 @@ int _wordIndexEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.grammarCode;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.lemma.length * 3;
   {
     final value = object.seriesName;
@@ -115,12 +131,14 @@ void _wordIndexSerialize(
   writer.writeLong(offsets[0], object.blockId);
   writer.writeString(offsets[1], object.contextOriginal);
   writer.writeString(offsets[2], object.contextTranslated);
-  writer.writeString(offsets[3], object.lemma);
-  writer.writeLong(offsets[4], object.phraseId);
-  writer.writeByte(offsets[5], object.pos.index);
-  writer.writeString(offsets[6], object.seriesName);
-  writer.writeLong(offsets[7], object.videoId);
-  writer.writeLong(offsets[8], object.wordPosition);
+  writer.writeString(offsets[3], object.grammarCode);
+  writer.writeString(offsets[4], object.lemma);
+  writer.writeLong(offsets[5], object.linkGroupId);
+  writer.writeLong(offsets[6], object.phraseId);
+  writer.writeByte(offsets[7], object.pos.index);
+  writer.writeString(offsets[8], object.seriesName);
+  writer.writeLong(offsets[9], object.videoId);
+  writer.writeLong(offsets[10], object.wordPosition);
 }
 
 WordIndex _wordIndexDeserialize(
@@ -133,14 +151,16 @@ WordIndex _wordIndexDeserialize(
     blockId: reader.readLongOrNull(offsets[0]),
     contextOriginal: reader.readStringOrNull(offsets[1]),
     contextTranslated: reader.readStringOrNull(offsets[2]),
-    lemma: reader.readString(offsets[3]),
-    phraseId: reader.readLong(offsets[4]),
+    grammarCode: reader.readStringOrNull(offsets[3]),
+    lemma: reader.readString(offsets[4]),
+    linkGroupId: reader.readLongOrNull(offsets[5]),
+    phraseId: reader.readLong(offsets[6]),
     pos:
-        _WordIndexposValueEnumMap[reader.readByteOrNull(offsets[5])] ??
+        _WordIndexposValueEnumMap[reader.readByteOrNull(offsets[7])] ??
         WordPos.unknown,
-    seriesName: reader.readStringOrNull(offsets[6]),
-    videoId: reader.readLong(offsets[7]),
-    wordPosition: reader.readLongOrNull(offsets[8]),
+    seriesName: reader.readStringOrNull(offsets[8]),
+    videoId: reader.readLong(offsets[9]),
+    wordPosition: reader.readLongOrNull(offsets[10]),
   );
   object.id = id;
   return object;
@@ -160,18 +180,22 @@ P _wordIndexDeserializeProp<P>(
     case 2:
       return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 4:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 5:
+      return (reader.readLongOrNull(offset)) as P;
+    case 6:
+      return (reader.readLong(offset)) as P;
+    case 7:
       return (_WordIndexposValueEnumMap[reader.readByteOrNull(offset)] ??
               WordPos.unknown)
           as P;
-    case 6:
-      return (reader.readStringOrNull(offset)) as P;
-    case 7:
-      return (reader.readLong(offset)) as P;
     case 8:
+      return (reader.readStringOrNull(offset)) as P;
+    case 9:
+      return (reader.readLong(offset)) as P;
+    case 10:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -742,6 +766,171 @@ extension WordIndexQueryFilter
     });
   }
 
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition>
+  grammarCodeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'grammarCode'),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition>
+  grammarCodeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'grammarCode'),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition> grammarCodeEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'grammarCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition>
+  grammarCodeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'grammarCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition> grammarCodeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'grammarCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition> grammarCodeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'grammarCode',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition>
+  grammarCodeStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'grammarCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition> grammarCodeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'grammarCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition> grammarCodeContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'grammarCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition> grammarCodeMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'grammarCode',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition>
+  grammarCodeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'grammarCode', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition>
+  grammarCodeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'grammarCode', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition> idEqualTo(
     Id value,
   ) {
@@ -943,6 +1132,81 @@ extension WordIndexQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'lemma', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition>
+  linkGroupIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'linkGroupId'),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition>
+  linkGroupIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'linkGroupId'),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition> linkGroupIdEqualTo(
+    int? value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'linkGroupId', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition>
+  linkGroupIdGreaterThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'linkGroupId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition> linkGroupIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'linkGroupId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterFilterCondition> linkGroupIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'linkGroupId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
       );
     });
   }
@@ -1406,6 +1670,18 @@ extension WordIndexQuerySortBy on QueryBuilder<WordIndex, WordIndex, QSortBy> {
     });
   }
 
+  QueryBuilder<WordIndex, WordIndex, QAfterSortBy> sortByGrammarCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'grammarCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterSortBy> sortByGrammarCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'grammarCode', Sort.desc);
+    });
+  }
+
   QueryBuilder<WordIndex, WordIndex, QAfterSortBy> sortByLemma() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lemma', Sort.asc);
@@ -1415,6 +1691,18 @@ extension WordIndexQuerySortBy on QueryBuilder<WordIndex, WordIndex, QSortBy> {
   QueryBuilder<WordIndex, WordIndex, QAfterSortBy> sortByLemmaDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lemma', Sort.desc);
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterSortBy> sortByLinkGroupId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'linkGroupId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterSortBy> sortByLinkGroupIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'linkGroupId', Sort.desc);
     });
   }
 
@@ -1518,6 +1806,18 @@ extension WordIndexQuerySortThenBy
     });
   }
 
+  QueryBuilder<WordIndex, WordIndex, QAfterSortBy> thenByGrammarCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'grammarCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterSortBy> thenByGrammarCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'grammarCode', Sort.desc);
+    });
+  }
+
   QueryBuilder<WordIndex, WordIndex, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -1539,6 +1839,18 @@ extension WordIndexQuerySortThenBy
   QueryBuilder<WordIndex, WordIndex, QAfterSortBy> thenByLemmaDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lemma', Sort.desc);
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterSortBy> thenByLinkGroupId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'linkGroupId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QAfterSortBy> thenByLinkGroupIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'linkGroupId', Sort.desc);
     });
   }
 
@@ -1633,11 +1945,25 @@ extension WordIndexQueryWhereDistinct
     });
   }
 
+  QueryBuilder<WordIndex, WordIndex, QDistinct> distinctByGrammarCode({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'grammarCode', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<WordIndex, WordIndex, QDistinct> distinctByLemma({
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'lemma', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<WordIndex, WordIndex, QDistinct> distinctByLinkGroupId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'linkGroupId');
     });
   }
 
@@ -1701,9 +2027,21 @@ extension WordIndexQueryProperty
     });
   }
 
+  QueryBuilder<WordIndex, String?, QQueryOperations> grammarCodeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'grammarCode');
+    });
+  }
+
   QueryBuilder<WordIndex, String, QQueryOperations> lemmaProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'lemma');
+    });
+  }
+
+  QueryBuilder<WordIndex, int?, QQueryOperations> linkGroupIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'linkGroupId');
     });
   }
 

@@ -45,7 +45,7 @@ class PlayerBottomDock extends HookConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Pill Row Container
+              // Integrated Pill Container
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
@@ -76,16 +76,16 @@ class PlayerBottomDock extends HookConsumerWidget {
                         isAnimating: hasActiveJobs,
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
 
-                    // Pill Button: Right now
+                    // Tracking / Follow Button
                     GestureDetector(
                       onTap: () {
-                        ref.read(playerProvider.notifier).setAutoScroll(true);
+                        ref.read(playerProvider.notifier).setAutoScroll(!isAutoScrollEnabled);
                       },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
                           color: isAutoScrollEnabled ? const Color(0xFF4D5BF9) : const Color(0xFF2A2A38),
                           borderRadius: BorderRadius.circular(999),
@@ -103,11 +103,11 @@ class PlayerBottomDock extends HookConsumerWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Text(
-                              'Right now',
-                              style: TextStyle(
+                            Text(
+                              isAutoScrollEnabled ? 'Tracking' : 'Follow',
+                              style: const TextStyle(
                                 color: Colors.white,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w700,
                                 fontSize: 13,
                               ),
                             ),
@@ -115,33 +115,32 @@ class PlayerBottomDock extends HookConsumerWidget {
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
+                    const SizedBox(width: 8),
 
-              // Settings Button (Separate for now, or could be part of pill)
-              GestureDetector(
-                onTap: () {
-                  AppBottomSheet.show(
-                    context: context,
-                    backgroundColor: const Color(0xFFF8FAFC),
-                    child: const VideoSettingsSheet(),
-                  );
-                },
-                child: Container(
-                  height: 54,
-                  width: 54,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF15151F).withOpacity(0.9),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF24242F), width: 1),
-                  ),
-                  child: const Icon(
-                    Icons.tune,
-                    size: 20,
-                    color: Colors.white,
-                  ),
+                    // Integrated Settings Button
+                    GestureDetector(
+                      onTap: () {
+                        AppBottomSheet.show(
+                          context: context,
+                          backgroundColor: const Color(0xFFF8FAFC),
+                          child: const VideoSettingsSheet(),
+                        );
+                      },
+                      child: Container(
+                        height: 44,
+                        width: 44,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF2A2A38),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.tune,
+                          size: 20,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

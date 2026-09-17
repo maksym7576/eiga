@@ -1,46 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../backend/database/schemas/phrase.dart';
 import '../../../backend/database/schemas/specific_word_style.dart';
 import 'package:eiga/providers/ui/vocabulary_provider.dart';
+import 'package:eiga/providers/ui/grammar_labels_provider.dart';
 import '../../styles/additional_window_theme.dart';
 import '../../styles/app_colors.dart';
 
-const Map<WordPos, String> _posNames = {
-  WordPos.v: 'Verb',
-  WordPos.n: 'Noun',
-  WordPos.i: 'Adjective',
-  WordPos.d: 'Adverb',
-  WordPos.p: 'Particle',
-  WordPos.x: 'Punctuation',
-  WordPos.s: 'Symbol',
-  WordPos.o: 'Other',
-  WordPos.unknown: 'Unknown',
-};
-
-const Map<GrammarFunction, String> _gfNames = {
-  GrammarFunction.top: 'Topic',
-  GrammarFunction.subj: 'Subject',
-  GrammarFunction.obj: 'Object',
-  GrammarFunction.loc: 'Locative',
-  GrammarFunction.dir: 'Directional',
-  GrammarFunction.tim: 'Time',
-  GrammarFunction.mns: 'Means',
-  GrammarFunction.src: 'Source',
-  GrammarFunction.rsn: 'Reason',
-  GrammarFunction.cnd: 'Conditional',
-  GrammarFunction.q: 'Question',
-  GrammarFunction.quo: 'Quotation',
-  GrammarFunction.emp: 'Emphasis',
-  GrammarFunction.ctr: 'Contrast',
-  GrammarFunction.dep: 'Dependent',
-  GrammarFunction.tgt: 'Target',
-  GrammarFunction.cmp: 'Complement',
-  GrammarFunction.cnj: 'Conjunction',
-  GrammarFunction.oth: 'Other',
-  GrammarFunction.none: 'None',
-};
-
-class VocabularyFeedItem extends StatelessWidget {
+class VocabularyFeedItem extends ConsumerWidget {
   final StyledVocabularyItem item;
 
   const VocabularyFeedItem({
@@ -49,137 +16,145 @@ class VocabularyFeedItem extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final style = item.style;
     final wordColor = style?.color ?? AppColors.slate900;
+    
+    final labelsAsync = ref.watch(grammarLabelsProvider);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: AppColors.slate100,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+    return labelsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (labels) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: AppColors.slate100,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: item.words.map((w) {
-                    final otherVersions = w.versions
-                        .where((v) => v.text != w.mainText && v.text != null && v.text!.isNotEmpty)
-                        .map((v) => v.text!)
-                        .join('  ');
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: item.words.map((w) {
+                        final otherVersions = w.versions
+                            .where((v) => v.text != w.mainText && v.text != null && v.text!.isNotEmpty)
+                            .map((v) => v.text!)
+                            .join('  ');
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                w.mainText,
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w900,
-                                  color: wordColor,
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-                              if (otherVersions.isNotEmpty) ...[
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    otherVersions,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: AppColors.slate400,
-                                      fontWeight: FontWeight.w600,
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Text(
+                                    w.mainText,
+                                    style: TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w900,
+                                      color: wordColor,
+                                      letterSpacing: -0.5,
                                     ),
-                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ),
-                              ],
+                                  if (otherVersions.isNotEmpty) ...[
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        otherVersions,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: AppColors.slate400,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ],
                           ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              Column(
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  if (item.words.isNotEmpty) _buildPosBadge(item.words.first),
+                  if (item.words.isNotEmpty) _buildPosBadge(labels, item.words.first, item.isIdiom),
                   const SizedBox(height: 8),
                   _buildStatusBadge(style),
                 ],
               ),
+                ],
+              ),
+              
+              const SizedBox(height: 12),
+              
+              _buildInfoTable(labels, item.words),
+              
+              const SizedBox(height: 20),
+              
+              _buildAnalysisBox(labels, item.words, item.translationWords, item.isIdiom),
+              
+              const SizedBox(height: 20),
+              
+              Text(
+                labels.getUiLabel('translation_of_block'),
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.slate400,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: item.translationWords.map((t) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: t.isInferred ? AppColors.slate50 : AppColors.brandBlue.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: t.isInferred ? AppColors.slate200 : AppColors.brandBlue.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  child: Text(
+                    t.text ?? '',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: t.isInferred ? AppColors.slate500 : AppColors.brandBlue,
+                    ),
+                  ),
+                )).toList(),
+              ),
             ],
           ),
-          
-          const SizedBox(height: 12),
-          
-          _buildInfoTable(item.words),
-          
-          const SizedBox(height: 20),
-          
-          _buildAnalysisBox(item.words, item.translationWords),
-          
-          const SizedBox(height: 20),
-          
-          const Text(
-            'TRANSLATION OF BLOCK',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: AppColors.slate400,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 12),
-          
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: item.translationWords.map((t) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: t.isInferred ? AppColors.slate50 : AppColors.brandBlue.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: t.isInferred ? AppColors.slate200 : AppColors.brandBlue.withValues(alpha: 0.1),
-                ),
-              ),
-              child: Text(
-                t.text ?? '',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: t.isInferred ? AppColors.slate500 : AppColors.brandBlue,
-                ),
-              ),
-            )).toList(),
-          ),
-        ],
-      ),
+        );
+      }
     );
   }
 
@@ -204,38 +179,67 @@ class VocabularyFeedItem extends StatelessWidget {
     );
   }
 
-  Widget _buildPosBadge(TokenEntry word) {
-    String short = _posNames[word.pos]?.substring(0, 1).toUpperCase() ?? '?';
-    if (word.pos == WordPos.n) short = '名'; 
-    else if (word.pos == WordPos.v) short = '動';
-    else if (word.pos == WordPos.i) short = '形';
+  Widget _buildPosBadge(GrammarLabelsService labels, TokenEntry word, bool isIdiom) {
+    String short = labels.getPosName(word.pos).substring(0, 1).toUpperCase();
+    if (word.pos == WordPos.n) {
+      short = '名'; 
+    } else if (word.pos == WordPos.v) {
+      short = '動';
+    } else if (word.pos == WordPos.i) {
+      short = '形';
+    }
 
-    return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.brandBlue.withValues(alpha: 0.3), width: 1),
-        boxShadow: [
-          BoxShadow(color: AppColors.brandBlue.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2)),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (isIdiom) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3), width: 1),
+            ),
+            child: const Text(
+              'IDIOM',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF059669),
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
         ],
-      ),
-      child: Text(
-        short,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w900,
-          color: AppColors.brandBlue,
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.brandBlue.withValues(alpha: 0.3), width: 1),
+            boxShadow: [
+              BoxShadow(color: AppColors.brandBlue.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2)),
+            ],
+          ),
+          child: Text(
+            short,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: AppColors.brandBlue,
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildInfoTable(List<TokenEntry> words) {
+  Widget _buildInfoTable(GrammarLabelsService labels, List<TokenEntry> words) {
     if (words.isEmpty) return const SizedBox.shrink();
     final first = words.first;
-    final posLabel = _posNames[first.pos] ?? 'Other';
-    final gfLabel = _gfNames[first.grammarFunction] ?? 'None';
+    final posLabel = labels.getPosName(first.pos);
+    final gfLabel = labels.getGfName(first.grammarFunction);
     final wordsInBlock = words.map((w) => '${w.mainText} (#${w.wordPosition})').join(' + ');
 
     return Table(
@@ -244,9 +248,9 @@ class VocabularyFeedItem extends StatelessWidget {
         1: FlexColumnWidth(1),
       },
       children: [
-        _buildMetaRow('PART OF SPEECH', posLabel),
-        _buildMetaRow('GRAMMAR ROLE', gfLabel),
-        _buildMetaRow('WORDS IN BLOCK', wordsInBlock),
+        _buildMetaRow(labels.getUiLabel('part_of_speech'), posLabel),
+        _buildMetaRow(labels.getUiLabel('grammar_role'), gfLabel),
+        _buildMetaRow(labels.getUiLabel('words_in_block'), wordsInBlock),
       ],
     );
   }
@@ -283,23 +287,25 @@ class VocabularyFeedItem extends StatelessWidget {
     );
   }
 
-  Widget _buildAnalysisBox(List<TokenEntry> words, List<TranslationTokenEntry> trWords) {
+  Widget _buildAnalysisBox(GrammarLabelsService labels, List<TokenEntry> words, List<TranslationTokenEntry> trWords, bool isIdiom) {
     if (words.isEmpty) return const SizedBox.shrink();
     String explanation = '';
     final first = words.first;
 
-    if (words.length > 1 && trWords.length > 1) {
-      explanation = 'Complex mapping. Multiple source words are translated using a combined multi-word expression to preserve nuanced meaning.';
+    if (isIdiom) {
+      explanation = labels.getExplanation('idiom');
+    } else if (words.length > 1 && trWords.length > 1) {
+      explanation = labels.getExplanation('complex_mapping');
     } else if (words.length > 1) {
-      explanation = 'Compound source concept. Multiple original words are merged into a single logical unit in the translation.';
+      explanation = labels.getExplanation('compound');
     } else if (trWords.length > 1) {
-      explanation = 'Extended translation. A single original word required multiple target-language tokens for a natural and accurate rendering.';
+      explanation = labels.getExplanation('extended_translation');
     } else if (first.grammarFunction != GrammarFunction.none) {
-      explanation = 'Special grammar role determined by sentence context. This term serves a specific functional purpose in this phrase.';
+      explanation = labels.getExplanation(first.grammarFunction.name);
     } else if (first.pos == WordPos.p) {
-      explanation = 'Grammar particle. Defines relationships between words and establishes sentence structure.';
+      explanation = labels.getExplanation('particle');
     } else {
-      explanation = 'This word has been prioritized in your library. Its status helps the system highlight it in future content.';
+      explanation = labels.getExplanation('vocabulary_default');
     }
 
     return Container(
@@ -315,9 +321,9 @@ class VocabularyFeedItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Analysis & Logic',
-            style: TextStyle(
+          Text(
+            labels.getUiLabel('analysis_logic'),
+            style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w900,
               color: AppColors.brandBlue,

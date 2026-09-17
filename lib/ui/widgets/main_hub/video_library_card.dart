@@ -24,9 +24,10 @@ class VideoLibraryCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    
     final dateStr = video.createdAt != null 
         ? DateFormat('dd.MM.yyyy').format(video.createdAt!) 
-        : 'Unknown date';
+        : '--.--.----';
 
     final langCodes = ref.watch(languageCodesProvider).value ?? {};
     final originalCode = langCodes[video.originalLanguage] ?? video.originalLanguage?.substring(0, 2) ?? '??';
@@ -40,18 +41,14 @@ class VideoLibraryCard extends ConsumerWidget {
         coverImage = CachedNetworkImage(
           imageUrl: path,
           fit: BoxFit.cover,
-          placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-          errorWidget: (context, url, error) {
-            debugPrint('Error loading cached network image: $path, error: $error');
-            return const Center(child: Icon(Icons.movie, size: 40, color: Colors.grey));
-          },
+          placeholder: (context, url) => Container(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+          errorWidget: (context, url, error) => const Center(child: Icon(Icons.movie, size: 40, color: Colors.grey)),
         );
       } else {
         final file = File(path);
         if (file.existsSync() && file.lengthSync() > 0) {
           coverImage = Image.file(file, fit: BoxFit.cover);
         } else {
-          debugPrint('Local file not found or empty: $path');
           coverImage = const Center(child: Icon(Icons.broken_image_outlined, size: 40, color: Colors.grey));
         }
       }
@@ -69,10 +66,10 @@ class VideoLibraryCard extends ConsumerWidget {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                  borderRadius: BorderRadius.circular(16),
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(24), // More rounded like details popover
                   border: Border.all(
-                    color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05),
+                    color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05),
                   ),
                 ),
                 clipBehavior: Clip.antiAlias,
@@ -89,88 +86,130 @@ class VideoLibraryCard extends ConsumerWidget {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                            Colors.transparent,
-                            Colors.black.withOpacity(0.4),
-                          ],
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.1),
+                              Colors.black.withValues(alpha: 0.6),
+                            ],
                           ),
                         ),
                       ),
                     ),
                     
-                    // Languages badge
+                    // Top Info Row (Episode & Cache)
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      right: 10,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (video.episode != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.white24, width: 0.5),
+                              ),
+                              child: Text(
+                                'EP ${video.episode}',
+                                style: const TextStyle(
+                                  fontSize: 9, 
+                                  fontWeight: FontWeight.w900, 
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            )
+                          else
+                            const SizedBox.shrink(),
+                          
+                          if (video.isCached)
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: AppColors.successText.withValues(alpha: 0.8),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.offline_pin_rounded, size: 10, color: Colors.white),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    // Languages badge (Bottom Left)
                     Positioned(
                       bottom: 12,
                       left: 12,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white24, width: 0.5),
+                        ),
                         child: Row(
                           children: [
                             Text(
                               originalCode.toUpperCase(),
-                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white),
                             ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.arrow_forward, size: 10, color: Colors.white70),
-                            const SizedBox(width: 4),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Icon(Icons.arrow_forward_rounded, size: 8, color: Colors.white70),
+                            ),
                             Text(
                               targetCode.toUpperCase(),
-                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white),
                             ),
                           ],
                         ),
                       ),
                     ),
                     
-                    // More button
+                    // Menu (Bottom Right)
                     Positioned(
-                      top: 8,
+                      bottom: 8,
                       right: 8,
                       child: _VideoCardMenu(video: video),
                     ),
-                    
-                    if (video.isCached)
-                      Positioned(
-                        top: 8,
-                        left: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.8),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.offline_pin_rounded, size: 10, color: Colors.white),
-                              SizedBox(width: 4),
-                              Text('OFFLINE', style: TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              video.seriesName ?? video.fileName ?? 'Untitled Video',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              dateStr,
-              style: TextStyle(
-                fontSize: 11,
-                color: isDark ? Colors.white38 : Colors.black45,
-                fontWeight: FontWeight.w500,
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    video.seriesName ?? video.fileName ?? 'Untitled',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : AppColors.slate900,
+                      letterSpacing: -0.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        dateStr,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? Colors.white38 : AppColors.slate400,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      // Could add a tiny progress indicator here if data is available
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
@@ -187,13 +226,16 @@ class _VideoCardMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return PopupMenuButton<String>(
+      offset: const Offset(0, -100),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       icon: Container(
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.2),
-          shape: BoxShape.circle,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white24, width: 0.5),
         ),
-        child: const Icon(Icons.more_vert, size: 16, color: Colors.white),
+        child: const Icon(Icons.more_horiz_rounded, size: 14, color: Colors.white),
       ),
       onSelected: (value) async {
         final storage = ref.read(videoStorageServiceProvider);
@@ -215,13 +257,14 @@ class _VideoCardMenu extends ConsumerWidget {
           final confirmed = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               title: const Text('Delete video?'),
               content: const Text('This will remove the video, all phrases, and analytical data permanently.'),
               actions: [
                 TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
                 TextButton(
                   onPressed: () => Navigator.pop(context, true), 
-                  child: const Text('Delete Everything', style: TextStyle(color: Colors.red))
+                  child: const Text('Delete Everything', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
                 ),
               ],
             ),
@@ -238,8 +281,8 @@ class _VideoCardMenu extends ConsumerWidget {
             child: Row(
               children: [
                 Icon(Icons.download_rounded, size: 18),
-                SizedBox(width: 8),
-                Text('Cache for Offline'),
+                SizedBox(width: 12),
+                Text('Cache for Offline', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
               ],
             ),
           )
@@ -249,8 +292,8 @@ class _VideoCardMenu extends ConsumerWidget {
             child: Row(
               children: [
                 Icon(Icons.no_sim_rounded, size: 18),
-                SizedBox(width: 8),
-                Text('Remove Local Cache'),
+                SizedBox(width: 12),
+                Text('Remove Local Cache', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
               ],
             ),
           ),
@@ -260,8 +303,8 @@ class _VideoCardMenu extends ConsumerWidget {
           child: Row(
             children: [
               Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
-              SizedBox(width: 8),
-              Text('Delete Everything', style: TextStyle(color: Colors.red)),
+              SizedBox(width: 12),
+              Text('Delete Permanently', style: TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.bold)),
             ],
           ),
         ),

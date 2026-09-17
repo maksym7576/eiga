@@ -270,20 +270,9 @@ class _TranslationTokenWidget extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    useEffect(() {
-      if (isAnchor) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final RenderBox? box = context.findRenderObject() as RenderBox?;
-          if (box != null && box.hasSize) {
-            final position = box.localToGlobal(Offset(box.size.width / 2, 0));
-            ref.read(playerProvider.notifier).setClickedWordPosition(position);
-          }
-        });
-      }
-      return null;
-    }, [isAnchor]);
-
     final bool canTap = !isFullscreen || isLocked;
+
+    final bool showHighlight = isHighlighted && !isPunctuation;
 
     Widget tokenContent = Container(
       key: ValueKey('token_bg_${token.translatedWordPosition}_$isHighlighted'),
@@ -292,18 +281,18 @@ class _TranslationTokenWidget extends HookConsumerWidget {
         vertical: baseFontSize * 0.05
       ),
       decoration: BoxDecoration(
-        color: (isHighlighted && !isPunctuation)
+        color: showHighlight
             ? (isFullscreen 
                 ? const Color(0xFF3B66F5).withValues(alpha: 0.4)
                 : const Color(0xFFE2E8F0).withValues(alpha: 0.8))
             : Colors.transparent,
         borderRadius: BorderRadius.circular(baseFontSize * 0.3),
-        border: (isHighlighted && !isPunctuation)
-            ? Border.all(
-                color: isFullscreen ? const Color(0xFF3B66F5).withValues(alpha: 0.6) : Colors.black12, 
-                width: baseFontSize * 0.06
-              )
-            : null,
+        border: Border.all(
+          color: showHighlight
+              ? (isFullscreen ? const Color(0xFF3B66F5).withValues(alpha: 0.6) : Colors.black12)
+              : Colors.transparent,
+          width: isPunctuation ? 0 : baseFontSize * 0.06,
+        ),
       ),
       child: Text(
         token.text ?? '',
@@ -313,7 +302,7 @@ class _TranslationTokenWidget extends HookConsumerWidget {
           fontWeight: shadows != null ? FontWeight.w900 : ((isHighlighted && !isPunctuation) ? FontWeight.w900 : (style?.fontWeight ?? FontWeight.w700)),
           height: 1.5,
           shadows: shadows,
-          letterSpacing: modeSettings.letterSpacing,
+          letterSpacing: modeSettings.translationLetterSpacing,
           decoration: TextDecoration.none,
         ),
       ),
@@ -328,6 +317,12 @@ class _TranslationTokenWidget extends HookConsumerWidget {
           if (isHighlighted && selectionAnchorType == SelectionAnchor.translation) {
             playerNotifier.clearSelection();
           } else {
+            // Instant position calculation
+            final RenderBox? box = context.findRenderObject() as RenderBox?;
+            final position = box != null && box.hasSize 
+                ? box.localToGlobal(Offset(box.size.width / 2, 0))
+                : null;
+
             final linked = index.getLinkedIdsForTranslation(token.translatedWordPosition ?? 0);
             int? wordId;
             final sourceWords = index.translationToWords[token.translatedWordPosition ?? 0] ?? [];
@@ -336,11 +331,13 @@ class _TranslationTokenWidget extends HookConsumerWidget {
             }
 
             playerNotifier.selectTranslation(
+              phraseId,
               token.translatedWordPosition ?? 0,
               linked['words']!,
               linked['translations']!,
               wordId,
               shouldPause: true,
+              position: position,
             );
           }
         },
@@ -432,7 +429,7 @@ class PhraseOriginalContent extends HookConsumerWidget {
           height: 1.8,
           fontWeight: useShadows ? FontWeight.w900 : FontWeight.w700,
           shadows: shadows,
-          letterSpacing: modeSettings.letterSpacing,
+          letterSpacing: modeSettings.originalLetterSpacing,
         ),
       );
     }
@@ -481,7 +478,7 @@ class PhraseOriginalContent extends HookConsumerWidget {
             color: isFullscreen ? Colors.white : textColor,
             height: 1.8,
             fontWeight: useShadows ? FontWeight.w900 : FontWeight.w700,
-            letterSpacing: modeSettings.letterSpacing,
+            letterSpacing: modeSettings.originalLetterSpacing,
             shadows: shadows,
           ),
           annotationStyle: TextStyle(

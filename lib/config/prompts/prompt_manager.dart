@@ -1,3 +1,4 @@
+import 'package:eiga/config/prompts/japanese/japanese_grammar_role_prompt.dart';
 import 'package:eiga/config/prompts/japanese/japanese_morphology_prompt.dart';
 import 'package:eiga/config/prompts/japanese/japanese_tokenize_prompt.dart';
 import 'package:eiga/config/prompts/japanese/japanese_translation_prompt.dart';
@@ -12,6 +13,7 @@ enum PromptType {
   translation,
   tokenizer,
   morphology,
+  grammarRole,
 }
 
 class PromptManager {
@@ -71,6 +73,8 @@ class PromptManager {
         return japaneseTokenizePrompt;
       case PromptType.translation:
         return japaneseTranslationPrompt;
+      case PromptType.grammarRole:
+        return japaneseGrammarRolePrompt;
       default:
         return '';
     }
@@ -84,6 +88,8 @@ class PromptManager {
         return defaultTokenizerPrompt;
       case PromptType.translation:
         return defaultTranslationPrompt;
+      case PromptType.grammarRole:
+        return ''; // Or generic prompt if needed, none for now
       default:
         return '';
     }

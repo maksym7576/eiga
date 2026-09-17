@@ -16,7 +16,7 @@ class AppConfig {
   static const Duration defaultTimeout = Duration(seconds: 15);
 
   // --- Default Values ---
-  static const int defaultPhrasesPerRequest = 40;
+  static const int defaultPhrasesPerRequest = 70;
   static const int defaultSecondsAhead = 100;
   static const int defaultMaxConcurrentProcesses = 2;
   static const int defaultSyncSkipMinutes = 5;
@@ -27,6 +27,7 @@ class AppConfig {
     TranslationPipelineStep.translate: 'gemini-3.8-flash',
     TranslationPipelineStep.tokenize: 'gemini-3.5-flash-lite',
     TranslationPipelineStep.morphemes: 'gemini-3.5-flash',
+    TranslationPipelineStep.grammarRole: 'gemini-3.5-flash',
   };
 
   // --- Storage Keys ---
@@ -45,15 +46,21 @@ class AppConfig {
   static const _keySubBackdropPadding = 'sub_backdrop_padding';
   static const _keySubShowBackdrop = 'sub_show_backdrop';
   static const _keySubVerticalOffset = 'sub_vertical_offset';
+  static const _keySubFontWeightFs = 'sub_font_weight_fs';
+  static const _keySubFontWeightWin = 'sub_font_weight_win';
   
   // Advanced Typography - Fullscreen
-  static const _keySubLetterSpacingFs = 'sub_letter_spacing_fs';
+  static const _keySubLetterSpacingFs = 'sub_letter_spacing_fs'; // Keep for legacy or rename?
+  static const _keySubTranslationLetterSpacingFs = 'sub_translation_letter_spacing_fs';
   static const _keySubOriginalScaleFs = 'sub_original_scale_fs';
   static const _keySubTranslationScaleFs = 'sub_translation_scale_fs';
   static const _keySubAdditionalScaleFs = 'sub_additional_scale_fs';
+  static const _keySubOriginalOutlineWidthFs = 'sub_original_outline_width_fs';
+  static const _keySubTranslationOutlineWidthFs = 'sub_translation_outline_width_fs';
 
   // Advanced Typography - Windowed
   static const _keySubLetterSpacingWin = 'sub_letter_spacing_win';
+  static const _keySubTranslationLetterSpacingWin = 'sub_translation_letter_spacing_win';
   static const _keySubOriginalScaleWin = 'sub_original_scale_win';
   static const _keySubTranslationScaleWin = 'sub_translation_scale_win';
   static const _keySubAdditionalScaleWin = 'sub_additional_scale_win';
@@ -63,8 +70,11 @@ class AppConfig {
   static const _keyBatchSizeTranslate = 'batch_size_translate';
   static const _keyBatchSizeTokenize = 'batch_size_tokenize';
   static const _keyBatchSizeMorphemes = 'batch_size_morphemes';
+  static const _keyBatchSizeGrammarRole = 'batch_size_grammar_role';
   static const _keySyncSkipMinutes = 'sync_skip_minutes';
   static const _keySyncPointDurationMinutes = 'sync_point_duration_minutes';
+  static const _keyHideParenthesesContent = 'hide_parentheses_content';
+  static const _keyFullscreenAutoShrink = 'fs_auto_shrink';
   
   static String _modelKey(TranslationPipelineStep step) => 'active_model_${step.name}';
 
@@ -94,6 +104,10 @@ class AppConfig {
     await _prefs.setInt(_keyBatchSizeMorphemes, value);
   }
 
+  Future<void> setBatchSizeGrammarRole(int value) async {
+    await _prefs.setInt(_keyBatchSizeGrammarRole, value);
+  }
+
   Future<void> setSyncSkipMinutes(int value) async {
     await _prefs.setInt(_keySyncSkipMinutes, value);
   }
@@ -108,6 +122,14 @@ class AppConfig {
 
   Future<void> setIsAutoLockEnabled(bool value) async {
     await _prefs.setBool(_keyIsAutoLockEnabled, value);
+  }
+
+  Future<void> setHideParenthesesContent(bool value) async {
+    await _prefs.setBool(_keyHideParenthesesContent, value);
+  }
+
+  Future<void> setFullscreenAutoShrink(bool value) async {
+    await _prefs.setBool(_keyFullscreenAutoShrink, value);
   }
 
   Future<void> setSubFontSize(double value) async {
@@ -138,9 +160,20 @@ class AppConfig {
     await _prefs.setDouble(_keySubVerticalOffset, value);
   }
 
+  Future<void> setSubFontWeightFs(double value) async {
+    await _prefs.setDouble(_keySubFontWeightFs, value);
+  }
+
+  Future<void> setSubFontWeightWin(double value) async {
+    await _prefs.setDouble(_keySubFontWeightWin, value);
+  }
+
   // Setters - FS
   Future<void> setSubLetterSpacingFs(double value) async {
     await _prefs.setDouble(_keySubLetterSpacingFs, value);
+  }
+  Future<void> setSubTranslationLetterSpacingFs(double value) async {
+    await _prefs.setDouble(_keySubTranslationLetterSpacingFs, value);
   }
   Future<void> setSubOriginalScaleFs(double value) async {
     await _prefs.setDouble(_keySubOriginalScaleFs, value);
@@ -151,10 +184,19 @@ class AppConfig {
   Future<void> setSubAdditionalScaleFs(double value) async {
     await _prefs.setDouble(_keySubAdditionalScaleFs, value);
   }
+  Future<void> setSubOriginalOutlineWidthFs(double value) async {
+    await _prefs.setDouble(_keySubOriginalOutlineWidthFs, value);
+  }
+  Future<void> setSubTranslationOutlineWidthFs(double value) async {
+    await _prefs.setDouble(_keySubTranslationOutlineWidthFs, value);
+  }
 
   // Setters - Windowed
   Future<void> setSubLetterSpacingWin(double value) async {
     await _prefs.setDouble(_keySubLetterSpacingWin, value);
+  }
+  Future<void> setSubTranslationLetterSpacingWin(double value) async {
+    await _prefs.setDouble(_keySubTranslationLetterSpacingWin, value);
   }
   Future<void> setSubOriginalScaleWin(double value) async {
     await _prefs.setDouble(_keySubOriginalScaleWin, value);
@@ -180,9 +222,10 @@ class AppConfig {
 
   int get getMaxConcurrentProcesses => _prefs.getInt(_keyMaxConcurrentProcesses) ?? defaultMaxConcurrentProcesses;
 
-  int get getBatchSizeTranslate => _prefs.getInt(_keyBatchSizeTranslate) ?? 40;
-  int get getBatchSizeTokenize => _prefs.getInt(_keyBatchSizeTokenize) ?? 40;
-  int get getBatchSizeMorphemes => _prefs.getInt(_keyBatchSizeMorphemes) ?? 40;
+  int get getBatchSizeTranslate => _prefs.getInt(_keyBatchSizeTranslate) ?? 70;
+  int get getBatchSizeTokenize => _prefs.getInt(_keyBatchSizeTokenize) ?? 70;
+  int get getBatchSizeMorphemes => _prefs.getInt(_keyBatchSizeMorphemes) ?? 70;
+  int get getBatchSizeGrammarRole => _prefs.getInt(_keyBatchSizeGrammarRole) ?? 70;
 
   int get getSyncSkipMinutes => _prefs.getInt(_keySyncSkipMinutes) ?? defaultSyncSkipMinutes;
   int get getSyncPointDurationMinutes => _prefs.getInt(_keySyncPointDurationMinutes) ?? defaultSyncPointDurationMinutes;
@@ -191,6 +234,10 @@ class AppConfig {
 
   bool get getIsAutoLockEnabled => _prefs.getBool(_keyIsAutoLockEnabled) ?? true;
 
+  bool get getHideParenthesesContent => _prefs.getBool(_keyHideParenthesesContent) ?? false;
+
+  bool get getFullscreenAutoShrink => _prefs.getBool(_keyFullscreenAutoShrink) ?? false;
+
   double get getSubFontSize => _prefs.getDouble(_keySubFontSize) ?? 28.0;
   double get getSubWindowedFontSize => _prefs.getDouble(_keySubWindowedFontSize) ?? 18.0;
   double get getSubOutlineWidth => _prefs.getDouble(_keySubOutlineWidth) ?? 1.0;
@@ -198,15 +245,21 @@ class AppConfig {
   double get getSubBackdropPadding => _prefs.getDouble(_keySubBackdropPadding) ?? 8.0;
   bool get getSubShowBackdrop => _prefs.getBool(_keySubShowBackdrop) ?? true;
   double get getSubVerticalOffset => _prefs.getDouble(_keySubVerticalOffset) ?? 0.0;
+  double get getSubFontWeightFs => _prefs.getDouble(_keySubFontWeightFs) ?? 0.5; // 0.0 to 1.0
+  double get getSubFontWeightWin => _prefs.getDouble(_keySubFontWeightWin) ?? 0.0;
 
   // Getters - FS
-  double get getSubLetterSpacingFs => _prefs.getDouble(_keySubLetterSpacingFs) ?? 2.0;
+  double get getSubLetterSpacingFs => _prefs.getDouble(_keySubLetterSpacingFs) ?? 0.0;
+  double get getSubTranslationLetterSpacingFs => _prefs.getDouble(_keySubTranslationLetterSpacingFs) ?? 0.0;
   double get getSubOriginalScaleFs => _prefs.getDouble(_keySubOriginalScaleFs) ?? 1.0;
   double get getSubTranslationScaleFs => _prefs.getDouble(_keySubTranslationScaleFs) ?? 1.0;
   double get getSubAdditionalScaleFs => _prefs.getDouble(_keySubAdditionalScaleFs) ?? 1.0;
+  double get getSubOriginalOutlineWidthFs => _prefs.getDouble(_keySubOriginalOutlineWidthFs) ?? 1.0;
+  double get getSubTranslationOutlineWidthFs => _prefs.getDouble(_keySubTranslationOutlineWidthFs) ?? 1.0;
 
   // Getters - Windowed
-  double get getSubLetterSpacingWin => _prefs.getDouble(_keySubLetterSpacingWin) ?? 2.0;
+  double get getSubLetterSpacingWin => _prefs.getDouble(_keySubLetterSpacingWin) ?? 0.0;
+  double get getSubTranslationLetterSpacingWin => _prefs.getDouble(_keySubTranslationLetterSpacingWin) ?? 0.0;
   double get getSubOriginalScaleWin => _prefs.getDouble(_keySubOriginalScaleWin) ?? 1.0;
   double get getSubTranslationScaleWin => _prefs.getDouble(_keySubTranslationScaleWin) ?? 1.0;
   double get getSubAdditionalScaleWin => _prefs.getDouble(_keySubAdditionalScaleWin) ?? 1.0;
@@ -233,8 +286,34 @@ class AppConfig {
   Future<void> resetToDefault() async {
     await _prefs.remove(_keySecondsAhead);
     await _prefs.remove(_keyNumberOfPhrases);
+    await _prefs.remove(_keySubFontSize);
+    await _prefs.remove(_keySubWindowedFontSize);
+    await _prefs.remove(_keySubOutlineWidth);
+    await _prefs.remove(_keySubBackdropOpacity);
+    await _prefs.remove(_keySubBackdropPadding);
+    await _prefs.remove(_keySubShowBackdrop);
+    await _prefs.remove(_keySubVerticalOffset);
+    await _prefs.remove(_keySubFontWeightFs);
+    await _prefs.remove(_keySubFontWeightWin);
+    await _prefs.remove(_keySubLetterSpacingFs);
+    await _prefs.remove(_keySubOriginalScaleFs);
+    await _prefs.remove(_keySubTranslationScaleFs);
+    await _prefs.remove(_keySubAdditionalScaleFs);
+    await _prefs.remove(_keySubLetterSpacingWin);
+    await _prefs.remove(_keySubOriginalScaleWin);
+    await _prefs.remove(_keySubTranslationScaleWin);
+    await _prefs.remove(_keySubAdditionalScaleWin);
+    
     for (final step in TranslationPipelineStep.values) {
       await _prefs.remove(_modelKey(step));
     }
+  }
+
+  Future<void> resetBatchSettings() async {
+    await _prefs.remove(_keyNumberOfPhrases);
+    await _prefs.remove(_keyBatchSizeTranslate);
+    await _prefs.remove(_keyBatchSizeTokenize);
+    await _prefs.remove(_keyBatchSizeMorphemes);
+    await _prefs.remove(_keyBatchSizeGrammarRole);
   }
 }

@@ -22,52 +22,64 @@ const PhraseSchema = CollectionSchema(
       name: r'endTime',
       type: IsarType.dateTime,
     ),
-    r'isActive': PropertySchema(id: 1, name: r'isActive', type: IsarType.bool),
+    r'idiomSpansIsar': PropertySchema(
+      id: 1,
+      name: r'idiomSpansIsar',
+      type: IsarType.stringList,
+    ),
+    r'isActive': PropertySchema(id: 2, name: r'isActive', type: IsarType.bool),
+    r'linkGroups': PropertySchema(
+      id: 3,
+      name: r'linkGroups',
+      type: IsarType.objectList,
+
+      target: r'LinkGroup',
+    ),
     r'originalPhrase': PropertySchema(
-      id: 2,
+      id: 4,
       name: r'originalPhrase',
       type: IsarType.string,
     ),
     r'originalTokens': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'originalTokens',
       type: IsarType.objectList,
 
       target: r'TokenEntry',
     ),
     r'phraseOrder': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'phraseOrder',
       type: IsarType.long,
     ),
     r'stageKeys': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'stageKeys',
       type: IsarType.stringList,
     ),
     r'stageValues': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'stageValues',
       type: IsarType.stringList,
     ),
     r'startTime': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'startTime',
       type: IsarType.dateTime,
     ),
     r'translatedPhrase': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'translatedPhrase',
       type: IsarType.string,
     ),
     r'translatedWords': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'translatedWords',
       type: IsarType.objectList,
 
       target: r'TranslationTokenEntry',
     ),
-    r'videoId': PropertySchema(id: 10, name: r'videoId', type: IsarType.long),
+    r'videoId': PropertySchema(id: 12, name: r'videoId', type: IsarType.long),
   },
 
   estimateSize: _phraseEstimateSize,
@@ -152,6 +164,7 @@ const PhraseSchema = CollectionSchema(
     r'TokenEntry': TokenEntrySchema,
     r'ReadingItem': ReadingItemSchema,
     r'TranslationTokenEntry': TranslationTokenEntrySchema,
+    r'LinkGroup': LinkGroupSchema,
   },
 
   getId: _phraseGetId,
@@ -166,6 +179,30 @@ int _phraseEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  bytesCount += 3 + object.idiomSpansIsar.length * 3;
+  {
+    for (var i = 0; i < object.idiomSpansIsar.length; i++) {
+      final value = object.idiomSpansIsar[i];
+      bytesCount += value.length * 3;
+    }
+  }
+  {
+    final list = object.linkGroups;
+    if (list != null) {
+      bytesCount += 3 + list.length * 3;
+      {
+        final offsets = allOffsets[LinkGroup]!;
+        for (var i = 0; i < list.length; i++) {
+          final value = list[i];
+          bytesCount += LinkGroupSchema.estimateSize(
+            value,
+            offsets,
+            allOffsets,
+          );
+        }
+      }
+    }
+  }
   {
     final value = object.originalPhrase;
     if (value != null) {
@@ -236,26 +273,33 @@ void _phraseSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDateTime(offsets[0], object.endTime);
-  writer.writeBool(offsets[1], object.isActive);
-  writer.writeString(offsets[2], object.originalPhrase);
-  writer.writeObjectList<TokenEntry>(
+  writer.writeStringList(offsets[1], object.idiomSpansIsar);
+  writer.writeBool(offsets[2], object.isActive);
+  writer.writeObjectList<LinkGroup>(
     offsets[3],
+    allOffsets,
+    LinkGroupSchema.serialize,
+    object.linkGroups,
+  );
+  writer.writeString(offsets[4], object.originalPhrase);
+  writer.writeObjectList<TokenEntry>(
+    offsets[5],
     allOffsets,
     TokenEntrySchema.serialize,
     object.originalTokens,
   );
-  writer.writeLong(offsets[4], object.phraseOrder);
-  writer.writeStringList(offsets[5], object.stageKeys);
-  writer.writeStringList(offsets[6], object.stageValues);
-  writer.writeDateTime(offsets[7], object.startTime);
-  writer.writeString(offsets[8], object.translatedPhrase);
+  writer.writeLong(offsets[6], object.phraseOrder);
+  writer.writeStringList(offsets[7], object.stageKeys);
+  writer.writeStringList(offsets[8], object.stageValues);
+  writer.writeDateTime(offsets[9], object.startTime);
+  writer.writeString(offsets[10], object.translatedPhrase);
   writer.writeObjectList<TranslationTokenEntry>(
-    offsets[9],
+    offsets[11],
     allOffsets,
     TranslationTokenEntrySchema.serialize,
     object.translatedWords,
   );
-  writer.writeLong(offsets[10], object.videoId);
+  writer.writeLong(offsets[12], object.videoId);
 }
 
 Phrase _phraseDeserialize(
@@ -266,28 +310,35 @@ Phrase _phraseDeserialize(
 ) {
   final object = Phrase(
     endTime: reader.readDateTimeOrNull(offsets[0]),
-    isActive: reader.readBoolOrNull(offsets[1]) ?? false,
-    originalPhrase: reader.readStringOrNull(offsets[2]),
-    originalTokens: reader.readObjectList<TokenEntry>(
+    isActive: reader.readBoolOrNull(offsets[2]) ?? false,
+    linkGroups: reader.readObjectList<LinkGroup>(
       offsets[3],
+      LinkGroupSchema.deserialize,
+      allOffsets,
+      LinkGroup(),
+    ),
+    originalPhrase: reader.readStringOrNull(offsets[4]),
+    originalTokens: reader.readObjectList<TokenEntry>(
+      offsets[5],
       TokenEntrySchema.deserialize,
       allOffsets,
       TokenEntry(),
     ),
-    phraseOrder: reader.readLongOrNull(offsets[4]),
-    startTime: reader.readDateTimeOrNull(offsets[7]),
-    translatedPhrase: reader.readStringOrNull(offsets[8]),
+    phraseOrder: reader.readLongOrNull(offsets[6]),
+    startTime: reader.readDateTimeOrNull(offsets[9]),
+    translatedPhrase: reader.readStringOrNull(offsets[10]),
     translatedWords: reader.readObjectList<TranslationTokenEntry>(
-      offsets[9],
+      offsets[11],
       TranslationTokenEntrySchema.deserialize,
       allOffsets,
       TranslationTokenEntry(),
     ),
-    videoId: reader.readLongOrNull(offsets[10]),
+    videoId: reader.readLongOrNull(offsets[12]),
   );
   object.id = id;
-  object.stageKeys = reader.readStringList(offsets[5]) ?? [];
-  object.stageValues = reader.readStringList(offsets[6]) ?? [];
+  object.idiomSpansIsar = reader.readStringList(offsets[1]) ?? [];
+  object.stageKeys = reader.readStringList(offsets[7]) ?? [];
+  object.stageValues = reader.readStringList(offsets[8]) ?? [];
   return object;
 }
 
@@ -301,10 +352,20 @@ P _phraseDeserializeProp<P>(
     case 0:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 1:
-      return (reader.readBoolOrNull(offset) ?? false) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 2:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 3:
+      return (reader.readObjectList<LinkGroup>(
+            offset,
+            LinkGroupSchema.deserialize,
+            allOffsets,
+            LinkGroup(),
+          ))
+          as P;
+    case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    case 5:
       return (reader.readObjectList<TokenEntry>(
             offset,
             TokenEntrySchema.deserialize,
@@ -312,17 +373,17 @@ P _phraseDeserializeProp<P>(
             TokenEntry(),
           ))
           as P;
-    case 4:
-      return (reader.readLongOrNull(offset)) as P;
-    case 5:
-      return (reader.readStringList(offset) ?? []) as P;
     case 6:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 7:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 9:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 10:
+      return (reader.readStringOrNull(offset)) as P;
+    case 11:
       return (reader.readObjectList<TranslationTokenEntry>(
             offset,
             TranslationTokenEntrySchema.deserialize,
@@ -330,7 +391,7 @@ P _phraseDeserializeProp<P>(
             TranslationTokenEntry(),
           ))
           as P;
-    case 10:
+    case 12:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1493,12 +1554,274 @@ extension PhraseQueryFilter on QueryBuilder<Phrase, Phrase, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  idiomSpansIsarElementEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'idiomSpansIsar',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  idiomSpansIsarElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'idiomSpansIsar',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  idiomSpansIsarElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'idiomSpansIsar',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  idiomSpansIsarElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'idiomSpansIsar',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  idiomSpansIsarElementStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'idiomSpansIsar',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  idiomSpansIsarElementEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'idiomSpansIsar',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  idiomSpansIsarElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'idiomSpansIsar',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  idiomSpansIsarElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'idiomSpansIsar',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  idiomSpansIsarElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'idiomSpansIsar', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  idiomSpansIsarElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'idiomSpansIsar', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  idiomSpansIsarLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'idiomSpansIsar', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> idiomSpansIsarIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'idiomSpansIsar', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  idiomSpansIsarIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'idiomSpansIsar', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  idiomSpansIsarLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'idiomSpansIsar', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  idiomSpansIsarLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'idiomSpansIsar', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  idiomSpansIsarLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'idiomSpansIsar',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<Phrase, Phrase, QAfterFilterCondition> isActiveEqualTo(
     bool value,
   ) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(property: r'isActive', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> linkGroupsIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'linkGroups'),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> linkGroupsIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'linkGroups'),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> linkGroupsLengthEqualTo(
+    int length,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'linkGroups', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> linkGroupsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'linkGroups', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> linkGroupsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'linkGroups', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> linkGroupsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'linkGroups', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition>
+  linkGroupsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'linkGroups', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> linkGroupsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'linkGroups',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
       );
     });
   }
@@ -2599,6 +2922,14 @@ extension PhraseQueryFilter on QueryBuilder<Phrase, Phrase, QFilterCondition> {
 }
 
 extension PhraseQueryObject on QueryBuilder<Phrase, Phrase, QFilterCondition> {
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> linkGroupsElement(
+    FilterQuery<LinkGroup> q,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'linkGroups');
+    });
+  }
+
   QueryBuilder<Phrase, Phrase, QAfterFilterCondition> originalTokensElement(
     FilterQuery<TokenEntry> q,
   ) {
@@ -2809,6 +3140,12 @@ extension PhraseQueryWhereDistinct on QueryBuilder<Phrase, Phrase, QDistinct> {
     });
   }
 
+  QueryBuilder<Phrase, Phrase, QDistinct> distinctByIdiomSpansIsar() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'idiomSpansIsar');
+    });
+  }
+
   QueryBuilder<Phrase, Phrase, QDistinct> distinctByIsActive() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isActive');
@@ -2881,9 +3218,23 @@ extension PhraseQueryProperty on QueryBuilder<Phrase, Phrase, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Phrase, List<String>, QQueryOperations>
+  idiomSpansIsarProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'idiomSpansIsar');
+    });
+  }
+
   QueryBuilder<Phrase, bool, QQueryOperations> isActiveProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isActive');
+    });
+  }
+
+  QueryBuilder<Phrase, List<LinkGroup>?, QQueryOperations>
+  linkGroupsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'linkGroups');
     });
   }
 
@@ -2951,38 +3302,711 @@ extension PhraseQueryProperty on QueryBuilder<Phrase, Phrase, QQueryProperty> {
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
 
+const LinkGroupSchema = Schema(
+  name: r'LinkGroup',
+  id: 6319180353830571810,
+  properties: {
+    r'groupId': PropertySchema(id: 0, name: r'groupId', type: IsarType.long),
+    r'headSourcePosition': PropertySchema(
+      id: 1,
+      name: r'headSourcePosition',
+      type: IsarType.long,
+    ),
+    r'isIdiom': PropertySchema(id: 2, name: r'isIdiom', type: IsarType.bool),
+    r'relatedGroupIds': PropertySchema(
+      id: 3,
+      name: r'relatedGroupIds',
+      type: IsarType.longList,
+    ),
+    r'sourcePositions': PropertySchema(
+      id: 4,
+      name: r'sourcePositions',
+      type: IsarType.longList,
+    ),
+    r'targetPositions': PropertySchema(
+      id: 5,
+      name: r'targetPositions',
+      type: IsarType.longList,
+    ),
+  },
+
+  estimateSize: _linkGroupEstimateSize,
+  serialize: _linkGroupSerialize,
+  deserialize: _linkGroupDeserialize,
+  deserializeProp: _linkGroupDeserializeProp,
+);
+
+int _linkGroupEstimateSize(
+  LinkGroup object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  bytesCount += 3 + object.relatedGroupIds.length * 8;
+  bytesCount += 3 + object.sourcePositions.length * 8;
+  bytesCount += 3 + object.targetPositions.length * 8;
+  return bytesCount;
+}
+
+void _linkGroupSerialize(
+  LinkGroup object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeLong(offsets[0], object.groupId);
+  writer.writeLong(offsets[1], object.headSourcePosition);
+  writer.writeBool(offsets[2], object.isIdiom);
+  writer.writeLongList(offsets[3], object.relatedGroupIds);
+  writer.writeLongList(offsets[4], object.sourcePositions);
+  writer.writeLongList(offsets[5], object.targetPositions);
+}
+
+LinkGroup _linkGroupDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = LinkGroup(
+    groupId: reader.readLongOrNull(offsets[0]),
+    headSourcePosition: reader.readLongOrNull(offsets[1]),
+    isIdiom: reader.readBoolOrNull(offsets[2]) ?? false,
+    relatedGroupIds: reader.readLongList(offsets[3]) ?? const [],
+    sourcePositions: reader.readLongList(offsets[4]) ?? const [],
+    targetPositions: reader.readLongList(offsets[5]) ?? const [],
+  );
+  return object;
+}
+
+P _linkGroupDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readLongOrNull(offset)) as P;
+    case 1:
+      return (reader.readLongOrNull(offset)) as P;
+    case 2:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
+    case 3:
+      return (reader.readLongList(offset) ?? const []) as P;
+    case 4:
+      return (reader.readLongList(offset) ?? const []) as P;
+    case 5:
+      return (reader.readLongList(offset) ?? const []) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension LinkGroupQueryFilter
+    on QueryBuilder<LinkGroup, LinkGroup, QFilterCondition> {
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition> groupIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'groupId'),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition> groupIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'groupId'),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition> groupIdEqualTo(
+    int? value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'groupId', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition> groupIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'groupId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition> groupIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'groupId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition> groupIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'groupId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  headSourcePositionIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'headSourcePosition'),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  headSourcePositionIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'headSourcePosition'),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  headSourcePositionEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'headSourcePosition', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  headSourcePositionGreaterThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'headSourcePosition',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  headSourcePositionLessThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'headSourcePosition',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  headSourcePositionBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'headSourcePosition',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition> isIdiomEqualTo(
+    bool value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'isIdiom', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  relatedGroupIdsElementEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'relatedGroupIds', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  relatedGroupIdsElementGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'relatedGroupIds',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  relatedGroupIdsElementLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'relatedGroupIds',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  relatedGroupIdsElementBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'relatedGroupIds',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  relatedGroupIdsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'relatedGroupIds', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  relatedGroupIdsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'relatedGroupIds', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  relatedGroupIdsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'relatedGroupIds', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  relatedGroupIdsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'relatedGroupIds', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  relatedGroupIdsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'relatedGroupIds',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  relatedGroupIdsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'relatedGroupIds',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  sourcePositionsElementEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'sourcePositions', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  sourcePositionsElementGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'sourcePositions',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  sourcePositionsElementLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'sourcePositions',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  sourcePositionsElementBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'sourcePositions',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  sourcePositionsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'sourcePositions', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  sourcePositionsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'sourcePositions', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  sourcePositionsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'sourcePositions', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  sourcePositionsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'sourcePositions', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  sourcePositionsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'sourcePositions',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  sourcePositionsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'sourcePositions',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  targetPositionsElementEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'targetPositions', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  targetPositionsElementGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'targetPositions',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  targetPositionsElementLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'targetPositions',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  targetPositionsElementBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'targetPositions',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  targetPositionsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'targetPositions', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  targetPositionsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'targetPositions', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  targetPositionsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'targetPositions', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  targetPositionsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'targetPositions', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  targetPositionsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'targetPositions',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LinkGroup, LinkGroup, QAfterFilterCondition>
+  targetPositionsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'targetPositions',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+}
+
+extension LinkGroupQueryObject
+    on QueryBuilder<LinkGroup, LinkGroup, QFilterCondition> {}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
 const TokenEntrySchema = Schema(
   name: r'TokenEntry',
   id: -1817502199596935943,
   properties: {
-    r'blockId': PropertySchema(id: 0, name: r'blockId', type: IsarType.long),
-    r'grammarFunction': PropertySchema(
+    r'aspect': PropertySchema(
+      id: 0,
+      name: r'aspect',
+      type: IsarType.byte,
+      enumMap: _TokenEntryaspectEnumValueMap,
+    ),
+    r'attachMode': PropertySchema(
       id: 1,
+      name: r'attachMode',
+      type: IsarType.byte,
+      enumMap: _TokenEntryattachModeEnumValueMap,
+    ),
+    r'blockId': PropertySchema(id: 2, name: r'blockId', type: IsarType.long),
+    r'grammarCode': PropertySchema(
+      id: 3,
+      name: r'grammarCode',
+      type: IsarType.string,
+    ),
+    r'grammarFunction': PropertySchema(
+      id: 4,
       name: r'grammarFunction',
       type: IsarType.byte,
       enumMap: _TokenEntrygrammarFunctionEnumValueMap,
     ),
+    r'groupRole': PropertySchema(
+      id: 5,
+      name: r'groupRole',
+      type: IsarType.byte,
+      enumMap: _TokenEntrygroupRoleEnumValueMap,
+    ),
+    r'headPosition': PropertySchema(
+      id: 6,
+      name: r'headPosition',
+      type: IsarType.long,
+    ),
     r'isClickable': PropertySchema(
-      id: 2,
+      id: 7,
       name: r'isClickable',
       type: IsarType.bool,
     ),
-    r'lemma': PropertySchema(id: 3, name: r'lemma', type: IsarType.string),
+    r'lemma': PropertySchema(id: 8, name: r'lemma', type: IsarType.string),
+    r'linkGroupId': PropertySchema(
+      id: 9,
+      name: r'linkGroupId',
+      type: IsarType.long,
+    ),
+    r'modality': PropertySchema(
+      id: 10,
+      name: r'modality',
+      type: IsarType.byte,
+      enumMap: _TokenEntrymodalityEnumValueMap,
+    ),
+    r'polarity': PropertySchema(
+      id: 11,
+      name: r'polarity',
+      type: IsarType.byte,
+      enumMap: _TokenEntrypolarityEnumValueMap,
+    ),
+    r'politeness': PropertySchema(
+      id: 12,
+      name: r'politeness',
+      type: IsarType.byte,
+      enumMap: _TokenEntrypolitenessEnumValueMap,
+    ),
     r'pos': PropertySchema(
-      id: 4,
+      id: 13,
       name: r'pos',
       type: IsarType.byte,
       enumMap: _TokenEntryposEnumValueMap,
     ),
+    r'relationLabel': PropertySchema(
+      id: 14,
+      name: r'relationLabel',
+      type: IsarType.string,
+    ),
+    r'surface': PropertySchema(id: 15, name: r'surface', type: IsarType.string),
+    r'tense': PropertySchema(
+      id: 16,
+      name: r'tense',
+      type: IsarType.byte,
+      enumMap: _TokenEntrytenseEnumValueMap,
+    ),
     r'versions': PropertySchema(
-      id: 5,
+      id: 17,
       name: r'versions',
       type: IsarType.objectList,
 
       target: r'ReadingItem',
     ),
     r'wordPosition': PropertySchema(
-      id: 6,
+      id: 18,
       name: r'wordPosition',
       type: IsarType.long,
     ),
@@ -3001,7 +4025,25 @@ int _tokenEntryEstimateSize(
 ) {
   var bytesCount = offsets.last;
   {
+    final value = object.grammarCode;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.lemma;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.relationLabel;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.surface;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -3023,18 +4065,30 @@ void _tokenEntrySerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeLong(offsets[0], object.blockId);
-  writer.writeByte(offsets[1], object.grammarFunction.index);
-  writer.writeBool(offsets[2], object.isClickable);
-  writer.writeString(offsets[3], object.lemma);
-  writer.writeByte(offsets[4], object.pos.index);
+  writer.writeByte(offsets[0], object.aspect.index);
+  writer.writeByte(offsets[1], object.attachMode.index);
+  writer.writeLong(offsets[2], object.blockId);
+  writer.writeString(offsets[3], object.grammarCode);
+  writer.writeByte(offsets[4], object.grammarFunction.index);
+  writer.writeByte(offsets[5], object.groupRole.index);
+  writer.writeLong(offsets[6], object.headPosition);
+  writer.writeBool(offsets[7], object.isClickable);
+  writer.writeString(offsets[8], object.lemma);
+  writer.writeLong(offsets[9], object.linkGroupId);
+  writer.writeByte(offsets[10], object.modality.index);
+  writer.writeByte(offsets[11], object.polarity.index);
+  writer.writeByte(offsets[12], object.politeness.index);
+  writer.writeByte(offsets[13], object.pos.index);
+  writer.writeString(offsets[14], object.relationLabel);
+  writer.writeString(offsets[15], object.surface);
+  writer.writeByte(offsets[16], object.tense.index);
   writer.writeObjectList<ReadingItem>(
-    offsets[5],
+    offsets[17],
     allOffsets,
     ReadingItemSchema.serialize,
     object.versions,
   );
-  writer.writeLong(offsets[6], object.wordPosition);
+  writer.writeLong(offsets[18], object.wordPosition);
 }
 
 TokenEntry _tokenEntryDeserialize(
@@ -3044,26 +4098,52 @@ TokenEntry _tokenEntryDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = TokenEntry(
-    blockId: reader.readLongOrNull(offsets[0]),
+    aspect:
+        _TokenEntryaspectValueEnumMap[reader.readByteOrNull(offsets[0])] ??
+        Aspect.none,
+    attachMode:
+        _TokenEntryattachModeValueEnumMap[reader.readByteOrNull(offsets[1])] ??
+        AttachMode.none,
+    blockId: reader.readLongOrNull(offsets[2]),
+    grammarCode: reader.readStringOrNull(offsets[3]),
     grammarFunction:
         _TokenEntrygrammarFunctionValueEnumMap[reader.readByteOrNull(
-          offsets[1],
+          offsets[4],
         )] ??
         GrammarFunction.none,
-    isClickable: reader.readBoolOrNull(offsets[2]) ?? true,
-    lemma: reader.readStringOrNull(offsets[3]),
+    groupRole:
+        _TokenEntrygroupRoleValueEnumMap[reader.readByteOrNull(offsets[5])] ??
+        GroupRole.head,
+    headPosition: reader.readLongOrNull(offsets[6]),
+    isClickable: reader.readBoolOrNull(offsets[7]) ?? true,
+    lemma: reader.readStringOrNull(offsets[8]),
+    linkGroupId: reader.readLongOrNull(offsets[9]),
+    modality:
+        _TokenEntrymodalityValueEnumMap[reader.readByteOrNull(offsets[10])] ??
+        Modality.none,
+    polarity:
+        _TokenEntrypolarityValueEnumMap[reader.readByteOrNull(offsets[11])] ??
+        Polarity.affirmative,
+    politeness:
+        _TokenEntrypolitenessValueEnumMap[reader.readByteOrNull(offsets[12])] ??
+        Politeness.plain,
     pos:
-        _TokenEntryposValueEnumMap[reader.readByteOrNull(offsets[4])] ??
+        _TokenEntryposValueEnumMap[reader.readByteOrNull(offsets[13])] ??
         WordPos.unknown,
+    relationLabel: reader.readStringOrNull(offsets[14]),
+    surface: reader.readStringOrNull(offsets[15]),
+    tense:
+        _TokenEntrytenseValueEnumMap[reader.readByteOrNull(offsets[16])] ??
+        Tense.none,
     versions:
         reader.readObjectList<ReadingItem>(
-          offsets[5],
+          offsets[17],
           ReadingItemSchema.deserialize,
           allOffsets,
           ReadingItem(),
         ) ??
         const [],
-    wordPosition: reader.readLongOrNull(offsets[6]),
+    wordPosition: reader.readLongOrNull(offsets[18]),
   );
   return object;
 }
@@ -3076,22 +4156,64 @@ P _tokenEntryDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readLongOrNull(offset)) as P;
+      return (_TokenEntryaspectValueEnumMap[reader.readByteOrNull(offset)] ??
+              Aspect.none)
+          as P;
     case 1:
+      return (_TokenEntryattachModeValueEnumMap[reader.readByteOrNull(
+                offset,
+              )] ??
+              AttachMode.none)
+          as P;
+    case 2:
+      return (reader.readLongOrNull(offset)) as P;
+    case 3:
+      return (reader.readStringOrNull(offset)) as P;
+    case 4:
       return (_TokenEntrygrammarFunctionValueEnumMap[reader.readByteOrNull(
                 offset,
               )] ??
               GrammarFunction.none)
           as P;
-    case 2:
+    case 5:
+      return (_TokenEntrygroupRoleValueEnumMap[reader.readByteOrNull(offset)] ??
+              GroupRole.head)
+          as P;
+    case 6:
+      return (reader.readLongOrNull(offset)) as P;
+    case 7:
       return (reader.readBoolOrNull(offset) ?? true) as P;
-    case 3:
+    case 8:
       return (reader.readStringOrNull(offset)) as P;
-    case 4:
+    case 9:
+      return (reader.readLongOrNull(offset)) as P;
+    case 10:
+      return (_TokenEntrymodalityValueEnumMap[reader.readByteOrNull(offset)] ??
+              Modality.none)
+          as P;
+    case 11:
+      return (_TokenEntrypolarityValueEnumMap[reader.readByteOrNull(offset)] ??
+              Polarity.affirmative)
+          as P;
+    case 12:
+      return (_TokenEntrypolitenessValueEnumMap[reader.readByteOrNull(
+                offset,
+              )] ??
+              Politeness.plain)
+          as P;
+    case 13:
       return (_TokenEntryposValueEnumMap[reader.readByteOrNull(offset)] ??
               WordPos.unknown)
           as P;
-    case 5:
+    case 14:
+      return (reader.readStringOrNull(offset)) as P;
+    case 15:
+      return (reader.readStringOrNull(offset)) as P;
+    case 16:
+      return (_TokenEntrytenseValueEnumMap[reader.readByteOrNull(offset)] ??
+              Tense.none)
+          as P;
+    case 17:
       return (reader.readObjectList<ReadingItem>(
                 offset,
                 ReadingItemSchema.deserialize,
@@ -3100,56 +4222,177 @@ P _tokenEntryDeserializeProp<P>(
               ) ??
               const [])
           as P;
-    case 6:
+    case 18:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
 }
 
+const _TokenEntryaspectEnumValueMap = {
+  'none': 0,
+  'progressive': 1,
+  'resultative': 2,
+  'perfective': 3,
+  'preparatory': 4,
+  'attempt': 5,
+  'inceptive': 6,
+  'continuative': 7,
+  'iterative': 8,
+  'benefactive': 9,
+};
+const _TokenEntryaspectValueEnumMap = {
+  0: Aspect.none,
+  1: Aspect.progressive,
+  2: Aspect.resultative,
+  3: Aspect.perfective,
+  4: Aspect.preparatory,
+  5: Aspect.attempt,
+  6: Aspect.inceptive,
+  7: Aspect.continuative,
+  8: Aspect.iterative,
+  9: Aspect.benefactive,
+};
+const _TokenEntryattachModeEnumValueMap = {'merge': 0, 'modify': 1, 'none': 2};
+const _TokenEntryattachModeValueEnumMap = {
+  0: AttachMode.merge,
+  1: AttachMode.modify,
+  2: AttachMode.none,
+};
 const _TokenEntrygrammarFunctionEnumValueMap = {
-  'obj': 0,
-  'subj': 1,
-  'top': 2,
-  'loc': 3,
-  'dir': 4,
-  'tim': 5,
-  'mns': 6,
-  'src': 7,
-  'rsn': 8,
-  'cnd': 9,
-  'q': 10,
-  'quo': 11,
-  'emp': 12,
-  'ctr': 13,
-  'dep': 14,
-  'tgt': 15,
-  'cmp': 16,
-  'cnj': 17,
-  'oth': 18,
-  'none': 19,
+  'subj': 0,
+  'obj': 1,
+  'obj2': 2,
+  'top': 3,
+  'ctr': 4,
+  'poss': 5,
+  'mod': 6,
+  'apos': 7,
+  'loc': 8,
+  'dir': 9,
+  'src': 10,
+  'tgt': 11,
+  'tim': 12,
+  'mns': 13,
+  'rsn': 14,
+  'prp': 15,
+  'cnd': 16,
+  'cnc': 17,
+  'cmp': 18,
+  'lim': 19,
+  'deg': 20,
+  'quo': 21,
+  'cnj': 22,
+  'emp': 23,
+  'q': 24,
+  'itj': 25,
+  'pred': 26,
+  'dep': 27,
+  'oth': 28,
+  'none': 29,
 };
 const _TokenEntrygrammarFunctionValueEnumMap = {
-  0: GrammarFunction.obj,
-  1: GrammarFunction.subj,
-  2: GrammarFunction.top,
-  3: GrammarFunction.loc,
-  4: GrammarFunction.dir,
-  5: GrammarFunction.tim,
-  6: GrammarFunction.mns,
-  7: GrammarFunction.src,
-  8: GrammarFunction.rsn,
-  9: GrammarFunction.cnd,
-  10: GrammarFunction.q,
-  11: GrammarFunction.quo,
-  12: GrammarFunction.emp,
-  13: GrammarFunction.ctr,
-  14: GrammarFunction.dep,
-  15: GrammarFunction.tgt,
-  16: GrammarFunction.cmp,
-  17: GrammarFunction.cnj,
-  18: GrammarFunction.oth,
-  19: GrammarFunction.none,
+  0: GrammarFunction.subj,
+  1: GrammarFunction.obj,
+  2: GrammarFunction.obj2,
+  3: GrammarFunction.top,
+  4: GrammarFunction.ctr,
+  5: GrammarFunction.poss,
+  6: GrammarFunction.mod,
+  7: GrammarFunction.apos,
+  8: GrammarFunction.loc,
+  9: GrammarFunction.dir,
+  10: GrammarFunction.src,
+  11: GrammarFunction.tgt,
+  12: GrammarFunction.tim,
+  13: GrammarFunction.mns,
+  14: GrammarFunction.rsn,
+  15: GrammarFunction.prp,
+  16: GrammarFunction.cnd,
+  17: GrammarFunction.cnc,
+  18: GrammarFunction.cmp,
+  19: GrammarFunction.lim,
+  20: GrammarFunction.deg,
+  21: GrammarFunction.quo,
+  22: GrammarFunction.cnj,
+  23: GrammarFunction.emp,
+  24: GrammarFunction.q,
+  25: GrammarFunction.itj,
+  26: GrammarFunction.pred,
+  27: GrammarFunction.dep,
+  28: GrammarFunction.oth,
+  29: GrammarFunction.none,
+};
+const _TokenEntrygroupRoleEnumValueMap = {
+  'head': 0,
+  'particle': 1,
+  'auxiliary': 2,
+  'suffix': 3,
+  'prefix': 4,
+  'inflection': 5,
+  'punct': 6,
+};
+const _TokenEntrygroupRoleValueEnumMap = {
+  0: GroupRole.head,
+  1: GroupRole.particle,
+  2: GroupRole.auxiliary,
+  3: GroupRole.suffix,
+  4: GroupRole.prefix,
+  5: GroupRole.inflection,
+  6: GroupRole.punct,
+};
+const _TokenEntrymodalityEnumValueMap = {
+  'none': 0,
+  'hearsay': 1,
+  'appearance': 2,
+  'conjecture': 3,
+  'likelihood': 4,
+  'certainty': 5,
+  'obligation': 6,
+  'permission': 7,
+  'prohibition': 8,
+  'desire': 9,
+  'volition': 10,
+  'ability': 11,
+  'passive': 12,
+  'causative': 13,
+  'causativePassive': 14,
+  'conditional': 15,
+};
+const _TokenEntrymodalityValueEnumMap = {
+  0: Modality.none,
+  1: Modality.hearsay,
+  2: Modality.appearance,
+  3: Modality.conjecture,
+  4: Modality.likelihood,
+  5: Modality.certainty,
+  6: Modality.obligation,
+  7: Modality.permission,
+  8: Modality.prohibition,
+  9: Modality.desire,
+  10: Modality.volition,
+  11: Modality.ability,
+  12: Modality.passive,
+  13: Modality.causative,
+  14: Modality.causativePassive,
+  15: Modality.conditional,
+};
+const _TokenEntrypolarityEnumValueMap = {'affirmative': 0, 'negative': 1};
+const _TokenEntrypolarityValueEnumMap = {
+  0: Polarity.affirmative,
+  1: Polarity.negative,
+};
+const _TokenEntrypolitenessEnumValueMap = {
+  'plain': 0,
+  'polite': 1,
+  'humble': 2,
+  'honorific': 3,
+};
+const _TokenEntrypolitenessValueEnumMap = {
+  0: Politeness.plain,
+  1: Politeness.polite,
+  2: Politeness.humble,
+  3: Politeness.honorific,
 };
 const _TokenEntryposEnumValueMap = {
   'v': 0,
@@ -3173,9 +4416,129 @@ const _TokenEntryposValueEnumMap = {
   7: WordPos.o,
   8: WordPos.unknown,
 };
+const _TokenEntrytenseEnumValueMap = {'none': 0, 'nonPast': 1, 'past': 2};
+const _TokenEntrytenseValueEnumMap = {
+  0: Tense.none,
+  1: Tense.nonPast,
+  2: Tense.past,
+};
 
 extension TokenEntryQueryFilter
     on QueryBuilder<TokenEntry, TokenEntry, QFilterCondition> {
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> aspectEqualTo(
+    Aspect value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'aspect', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> aspectGreaterThan(
+    Aspect value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'aspect',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> aspectLessThan(
+    Aspect value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'aspect',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> aspectBetween(
+    Aspect lower,
+    Aspect upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'aspect',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> attachModeEqualTo(
+    AttachMode value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'attachMode', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  attachModeGreaterThan(AttachMode value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'attachMode',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  attachModeLessThan(AttachMode value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'attachMode',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> attachModeBetween(
+    AttachMode lower,
+    AttachMode upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'attachMode',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
   QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> blockIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -3251,6 +4614,165 @@ extension TokenEntryQueryFilter
   }
 
   QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  grammarCodeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'grammarCode'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  grammarCodeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'grammarCode'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  grammarCodeEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'grammarCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  grammarCodeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'grammarCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  grammarCodeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'grammarCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  grammarCodeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'grammarCode',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  grammarCodeStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'grammarCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  grammarCodeEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'grammarCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  grammarCodeContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'grammarCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  grammarCodeMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'grammarCode',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  grammarCodeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'grammarCode', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  grammarCodeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'grammarCode', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
   grammarFunctionEqualTo(GrammarFunction value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -3296,6 +4818,136 @@ extension TokenEntryQueryFilter
       return query.addFilterCondition(
         FilterCondition.between(
           property: r'grammarFunction',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> groupRoleEqualTo(
+    GroupRole value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'groupRole', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  groupRoleGreaterThan(GroupRole value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'groupRole',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> groupRoleLessThan(
+    GroupRole value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'groupRole',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> groupRoleBetween(
+    GroupRole lower,
+    GroupRole upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'groupRole',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  headPositionIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'headPosition'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  headPositionIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'headPosition'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  headPositionEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'headPosition', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  headPositionGreaterThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'headPosition',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  headPositionLessThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'headPosition',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  headPositionBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'headPosition',
           lower: lower,
           includeLower: includeLower,
           upper: upper,
@@ -3477,6 +5129,248 @@ extension TokenEntryQueryFilter
     });
   }
 
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  linkGroupIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'linkGroupId'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  linkGroupIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'linkGroupId'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  linkGroupIdEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'linkGroupId', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  linkGroupIdGreaterThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'linkGroupId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  linkGroupIdLessThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'linkGroupId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  linkGroupIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'linkGroupId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> modalityEqualTo(
+    Modality value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'modality', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  modalityGreaterThan(Modality value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'modality',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> modalityLessThan(
+    Modality value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'modality',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> modalityBetween(
+    Modality lower,
+    Modality upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'modality',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> polarityEqualTo(
+    Polarity value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'polarity', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  polarityGreaterThan(Polarity value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'polarity',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> polarityLessThan(
+    Polarity value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'polarity',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> polarityBetween(
+    Polarity lower,
+    Polarity upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'polarity',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> politenessEqualTo(
+    Politeness value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'politeness', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  politenessGreaterThan(Politeness value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'politeness',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  politenessLessThan(Politeness value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'politeness',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> politenessBetween(
+    Politeness lower,
+    Politeness upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'politeness',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
   QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> posEqualTo(
     WordPos value,
   ) {
@@ -3527,6 +5421,389 @@ extension TokenEntryQueryFilter
       return query.addFilterCondition(
         FilterCondition.between(
           property: r'pos',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  relationLabelIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'relationLabel'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  relationLabelIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'relationLabel'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  relationLabelEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'relationLabel',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  relationLabelGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'relationLabel',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  relationLabelLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'relationLabel',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  relationLabelBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'relationLabel',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  relationLabelStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'relationLabel',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  relationLabelEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'relationLabel',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  relationLabelContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'relationLabel',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  relationLabelMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'relationLabel',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  relationLabelIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'relationLabel', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  relationLabelIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'relationLabel', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> surfaceIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'surface'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  surfaceIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'surface'),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> surfaceEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'surface',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  surfaceGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'surface',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> surfaceLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'surface',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> surfaceBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'surface',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> surfaceStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'surface',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> surfaceEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'surface',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> surfaceContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'surface',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> surfaceMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'surface',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> surfaceIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'surface', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition>
+  surfaceIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'surface', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> tenseEqualTo(
+    Tense value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'tense', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> tenseGreaterThan(
+    Tense value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'tense',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> tenseLessThan(
+    Tense value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'tense',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TokenEntry, TokenEntry, QAfterFilterCondition> tenseBetween(
+    Tense lower,
+    Tense upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'tense',
           lower: lower,
           includeLower: includeLower,
           upper: upper,
@@ -3687,14 +5964,19 @@ const TranslationTokenEntrySchema = Schema(
       name: r'isInferred',
       type: IsarType.bool,
     ),
-    r'sourceWordPositions': PropertySchema(
+    r'linkGroupId': PropertySchema(
       id: 2,
+      name: r'linkGroupId',
+      type: IsarType.long,
+    ),
+    r'sourceWordPositions': PropertySchema(
+      id: 3,
       name: r'sourceWordPositions',
       type: IsarType.longList,
     ),
-    r'text': PropertySchema(id: 3, name: r'text', type: IsarType.string),
+    r'text': PropertySchema(id: 4, name: r'text', type: IsarType.string),
     r'translatedWordPosition': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'translatedWordPosition',
       type: IsarType.long,
     ),
@@ -3730,9 +6012,10 @@ void _translationTokenEntrySerialize(
 ) {
   writer.writeLong(offsets[0], object.blockId);
   writer.writeBool(offsets[1], object.isInferred);
-  writer.writeLongList(offsets[2], object.sourceWordPositions);
-  writer.writeString(offsets[3], object.text);
-  writer.writeLong(offsets[4], object.translatedWordPosition);
+  writer.writeLong(offsets[2], object.linkGroupId);
+  writer.writeLongList(offsets[3], object.sourceWordPositions);
+  writer.writeString(offsets[4], object.text);
+  writer.writeLong(offsets[5], object.translatedWordPosition);
 }
 
 TranslationTokenEntry _translationTokenEntryDeserialize(
@@ -3744,9 +6027,10 @@ TranslationTokenEntry _translationTokenEntryDeserialize(
   final object = TranslationTokenEntry(
     blockId: reader.readLongOrNull(offsets[0]),
     isInferred: reader.readBoolOrNull(offsets[1]) ?? false,
-    sourceWordPositions: reader.readLongList(offsets[2]) ?? const [],
-    text: reader.readStringOrNull(offsets[3]),
-    translatedWordPosition: reader.readLongOrNull(offsets[4]),
+    linkGroupId: reader.readLongOrNull(offsets[2]),
+    sourceWordPositions: reader.readLongList(offsets[3]) ?? const [],
+    text: reader.readStringOrNull(offsets[4]),
+    translatedWordPosition: reader.readLongOrNull(offsets[5]),
   );
   return object;
 }
@@ -3763,10 +6047,12 @@ P _translationTokenEntryDeserializeProp<P>(
     case 1:
       return (reader.readBoolOrNull(offset) ?? false) as P;
     case 2:
-      return (reader.readLongList(offset) ?? const []) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 3:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongList(offset) ?? const []) as P;
     case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    case 5:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -3886,6 +6172,103 @@ extension TranslationTokenEntryQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(property: r'isInferred', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<
+    TranslationTokenEntry,
+    TranslationTokenEntry,
+    QAfterFilterCondition
+  >
+  linkGroupIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'linkGroupId'),
+      );
+    });
+  }
+
+  QueryBuilder<
+    TranslationTokenEntry,
+    TranslationTokenEntry,
+    QAfterFilterCondition
+  >
+  linkGroupIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'linkGroupId'),
+      );
+    });
+  }
+
+  QueryBuilder<
+    TranslationTokenEntry,
+    TranslationTokenEntry,
+    QAfterFilterCondition
+  >
+  linkGroupIdEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'linkGroupId', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<
+    TranslationTokenEntry,
+    TranslationTokenEntry,
+    QAfterFilterCondition
+  >
+  linkGroupIdGreaterThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'linkGroupId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    TranslationTokenEntry,
+    TranslationTokenEntry,
+    QAfterFilterCondition
+  >
+  linkGroupIdLessThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'linkGroupId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    TranslationTokenEntry,
+    TranslationTokenEntry,
+    QAfterFilterCondition
+  >
+  linkGroupIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'linkGroupId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
       );
     });
   }

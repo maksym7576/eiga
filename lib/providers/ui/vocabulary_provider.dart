@@ -18,6 +18,7 @@ class StyledVocabularyItem {
   final String? contextOriginal;
   final String? contextTranslated;
   final int phraseId;
+  final bool isIdiom;
 
   StyledVocabularyItem({
     required this.block,
@@ -28,6 +29,7 @@ class StyledVocabularyItem {
     this.seriesName,
     this.contextOriginal,
     this.contextTranslated,
+    this.isIdiom = false,
   });
 }
 
@@ -79,6 +81,8 @@ final styledVocabularyProvider = StreamProvider<List<StyledVocabularyItem>>((ref
         final blockTrWords = phrase.translatedWords?.where((tw) => tw.blockId == blockId).toList() ?? [];
         blockTrWords.sort((a, b) => (a.translatedWordPosition ?? 0).compareTo(b.translatedWordPosition ?? 0));
 
+        final bool isIdiom = phrase.linkGroups?.any((lg) => lg.isIdiom && lg.sourcePositions.any((sp) => blockWords.any((bw) => bw.wordPosition == sp))) ?? false;
+
         result.add(StyledVocabularyItem(
           block: EmbeddedBlock(blockId),
           words: blockWords,
@@ -88,6 +92,7 @@ final styledVocabularyProvider = StreamProvider<List<StyledVocabularyItem>>((ref
           seriesName: m.seriesName,
           contextOriginal: m.contextOriginal,
           contextTranslated: m.contextTranslated,
+          isIdiom: isIdiom,
         ));
       }
     }

@@ -57,6 +57,8 @@ class PhrasesPreviewSection extends ConsumerWidget {
                       ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                _buildOptimizationControls(theme, state, notifier),
                 if (state.availableStreams.keys.length > 1) ...[
                   const SizedBox(height: 10),
                   SingleChildScrollView(
@@ -88,6 +90,79 @@ class PhrasesPreviewSection extends ConsumerWidget {
           ),
           _buildPhrasesList(theme, state),
           const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptimizationControls(AdditionalWindowTheme theme, UploadState state, UploadNotifier notifier) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.slate50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.slate100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome_rounded, size: 14, color: AppColors.brandBlue),
+              const SizedBox(width: 8),
+              Text(
+                'Animation Optimization',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: theme.primaryAccent),
+              ),
+              const Spacer(),
+              if (state.appliedPaddingMs > 0 || state.appliedFillGaps)
+                Text(
+                  'Adjusted',
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.successText, letterSpacing: 0.5),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _OptionChip(
+                  label: 'Original',
+                  isSelected: state.appliedPaddingMs == 0 && !state.appliedFillGaps,
+                  onSelected: () => notifier.optimizeTimings(0, fillGaps: false),
+                ),
+                _OptionChip(
+                  label: '+100ms',
+                  isSelected: state.appliedPaddingMs == 100,
+                  onSelected: () => notifier.optimizeTimings(100, fillGaps: state.appliedFillGaps),
+                ),
+                _OptionChip(
+                  label: '+200ms',
+                  isSelected: state.appliedPaddingMs == 200,
+                  onSelected: () => notifier.optimizeTimings(200, fillGaps: state.appliedFillGaps),
+                ),
+                _OptionChip(
+                  label: '+500ms',
+                  isSelected: state.appliedPaddingMs == 500,
+                  onSelected: () => notifier.optimizeTimings(500, fillGaps: state.appliedFillGaps),
+                ),
+                const SizedBox(width: 8),
+                Container(width: 1, height: 20, color: AppColors.slate200),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('Fill Gaps', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  selected: state.appliedFillGaps,
+                  onSelected: (val) => notifier.optimizeTimings(state.appliedPaddingMs, fillGaps: val),
+                  selectedColor: AppColors.brandBlue.withValues(alpha: 0.15),
+                  backgroundColor: Colors.white,
+                  side: BorderSide(color: state.appliedFillGaps ? AppColors.brandBlue : AppColors.slate200),
+                  labelStyle: TextStyle(color: state.appliedFillGaps ? AppColors.brandBlue : AppColors.slate600),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -147,6 +222,35 @@ class PhrasesPreviewSection extends ConsumerWidget {
   static String _formatTime(DateTime? time) {
     if (time == null) return '00:00:00';
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:${time.second.toString().padLeft(2, '0')}';
+  }
+}
+
+class _OptionChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onSelected;
+
+  const _OptionChip({
+    required this.label,
+    required this.isSelected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: ChoiceChip(
+        label: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+        selected: isSelected,
+        onSelected: (_) => onSelected(),
+        selectedColor: AppColors.brandBlue.withValues(alpha: 0.1),
+        backgroundColor: Colors.white,
+        side: BorderSide(color: isSelected ? AppColors.brandBlue.withValues(alpha: 0.3) : AppColors.slate200),
+        labelStyle: TextStyle(color: isSelected ? AppColors.brandBlue : AppColors.slate600),
+        visualDensity: VisualDensity.compact,
+      ),
+    );
   }
 }
 

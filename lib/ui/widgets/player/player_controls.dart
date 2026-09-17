@@ -171,26 +171,36 @@ class _TopOverlay extends HookConsumerWidget {
 class _FrostedPill extends StatelessWidget {
   final Widget child;
   final EdgeInsets? padding;
+  final VoidCallback? onTap;
 
-  const _FrostedPill({required this.child, this.padding});
+  const _FrostedPill({required this.child, this.padding, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    Widget content = ClipRRect(
       borderRadius: BorderRadius.circular(99),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.35),
+            color: Colors.black.withValues(alpha: 0.45),
             borderRadius: BorderRadius.circular(99),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 0.8),
           ),
           child: child,
         ),
       ),
     );
+
+    if (onTap != null) {
+      return GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: content,
+      );
+    }
+    return content;
   }
 }
 
@@ -201,17 +211,20 @@ class _BottomBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final duration = ref.watch(playerProvider.select((s) => s.duration));
     final position = ref.watch(playerTimeProvider);
+    final playbackRate = ref.watch(playerProvider.select((s) => s.playbackRate));
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
           colors: [
-            Colors.black.withValues(alpha: 0.6),
+            Colors.black.withValues(alpha: 0.85),
+            Colors.black.withValues(alpha: 0.4),
             Colors.transparent,
           ],
+          stops: const [0.0, 0.4, 1.0],
         ),
       ),
       child: Column(
@@ -225,17 +238,18 @@ class _BottomBar extends ConsumerWidget {
               ref.read(playerProvider.notifier).resetHideTimer();
             },
           ),
+          const SizedBox(height: 0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _FrostedPill(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 child: Text(
                   '${_formatDuration(position)} / ${_formatDuration(duration)}',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                     fontFamily: 'monospace',
                   ),
                 ),
@@ -243,28 +257,43 @@ class _BottomBar extends ConsumerWidget {
               Row(
                 children: [
                   _FrostedPill(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    child: const Text(
-                      '1.0x',
-                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    onTap: () {
+                      final rates = [1.0, 0.85, 0.75];
+                      final currentIndex = rates.indexOf(playbackRate);
+                      final nextIndex = (currentIndex + 1) % rates.length;
+                      ref.read(playerProvider.notifier).setPlaybackRate(rates[nextIndex]);
+                      ref.read(playerProvider.notifier).resetHideTimer();
+                    },
+                    child: Text(
+                      '${playbackRate.toStringAsFixed(2)}x',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   _FrostedPill(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: GestureDetector(
-                      onTap: () {
-                        ref.read(playerProvider.notifier).toggleFullscreen();
-                        ref.read(playerProvider.notifier).resetHideTimer();
-                      },
-                      behavior: HitTestBehavior.opaque,
-                      child: const Icon(Icons.fullscreen, color: Colors.white, size: 20),
+                    padding: const EdgeInsets.all(8),
+                    onTap: () {
+                      ref.read(playerProvider.notifier).toggleFullscreen();
+                      ref.read(playerProvider.notifier).resetHideTimer();
+                    },
+                    child: Icon(
+                      ref.watch(playerProvider.select((s) => s.isFullscreen))
+                          ? Icons.fullscreen_exit
+                          : Icons.fullscreen,
+                      color: Colors.white,
+                      size: 24,
                     ),
                   ),
                 ],
               ),
             ],
           ),
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -301,16 +330,16 @@ class _ProgressBar extends StatelessWidget {
     return RepaintBoundary(
       child: SliderTheme(
         data: SliderTheme.of(context).copyWith(
-          trackHeight: 2,
-          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4, elevation: 2),
-          overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
+          trackHeight: 4, // Thicker track
+          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7, elevation: 4),
+          overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
           activeTrackColor: AppColors.brandBlue,
-          inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
+          inactiveTrackColor: Colors.white.withValues(alpha: 0.25),
           thumbColor: Colors.white,
           trackShape: const RectangularSliderTrackShape(),
         ),
         child: Container(
-          height: 20,
+          height: 24,
           alignment: Alignment.center,
           child: Slider(
             value: value.clamp(0.0, 1.0),

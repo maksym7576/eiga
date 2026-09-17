@@ -77,6 +77,30 @@ class _GeneralSettingsScreenState extends ConsumerState<GeneralSettingsScreen> {
               },
             ),
             const SizedBox(height: 24),
+            _buildSectionHeader(context, 'SUBTITLES'),
+            const SizedBox(height: 8),
+            _buildSwitchCard(
+              context,
+              title: 'Hide content in brackets',
+              subtitle: 'Remove text inside (parentheses) from subtitles.',
+              value: config.getHideParenthesesContent,
+              onChanged: (val) async {
+                await config.setHideParenthesesContent(val);
+                setState(() {});
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildSwitchCard(
+              context,
+              title: 'Auto-shrink long subtitles',
+              subtitle: 'Scale down text to fit in fullscreen (min 70%).',
+              value: config.getFullscreenAutoShrink,
+              onChanged: (val) async {
+                await config.setFullscreenAutoShrink(val);
+                setState(() {});
+              },
+            ),
+            const SizedBox(height: 24),
             _buildSectionHeader(context, 'STAGE MODELS'),
             const SizedBox(height: 8),
             _buildModelButtonsGrid(context),
