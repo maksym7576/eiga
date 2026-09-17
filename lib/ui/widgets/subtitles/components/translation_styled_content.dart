@@ -174,7 +174,7 @@ class _TranslationTokenWidget extends HookConsumerWidget {
     Widget tokenContent = Container(
       key: ValueKey('token_bg_${token.translatedWordPosition}_$isHighlighted'),
       padding: EdgeInsets.symmetric(
-        horizontal: isPunctuation ? 0 : baseFontSize * 0.15, 
+        horizontal: isPunctuation ? baseFontSize * 0.06 : baseFontSize * 0.15, 
         vertical: baseFontSize * 0.05
       ),
       decoration: BoxDecoration(
@@ -198,7 +198,7 @@ class _TranslationTokenWidget extends HookConsumerWidget {
         outlineColor: Colors.black,
         style: TextStyle(
           fontSize: baseFontSize * modeSettings.translationScale,
-          color: style?.color ?? (isFullscreen ? Colors.white : textColor.withValues(alpha: (isHighlighted && !isPunctuation) ? 1.0 : 0.85)),
+          color: style?.color ?? (isFullscreen ? Colors.white : textColor.withValues(alpha: isPunctuation ? 0.95 : ((isHighlighted && !isPunctuation) ? 1.0 : 0.85))),
           fontWeight: useOutline ? FontWeight.w800 : ((isHighlighted && !isPunctuation) ? FontWeight.w800 : (style?.fontWeight ?? FontWeight.w700)),
           height: 1.5,
           letterSpacing: modeSettings.translationLetterSpacing,

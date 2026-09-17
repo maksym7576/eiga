@@ -92,7 +92,7 @@ class RubyText extends HookConsumerWidget {
     final double fs = baseStyle?.fontSize ?? 16.0;
 
     final double horizontalPadding = isPunctuation 
-        ? 0 
+        ? (fs * 0.06).clamp(1.5, 6.0) 
         : (removeSpaces && !showHighlight) 
             ? 0 
             : (fs * 0.12).clamp(4.0, 16.0);
