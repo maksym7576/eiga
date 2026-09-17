@@ -9,6 +9,7 @@ import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/services/isar_services_providers.dart';
 import 'package:eiga/providers/ui/grammar_labels_provider.dart';
+import 'package:eiga/providers/services/external_api_providers.dart';
 import '../../styles/app_colors.dart';
 
 class WordDetailsPopover extends ConsumerWidget {
@@ -136,8 +137,45 @@ class WordDetailsPopover extends ConsumerWidget {
               _buildWordsHeader(phrase, wordIds, isCompact: true),
               const SizedBox(height: 12),
               _buildMinimalTranslation(phrase, index, tIds),
-              const SizedBox(height: 16),
-              _buildDetailsButton(context, ref, labels, phrase, index, wordIds, tIds),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildDetailsButton(context, ref, labels, phrase, index, wordIds, tIds),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () async {
+                      final words = phrase.originalTokens?.where((t) => wordIds.contains(t.wordPosition)).toList() ?? [];
+                      final frontText = words.map((w) => w.mainText).join(', ');
+                      final tokens = phrase.translatedWords ?? [];
+                      final backText = tokens.where((t) => tIds.contains(t.translatedWordPosition)).map((t) => t.text).join(' ');
+                      
+                      final success = await ref.read(ankiServiceProvider).addNote(front: frontText, back: backText, tags: ['eiga']);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(success ? 'Added to Anki!' : 'Failed to add to Anki'),
+                            backgroundColor: success ? Colors.green : Colors.redAccent,
+                          ),
+                        );
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      child: Row(
+                        children: [
+                          Icon(Icons.star_rounded, size: 14, color: Colors.blue.shade700),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Anki',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

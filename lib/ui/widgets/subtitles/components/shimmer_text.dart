@@ -68,8 +68,6 @@ class _SlidingGradientTransform extends GradientTransform {
 
   @override
   Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
-    // Mimic the CSS background-position sweep
-    // Translate from -200% to 200%
     final double t = (offset * 4) - 2;
     return Matrix4.translationValues(t * bounds.width, 0, 0);
   }

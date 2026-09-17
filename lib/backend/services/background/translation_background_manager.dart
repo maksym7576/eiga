@@ -171,15 +171,18 @@ class TranslationBackgroundManager {
         await phraseService.resetTranslatingState(task.phraseIds);
         
         final config = ref.read(appConfigsServiceProvider);
+        bool handledWithFallback = false;
+
         if (config.getIsAutomaticModelSwitch && result.failedStepType != null && result.failedModel != null) {
           final stepType = _mapStepToEnum(result.failedStepType!);
           if (stepType != null) {
              final fallback = await ref.read(aiModelServiceProvider).getBestFallbackModel(stepType, result.failedModel!.name);
              if (fallback != null) {
-               logger.i('[Manager] Attempt failed. Switching model to ${fallback.name}. Waiting 3s before retry...');
+               logger.i('[Manager] Attempt failed (${result.error?.message}). Switching model to ${fallback.name}. Waiting 3s before retry...');
                await ref.read(aiModelServiceProvider).incrementErrorCount(result.failedModel!.name);
                await ref.read(aiModelsProvider.notifier).updateActiveModel(stepType, fallback.name);
                
+               handledWithFallback = true;
                // Delay to prevent rapid-fire spamming on failures
                Future.delayed(const Duration(seconds: 3), () {
                  addTask(task, force: true);
@@ -188,12 +191,15 @@ class TranslationBackgroundManager {
           }
         }
 
-        // Pause video on error
-        ref.read(playerProvider.notifier).setPlaying(false);
-        
-        // Trigger global error dialog if there is one
-        if (result.error != null) {
-          ref.read(aiErrorStateProvider.notifier).state = result.error;
+        // SILENT ERRORS: Only show dialog if NOT handled by automatic switch OR if it's a manual request (Normal priority)
+        if (!handledWithFallback || task.priority == TaskPriority.normal) {
+          // Pause video on fatal error
+          ref.read(playerProvider.notifier).setPlaying(false);
+          
+          // Trigger global error dialog
+          if (result.error != null) {
+            ref.read(aiErrorStateProvider.notifier).state = result.error;
+          }
         }
       } else if (result.phase == AiRequestPhase.partialSuccess) {
         // SOFT RESET: Keep translation for failed phrases in multi-stage pipeline

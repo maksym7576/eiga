@@ -75,6 +75,10 @@ class AppConfig {
   static const _keySyncPointDurationMinutes = 'sync_point_duration_minutes';
   static const _keyHideParenthesesContent = 'hide_parentheses_content';
   static const _keyFullscreenAutoShrink = 'fs_auto_shrink';
+
+  static const _keyAnkiConnectUrl = 'anki_connect_url';
+  static const _keyAnkiDeckName = 'anki_deck_name';
+  static const _keyAnkiNoteType = 'anki_note_type';
   
   static String _modelKey(TranslationPipelineStep step) => 'active_model_${step.name}';
 
@@ -308,6 +312,15 @@ class AppConfig {
       await _prefs.remove(_modelKey(step));
     }
   }
+
+  String get getAnkiConnectUrl => _prefs.getString(_keyAnkiConnectUrl) ?? 'http://localhost:8765';
+  Future<void> setAnkiConnectUrl(String value) async => await _prefs.setString(_keyAnkiConnectUrl, value);
+
+  String get getAnkiDeckName => _prefs.getString(_keyAnkiDeckName) ?? 'Eiga';
+  Future<void> setAnkiDeckName(String value) async => await _prefs.setString(_keyAnkiDeckName, value);
+
+  String get getAnkiNoteType => _prefs.getString(_keyAnkiNoteType) ?? 'Basic';
+  Future<void> setAnkiNoteType(String value) async => await _prefs.setString(_keyAnkiNoteType, value);
 
   Future<void> resetBatchSettings() async {
     await _prefs.remove(_keyNumberOfPhrases);

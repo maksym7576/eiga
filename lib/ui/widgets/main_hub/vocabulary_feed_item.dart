@@ -4,6 +4,7 @@ import '../../../backend/database/schemas/phrase.dart';
 import '../../../backend/database/schemas/specific_word_style.dart';
 import 'package:eiga/providers/ui/vocabulary_provider.dart';
 import 'package:eiga/providers/ui/grammar_labels_provider.dart';
+import 'package:eiga/providers/services/external_api_providers.dart';
 import '../../styles/additional_window_theme.dart';
 import '../../styles/app_colors.dart';
 
@@ -103,6 +104,45 @@ class VocabularyFeedItem extends ConsumerWidget {
                   if (item.words.isNotEmpty) _buildPosBadge(labels, item.words.first, item.isIdiom),
                   const SizedBox(height: 8),
                   _buildStatusBadge(style),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () async {
+                      final frontText = item.words.map((w) => w.mainText).join(', ');
+                      final backText = item.translationWords.map((t) => t.text).join(', ');
+                      final success = await ref.read(ankiServiceProvider).addNote(front: frontText, back: backText, tags: ['eiga']);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(success ? 'Added to Anki!' : 'Failed to add to Anki'),
+                            backgroundColor: success ? Colors.green : Colors.redAccent,
+                          ),
+                        );
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.star_rounded, size: 12, color: Colors.blue.shade700),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Anki',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.blue.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
                 ],

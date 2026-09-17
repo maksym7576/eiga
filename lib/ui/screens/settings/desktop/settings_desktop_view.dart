@@ -7,6 +7,7 @@ import '../general_settings_screen.dart';
 import '../reader_preferences_screen.dart';
 import '../tokenization_settings_screen.dart';
 import '../processing_batch_settings_screen.dart';
+import '../anki_settings_screen.dart';
 
 class SettingsDesktopView extends StatelessWidget {
   final Future<void> Function(BuildContext) onFullReset;
@@ -186,6 +187,20 @@ class SettingsDesktopView extends StatelessWidget {
             badgeText: 'Has key',
             badgeColor: Colors.teal,
             onTap: () => ControlButtonWidget.openWyzieKeyDialog(context),
+          ),
+          Divider(height: 1, color: theme.dividerColor, indent: 64),
+          SettingTile(
+            title: 'Anki Integration',
+            subtitle: 'Configure decks and fields for vocabulary export',
+            icon: Icons.star_rounded,
+            iconColor: Colors.white,
+            iconBackground: const [Color(0xFF3B82F6), Color(0xFF2563EB)],
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AnkiSettingsScreen()),
+              );
+            },
           ),
           Divider(height: 1, color: theme.dividerColor, indent: 64),
           SettingTile(

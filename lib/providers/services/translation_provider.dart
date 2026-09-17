@@ -124,10 +124,15 @@ class TranslationNotifier extends Notifier<void> {
     // Also include a small number of past phrases if they were missed.
     final startIdx = (activeIndex - (maxLimit ~/ 4)).clamp(0, phrases.length);
     
+    final processingIds = _getCurrentlyProcessingIds();
     int foundCount = 0;
     for (int i = startIdx; i < phrases.length; i++) {
       final phrase = phrases[i];
+      
+      // Skip if already done OR if already being handled by the queue/active tasks
       if (phrase.isTranslating || phrase.isTranslated) continue;
+      if (processingIds.contains(phrase.id) || _sentToQueueIds.contains(phrase.id)) continue;
+      
       if (phrase.startTime == null) continue;
 
       final phraseTime = phrase.startTime!.difference(startBase);
@@ -156,32 +161,10 @@ class TranslationNotifier extends Notifier<void> {
       }
 
       if (shouldTrigger) {
-        final processingIds = _getCurrentlyProcessingIds();
+        // AGGRESSIVE BATCHING: We take everything we found (up to maxLimit)
+        logger.d('Realtime trigger: Requesting translation (${pastPhrases.length + futurePhrases.length} phrases found).');
         
-        final pastToTranslate = pastPhrases.where((p) => !processingIds.contains(p.id) && !_sentToQueueIds.contains(p.id)).toList();
-        final futureToTranslate = futurePhrases.where((p) => !processingIds.contains(p.id) && !_sentToQueueIds.contains(p.id)).toList();
-
-        if (futureToTranslate.isEmpty && pastToTranslate.isEmpty) return;
-        
-        final totalToTranslate = futureToTranslate.length + pastToTranslate.length;
-        
-        // RULE: Only trigger if we have a full batch (or close to it)
-        // OR if there are no more untranslated phrases later in the entire video.
-        final bool isFullBatch = totalToTranslate >= (maxLimit * 0.8).toInt();
-        
-        if (!isFullBatch) {
-           final hasMoreLater = phrases.skip(activeIndex + foundCount).any((p) => !p.isTranslated && !p.isTranslating && !processingIds.contains(p.id) && !_sentToQueueIds.contains(p.id));
-           
-           // If there IS more content later, we wait until the playhead gets closer or more phrases accumulate
-           if (hasMoreLater) {
-             // Exception: if it's a manual jump/tap, we allow smaller batches
-             final isManualInteraction = _lastTaskAddedTime == null || DateTime.now().difference(_lastTaskAddedTime!) > const Duration(seconds: 1);
-             if (!isManualInteraction) return;
-           }
-        }
-
-        logger.d('Realtime trigger: Requesting translation ($totalToTranslate phrases).');
-        final tasks = _buildTasks(pastToTranslate, futureToTranslate, maxLimit, TaskPriority.high);
+        final tasks = _buildTasks(pastPhrases, futurePhrases, maxLimit, TaskPriority.high);
         if (tasks.isNotEmpty) {
           _lastTaskAddedTime = DateTime.now();
           _sentToQueueIds.addAll(tasks.first.phraseIds);

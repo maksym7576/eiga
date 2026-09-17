@@ -339,6 +339,18 @@ final stickyActivePhraseIdProvider = Provider<int?>((ref) {
   return null;
 });
 
+final activePhraseProvider = Provider<Phrase?>((ref) {
+  final phrases = ref.watch(phrasesStreamProvider).value ?? [];
+  final activeId = ref.watch(activePhraseIdProvider);
+  if (activeId == null || phrases.isEmpty) return null;
+
+  // Linear or binary search since the list is small and index matched
+  for (final p in phrases) {
+    if (p.id == activeId) return p;
+  }
+  return null;
+});
+
 final clickedWordProvider = FutureProvider<TokenEntry?>((ref) async {
   final wordId = ref.watch(clickedWordIdProvider);
   if (wordId == null) return null;

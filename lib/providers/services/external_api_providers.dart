@@ -4,6 +4,8 @@ import 'package:eiga/backend/services/jimaku_service.dart';
 import 'package:eiga/backend/services/tvmaze_service.dart';
 import 'package:eiga/backend/services/shikimori_service.dart';
 import 'package:eiga/backend/services/wyzie_service.dart';
+import 'package:eiga/backend/services/anki_service.dart';
+import 'package:eiga/providers/services/app_configs_provider.dart';
 
 final aniListServiceProvider = Provider<AniListService>((ref) {
   return AniListService();
@@ -23,4 +25,9 @@ final jimakuServiceProvider = FutureProvider<JimakuService>((ref) async {
 
 final wyzieServiceProvider = FutureProvider<WyzieService>((ref) async {
   return WyzieService.create();
+});
+
+final ankiServiceProvider = Provider<AnkiService>((ref) {
+  final config = ref.watch(appConfigsServiceProvider);
+  return AnkiService(config);
 });

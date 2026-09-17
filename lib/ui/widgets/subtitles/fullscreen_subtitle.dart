@@ -1,4 +1,4 @@
-import 'package:eiga/ui/widgets/subtitles/shimmer_text.dart';
+import 'package:eiga/ui/widgets/subtitles/components/shimmer_text.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../backend/database/schemas/phrase.dart';
@@ -24,15 +24,8 @@ class FullscreenSubtitle extends ConsumerWidget {
     final activePhraseId = ref.watch(activePhraseIdProvider);
     if (activePhraseId == null) return const SizedBox.shrink();
 
-    final phrasesAsync = ref.watch(phrasesStreamProvider);
-    final phrases = phrasesAsync.value ?? [];
-    
-    final Phrase? phrase = phrases.cast<Phrase?>().firstWhere(
-      (p) => p?.id == activePhraseId, 
-      orElse: () => null
-    );
-    
-    if (phrase == null) return const SizedBox.shrink();
+    final activePhrase = ref.watch(activePhraseProvider);
+    if (activePhrase == null) return const SizedBox.shrink();
 
     final readingState = ref.watch(readingTypeNotifierProvider).value;
     final mainOpt = readingState?.mainOption ?? 'original';
@@ -81,7 +74,7 @@ class FullscreenSubtitle extends ConsumerWidget {
                         : (isFullscreen ? Colors.transparent : Colors.black54),
                     borderRadius: BorderRadius.circular(SubtitleScaling.calculateFontSize(constraints.maxWidth, 12) / 2.3),
                   ),
-                  child: _buildBody(phrase, mainOpt, addOpt, showTranslation, fontSize, isFullscreen),
+                  child: _buildBody(activePhrase, mainOpt, addOpt, showTranslation, fontSize, isFullscreen),
                 ),
               ),
             ),

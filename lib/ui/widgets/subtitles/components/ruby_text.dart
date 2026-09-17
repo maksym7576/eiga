@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../../../backend/database/schemas/phrase.dart';
-import '../../../backend/database/schemas/specific_word_style.dart';
+import '../../../../backend/database/schemas/phrase.dart';
+import '../../../../backend/database/schemas/specific_word_style.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
-import '../../styles/app_colors.dart';
+import '../../../styles/app_colors.dart';
+import 'outlined_text.dart';
 
 class RubyText extends HookConsumerWidget {
   final TokenEntry word;
@@ -23,6 +23,9 @@ class RubyText extends HookConsumerWidget {
   final bool isHighlighted;
   final bool isAnchor;
   final bool isLocked;
+  final bool removeSpaces;
+  final bool useShadows;
+  final double outlineWidth;
   final SelectionAnchor? selectionAnchorType;
   final LayerLink? selectionLayerLink;
 
@@ -43,10 +46,12 @@ class RubyText extends HookConsumerWidget {
     required this.isHighlighted,
     required this.isAnchor,
     required this.isLocked,
+    this.removeSpaces = false,
+    this.useShadows = false,
+    this.outlineWidth = 0.0,
     this.selectionAnchorType,
     this.selectionLayerLink,
   });
-
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -77,18 +82,26 @@ class RubyText extends HookConsumerWidget {
 
     final effectiveBaseStyle = (baseStyle ?? const TextStyle()).copyWith(
       color: style?.color ?? baseStyle?.color,
-      fontWeight: (isHighlighted) ? FontWeight.w900 : (style?.fontWeight ?? baseStyle?.fontWeight),
+      fontWeight: (isHighlighted) ? FontWeight.w800 : (style?.fontWeight ?? baseStyle?.fontWeight),
     );
 
     final bool isPunctuation = RegExp(r'^[\p{P}\p{S}]+$', unicode: true).hasMatch(baseText.trim());
 
     final bool showHighlight = isHighlighted && word.isClickable && !isPunctuation;
 
+    final double fs = baseStyle?.fontSize ?? 16.0;
+
+    final double horizontalPadding = isPunctuation 
+        ? 0 
+        : (removeSpaces && !showHighlight) 
+            ? 0 
+            : (fs * 0.12).clamp(4.0, 16.0);
+
     final Widget baseTextWidget = Container(
       key: ValueKey('ruby_base_${word.id}_$isHighlighted'),
       padding: EdgeInsets.symmetric(
-        horizontal: isPunctuation ? 0 : 3, 
-        vertical: 1
+        horizontal: horizontalPadding, 
+        vertical: (fs * 0.05).clamp(2.0, 8.0)
       ),
       decoration: BoxDecoration(
         color: showHighlight
@@ -106,7 +119,13 @@ class RubyText extends HookConsumerWidget {
           width: isPunctuation ? 0 : 1.2,
         ),
       ),
-      child: Text(baseText, style: effectiveBaseStyle),
+      child: OutlinedText(
+        text: baseText, 
+        style: effectiveBaseStyle,
+        useOutline: useShadows,
+        outlineWidth: outlineWidth,
+        outlineColor: Colors.black,
+      ),
     );
 
     final Widget mainContent = annotationText == null || annotationText.isEmpty
@@ -116,12 +135,19 @@ class RubyText extends HookConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Text(
-                  annotationText,
-                  style: annotationStyle,
+                padding: EdgeInsets.only(
+                  bottom: 2,
+                  left: (fs * 0.55 * 0.12).clamp(1.5, 5.0),
+                  right: (fs * 0.55 * 0.12).clamp(1.5, 5.0),
+                ),
+                child: OutlinedText(
+                  text: annotationText,
+                  style: annotationStyle ?? const TextStyle(),
                   maxLines: 1,
-                  overflow: TextOverflow.visible,
+                  overflow: TextOverflow.clip,
+                  useOutline: useShadows,
+                  outlineWidth: outlineWidth * 0.6,
+                  outlineColor: Colors.black,
                 ),
               ),
               baseTextWidget,
@@ -144,7 +170,6 @@ class RubyText extends HookConsumerWidget {
           if (isHighlighted && selectionAnchorType == SelectionAnchor.word) {
             playerNotifier.clearSelection();
           } else {
-            // Instant position calculation
             final RenderBox? box = context.findRenderObject() as RenderBox?;
             final position = box != null && box.hasSize 
                 ? box.localToGlobal(Offset(box.size.width / 2, 0))
