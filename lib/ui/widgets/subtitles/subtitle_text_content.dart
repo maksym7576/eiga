@@ -96,17 +96,19 @@ class SubtitleTextContent extends HookConsumerWidget {
     }, [phrase.originalTokens, phrase.translatedWords, hideBrackets, index]);
 
     // Watch interactive states at the phrase level (Performance peak)
-    final highlightedWordIds = ref.watch(highlightedWordIdsProvider);
-    final highlightedTranslationIds = ref.watch(highlightedTranslationIdsProvider);
-    final anchorType = ref.watch(selectionAnchorTypeProvider);
-    final clickedWordId = ref.watch(clickedWordIdProvider);
-    final clickedTranslationId = ref.watch(clickedTranslationWordIdProvider);
-    final isLocked = ref.watch(playerProvider.select((s) => s.isLocked));
-    final selectionLayerLink = ref.watch(selectionLayerLinkProvider);
+    final selectedPhraseId = ref.watch(selectedPhraseIdProvider);
+    final isThisPhraseSelected = selectedPhraseId == phrase.id;
 
-    // Watch status map and styles map at the top level ONLY
+    final highlightedWordIds = isThisPhraseSelected ? ref.watch(highlightedWordIdsProvider) : const <int>{};
+    final highlightedTranslationIds = isThisPhraseSelected ? ref.watch(highlightedTranslationIdsProvider) : const <int>{};
+    final anchorType = isThisPhraseSelected ? ref.watch(selectionAnchorTypeProvider) : null;
+    final clickedWordId = isThisPhraseSelected ? ref.watch(clickedWordIdProvider) : null;
+    final clickedTranslationId = isThisPhraseSelected ? ref.watch(clickedTranslationWordIdProvider) : null;
+    final isLocked = ref.watch(playerProvider.select((s) => s.isLocked));
+    final selectionLayerLink = isThisPhraseSelected ? ref.watch(selectionLayerLinkProvider) : null;
+
+    // Watch status map at the top level ONLY
     final statusMap = ref.watch(lemmaToStatusMapProvider).value ?? {};
-    final stylesMap = ref.watch(allStylesMapProvider);
 
     return RepaintBoundary(
       child: Column(
@@ -119,7 +121,6 @@ class SubtitleTextContent extends HookConsumerWidget {
             phrase: phrase,
             index: index,
             statusMap: statusMap,
-            stylesMap: stylesMap,
             highlightedWordIds: highlightedWordIds,
             clickedWordId: clickedWordId,
             anchorType: anchorType,
@@ -141,7 +142,6 @@ class SubtitleTextContent extends HookConsumerWidget {
               phrase: phrase,
               index: index,
               statusMap: statusMap,
-              stylesMap: stylesMap,
               highlightedTranslationIds: highlightedTranslationIds,
               clickedTranslationId: clickedTranslationId,
               anchorType: anchorType,

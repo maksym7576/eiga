@@ -1,14 +1,12 @@
 import 'package:eiga/providers/ui/language_provider.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
-import 'package:eiga/backend/database/schemas/language.dart';
+import 'package:eiga/config/languages/language_hub.dart';
 import 'package:eiga/ui/styles/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../upload/sheets/language_preview_sheet.dart';
-
 class LanguageWidget extends ConsumerWidget {
-  final Language language;
+  final LanguageConfig language;
   final LanguageType type;
 
   const LanguageWidget({
@@ -32,7 +30,7 @@ class LanguageWidget extends ConsumerWidget {
     final translation = stateLan.target;
     final theme = AdditionalWindowTheme.of(context);
 
-    final String languageName = language.name ?? '';
+    final String languageName = language.name;
     final bool isSelected = (type == LanguageType.original && languageName == original) ||
         (type == LanguageType.translation && languageName == translation);
 
@@ -59,7 +57,7 @@ class LanguageWidget extends ConsumerWidget {
                 ),
                 child: Center(
                   child: Text(
-                    language.iconLabel ?? (languageName.length >= 2 ? languageName.substring(0, 2).toUpperCase() : '??'),
+                    language.iconLabel,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -84,16 +82,15 @@ class LanguageWidget extends ConsumerWidget {
                         letterSpacing: -0.2,
                       ),
                     ),
-                    if (language.subtitle != null)
-                      Text(
-                        language.subtitle!,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: isSelected ? theme.primaryAccent.withValues(alpha: 0.6) : AppColors.slate400,
-                          height: 1.2,
-                        ),
+                    Text(
+                      language.subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: isSelected ? theme.primaryAccent.withValues(alpha: 0.6) : AppColors.slate400,
+                        height: 1.2,
                       ),
+                    ),
                   ],
                 ),
               ),

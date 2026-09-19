@@ -3,12 +3,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/backend/database/dto/media_dto.dart';
 import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
 import 'package:eiga/backend/services/utils/jimaku_clustering_util.dart';
-import 'package:eiga/providers/ui/metadata_state_provider.dart';
 import 'package:eiga/providers/services/external_api_providers.dart';
 import 'package:eiga/providers/ui/search_provider.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
 import 'package:eiga/providers/ui/jimaku_files_provider.dart';
-import 'package:eiga/providers/ui/wyzie_files_provider.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
 import 'package:eiga/ui/widgets/search/search_source_abstract.dart';
 import 'cloud_file_tile.dart';
@@ -30,12 +28,10 @@ class CloudSubtitleSource
   CloudSubtitleSource(this.key);
 
   @override
-  String get title => key == SearchSourceKeys.jimaku ? 'Subtitles (Jimaku)' : 'Subtitles (Wyzie)';
+  String get title => 'Subtitles (Jimaku)';
 
   @override
-  String get searchHint => key == SearchSourceKeys.jimaku 
-      ? 'Search anime or movie...' 
-      : 'Search anime or movie on Wyzie...';
+  String get searchHint => 'Search anime or movie...';
 
   @override
   bool get hasFileStage => false; 
@@ -51,7 +47,7 @@ class CloudSubtitleSource
 
   @override
   Future<List<UnifiedMetadataDTO>> search(String query, Map<String, dynamic> filters, WidgetRef ref) async {
-    List<UnifiedMetadataDTO> results;
+    List<UnifiedMetadataDTO> results = [];
     
     if (key == SearchSourceKeys.jimaku) {
       final service = await ref.read(jimakuServiceProvider.future);
@@ -70,12 +66,6 @@ class CloudSubtitleSource
       }).toList();
 
       ref.read(jimakuSearchFullResultsProvider.notifier).state = results;
-    } else {
-      final service = await ref.read(wyzieServiceProvider.future);
-      results = await service.searchWyzieObjects(
-        query: query,
-        anime: filters['animeOnly'] as bool? ?? true,
-      );
     }
 
     final chunk = results.length > 15 ? results.sublist(0, 15) : results;
@@ -89,8 +79,6 @@ class CloudSubtitleSource
 
   @override
   Future<List<UnifiedMetadataDTO>> fetchNextPage(String query, int page, Map<String, dynamic> filters, WidgetRef ref) async {
-    if (key == SearchSourceKeys.wyzie) return []; // Wyzie doesn't support pages yet
-
     final allResults = ref.read(jimakuSearchFullResultsProvider);
     final int start = (page - 1) * 15;
     final int end = start + 15;
@@ -230,13 +218,8 @@ class CloudSubtitleSource
   @override
   Future<List<JimakuFileOrGroupDTO>> getFiles(UnifiedMetadataDTO entry, Map<String, dynamic> filters, WidgetRef ref) async {
     List<FileJimakuDTO> rawFiles;
-    if (key == SearchSourceKeys.jimaku) {
-      final service = await ref.read(jimakuServiceProvider.future);
-      rawFiles = await service.getFiles(int.parse(entry.sourceId));
-    } else {
-      final service = await ref.read(wyzieServiceProvider.future);
-      rawFiles = await service.getFiles(entry.sourceId);
-    }
+    final service = await ref.read(jimakuServiceProvider.future);
+    rawFiles = await service.getFiles(int.parse(entry.sourceId));
     
     final groups = JimakuClusteringUtil.groupFiles(rawFiles);
     _analyzeAndStoreSummary(entry, groups, ref);
@@ -329,25 +312,23 @@ class CloudSubtitleSource
     if (entry != null) {
       final bestFile = await findBestFile(entry, ref);
       if (bestFile == null) throw CloudAutoSelectException('No matching subtitle file found');
-      return _download(bestFile, ref);
+      final service = await ref.read(jimakuServiceProvider.future);
+      return service.downloadAndCacheFile(bestFile.url, preferredName: bestFile.name);
     }
 
     if (item != null) {
       if (item.isGroup) throw Exception('Cannot resolve a group');
-      return _download(item.file!, ref);
+      final service = await ref.read(jimakuServiceProvider.future);
+      return service.downloadAndCacheFile(item.file!.url, preferredName: item.file!.name);
     }
     
     throw Exception('Invalid selection type');
   }
 
+  @Deprecated('Use findBestFile with specific service call')
   Future<String> _download(FileJimakuDTO file, WidgetRef ref) async {
-    if (key == SearchSourceKeys.jimaku) {
-      final service = await ref.read(jimakuServiceProvider.future);
-      return service.downloadAndCacheFile(file.url, preferredName: file.name);
-    } else {
-      final service = await ref.read(wyzieServiceProvider.future);
-      return service.downloadAndCacheFile(file.url, preferredName: file.name);
-    }
+    final service = await ref.read(jimakuServiceProvider.future);
+    return service.downloadAndCacheFile(file.url, preferredName: file.name);
   }
 
   Future<FileJimakuDTO?> findBestFile(UnifiedMetadataDTO entry, WidgetRef ref, {String? targetEpisode}) async {
@@ -355,13 +336,8 @@ class CloudSubtitleSource
     if (targetEp == null || targetEp.trim().isEmpty) return null;
 
     List<FileJimakuDTO> rawFiles;
-    if (key == SearchSourceKeys.jimaku) {
-      final service = await ref.read(jimakuServiceProvider.future);
-      rawFiles = await service.getFiles(int.parse(entry.sourceId));
-    } else {
-      final service = await ref.read(wyzieServiceProvider.future);
-      rawFiles = await service.getFiles(entry.sourceId);
-    }
+    final service = await ref.read(jimakuServiceProvider.future);
+    rawFiles = await service.getFiles(int.parse(entry.sourceId));
 
     if (rawFiles.isEmpty) return null;
     final groups = JimakuClusteringUtil.groupFiles(rawFiles);
@@ -428,11 +404,7 @@ class CloudSubtitleSource
         return CloudGroupTile(
           group: group,
           onTap: () {
-            if (key == SearchSourceKeys.jimaku) {
-              ref.read(jimakuFilesProvider(entry.sourceId).notifier).toggleGroup(group.name);
-            } else {
-              ref.read(wyzieFilesProvider(entry.sourceId).notifier).toggleGroup(group.name);
-            }
+            ref.read(jimakuFilesProvider(entry.sourceId).notifier).toggleGroup(group.name);
           },
         );
       });
@@ -442,9 +414,7 @@ class CloudSubtitleSource
       final entry = ref.watch(selectedEntryProvider(key)) as UnifiedMetadataDTO?;
       if (entry == null) return const SizedBox.shrink();
       
-      final filesState = ref.watch(key == SearchSourceKeys.jimaku 
-          ? jimakuFilesProvider(entry.sourceId) 
-          : wyzieFilesProvider(entry.sourceId));
+      final filesState = ref.watch(jimakuFilesProvider(entry.sourceId));
           
       final bool isSubItem = filesState.expandedGroups.any((g) => item.file!.name.contains(g));
       return CloudFileTile(file: item.file!, isActive: isActive, onTap: onTap, isSubItem: isSubItem);

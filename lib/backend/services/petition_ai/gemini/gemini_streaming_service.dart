@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../database/schemas/ai_model.dart';
+import '../../../database/schemas/phrase.dart';
 import '../../../../config/secure_storage.dart';
 import 'package:eiga/providers/services/ai_request_state.dart';
 import 'package:eiga/providers/services/isar_services_providers.dart';
@@ -56,6 +57,10 @@ class GeminiStreamingService {
         final token = await SecureTokenStorage.getToken(ApiTokenType.anthropic);
         headers['x-api-key'] = token;
         headers['anthropic-version'] = '2023-06-01';
+        break;
+      case AiProvider.xai:
+        final token = await SecureTokenStorage.getToken(ApiTokenType.xai);
+        headers['Authorization'] = 'Bearer $token';
         break;
       case AiProvider.custom:
         break;
@@ -184,6 +189,105 @@ class GeminiStreamingService {
     }
   }
 
+  Future<List<Phrase>> transcribeAudioStream({
+    required String url,
+    required String prompt,
+    required String base64Audio,
+    required AiModel model,
+    required Duration startTimeOffset,
+    String mimeType = 'audio/mp3',
+  }) async {
+    logger.i('[AiStream] Starting audio transcription for ${model.name}');
+    
+    final Map<String, String> headers = {'Content-Type': 'application/json'};
+    final Map<String, dynamic> requestBody = {
+      "contents": [
+        {
+          "parts": [
+            {"text": prompt},
+            {"inline_data": {"mime_type": mimeType, "data": base64Audio}}
+          ],
+        },
+      ],
+      "generationConfig": {
+        "responseMimeType": "application/json",
+      }
+    };
+
+    final request = http.Request('POST', Uri.parse(url))
+      ..headers.addAll(headers)
+      ..body = jsonEncode(requestBody);
+
+    await ref.read(aiModelServiceProvider).incrementUsage(model.name, 1);
+
+    final List<Phrase> allPhrases = [];
+    final StringBuffer fullTextBuffer = StringBuffer();
+    final baseDate = DateTime(1970, 1, 1);
+
+    http.Client? client;
+    try {
+      client = http.Client();
+      final streamedResponse = await client.send(request).timeout(const Duration(seconds: 300));
+
+      if (streamedResponse.statusCode != 200) {
+        final errorString = await streamedResponse.stream.bytesToString();
+        _handleHttpError(streamedResponse.statusCode, errorString);
+      }
+
+      final stream = streamedResponse.stream
+          .transform(utf8.decoder)
+          .transform(const LineSplitter());
+
+      await for (var line in stream) {
+        if (!line.startsWith('data: ')) continue;
+        final dataStr = line.substring(6).trim();
+        if (dataStr.isEmpty) continue;
+
+        try {
+          final jsonData = jsonDecode(dataStr);
+          final chunk = _extractTextChunk(jsonData, model: model);
+          if (chunk != null) {
+            fullTextBuffer.write(chunk);
+            
+            // Try to extract individual objects from the growing JSON array
+            final raw = fullTextBuffer.toString();
+            // This is a bit complex for a streaming array, but let's try a simple approach
+            // for objects like {"start_ms": 1200, "end_ms": 3500, "text": "..."}
+          }
+        } catch (_) {}
+      }
+      
+      // For transcription, it's often safer to parse the full accumulated JSON at the end
+      // unless we implement a very robust partial JSON parser.
+      // But Gemini's audio transcription often returns the whole thing at once or in big blocks.
+      final String finalJson = fullTextBuffer.toString();
+      final cleanedJson = finalJson.replaceAll('```json', '').replaceAll('```', '').trim();
+      
+      try {
+        final decoded = jsonDecode(cleanedJson);
+        if (decoded is List) {
+          for (var item in decoded) {
+            final startMs = item['start_ms'] as int;
+            final endMs = item['end_ms'] as int;
+            final text = item['text'] as String;
+            
+            allPhrases.add(Phrase()
+              ..originalPhrase = text
+              ..startTime = baseDate.add(startTimeOffset + Duration(milliseconds: startMs))
+              ..endTime = baseDate.add(startTimeOffset + Duration(milliseconds: endMs))
+            );
+          }
+        }
+      } catch (e) {
+        logger.e('[AiStream] Failed to parse final transcription JSON: $e');
+      }
+
+      return allPhrases;
+    } finally {
+      client?.close();
+    }
+  }
+
   String? _extractTextChunk(dynamic jsonData, {required AiModel model}) {
     if (jsonData is! Map) return null;
 
@@ -207,6 +311,12 @@ class GeminiStreamingService {
           return jsonData['delta']?['text']?.toString();
         }
         return null;
+
+      case AiProvider.xai:
+        final choices = jsonData['choices'];
+        if (choices == null || choices.isEmpty) return null;
+        final delta = choices[0]['delta'];
+        return delta?['content']?.toString();
         
       case AiProvider.custom:
         return null;

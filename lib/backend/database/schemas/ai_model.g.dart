@@ -97,69 +97,105 @@ const AiModelSchema = CollectionSchema(
       name: r'isStreamingCustom',
       type: IsarType.bool,
     ),
-    r'maxOutputTokens': PropertySchema(
+    r'isTranscriptionModel': PropertySchema(
       id: 16,
+      name: r'isTranscriptionModel',
+      type: IsarType.bool,
+    ),
+    r'lastErrorAt': PropertySchema(
+      id: 17,
+      name: r'lastErrorAt',
+      type: IsarType.dateTime,
+    ),
+    r'lastErrorMessage': PropertySchema(
+      id: 18,
+      name: r'lastErrorMessage',
+      type: IsarType.string,
+    ),
+    r'maxOutputTokens': PropertySchema(
+      id: 19,
       name: r'maxOutputTokens',
       type: IsarType.long,
     ),
-    r'name': PropertySchema(id: 17, name: r'name', type: IsarType.string),
+    r'name': PropertySchema(id: 20, name: r'name', type: IsarType.string),
     r'outputPricePerMToken': PropertySchema(
-      id: 18,
+      id: 21,
       name: r'outputPricePerMToken',
       type: IsarType.double,
     ),
+    r'partialSuccessCount': PropertySchema(
+      id: 22,
+      name: r'partialSuccessCount',
+      type: IsarType.long,
+    ),
     r'provider': PropertySchema(
-      id: 19,
+      id: 23,
       name: r'provider',
       type: IsarType.string,
       enumMap: _AiModelproviderEnumValueMap,
     ),
     r'quality': PropertySchema(
-      id: 20,
+      id: 24,
       name: r'quality',
       type: IsarType.string,
       enumMap: _AiModelqualityEnumValueMap,
     ),
+    r'reliabilityScore': PropertySchema(
+      id: 25,
+      name: r'reliabilityScore',
+      type: IsarType.double,
+    ),
     r'speed': PropertySchema(
-      id: 21,
+      id: 26,
       name: r'speed',
       type: IsarType.string,
       enumMap: _AiModelspeedEnumValueMap,
     ),
+    r'successCount': PropertySchema(
+      id: 27,
+      name: r'successCount',
+      type: IsarType.long,
+    ),
     r'supportedInputs': PropertySchema(
-      id: 22,
+      id: 28,
       name: r'supportedInputs',
       type: IsarType.stringList,
       enumMap: _AiModelsupportedInputsEnumValueMap,
     ),
     r'supportedSteps': PropertySchema(
-      id: 23,
+      id: 29,
       name: r'supportedSteps',
       type: IsarType.stringList,
       enumMap: _AiModelsupportedStepsEnumValueMap,
     ),
     r'supportsLiveApi': PropertySchema(
-      id: 24,
+      id: 30,
       name: r'supportsLiveApi',
       type: IsarType.bool,
     ),
     r'supportsStreaming': PropertySchema(
-      id: 25,
+      id: 31,
       name: r'supportsStreaming',
       type: IsarType.bool,
     ),
     r'supportsThinking': PropertySchema(
-      id: 26,
+      id: 32,
       name: r'supportsThinking',
       type: IsarType.bool,
     ),
     r'supportsWebSearch': PropertySchema(
-      id: 27,
+      id: 33,
       name: r'supportsWebSearch',
       type: IsarType.bool,
     ),
-    r'url': PropertySchema(id: 28, name: r'url', type: IsarType.string),
-    r'used': PropertySchema(id: 29, name: r'used', type: IsarType.long),
+    r'tokensPerAudioSecond': PropertySchema(
+      id: 34,
+      name: r'tokensPerAudioSecond',
+      type: IsarType.long,
+    ),
+    r'tpmLimit': PropertySchema(id: 35, name: r'tpmLimit', type: IsarType.long),
+    r'url': PropertySchema(id: 36, name: r'url', type: IsarType.string),
+    r'used': PropertySchema(id: 37, name: r'used', type: IsarType.long),
   },
 
   estimateSize: _aiModelEstimateSize,
@@ -197,6 +233,12 @@ int _aiModelEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.lastErrorMessage;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.name.length * 3;
   bytesCount += 3 + object.provider.name.length * 3;
   bytesCount += 3 + object.quality.name.length * 3;
@@ -241,26 +283,34 @@ void _aiModelSerialize(
   writer.writeBool(offsets[13], object.isMaxLimitCustom);
   writer.writeBool(offsets[14], object.isPhrasesPerRequestCustom);
   writer.writeBool(offsets[15], object.isStreamingCustom);
-  writer.writeLong(offsets[16], object.maxOutputTokens);
-  writer.writeString(offsets[17], object.name);
-  writer.writeDouble(offsets[18], object.outputPricePerMToken);
-  writer.writeString(offsets[19], object.provider.name);
-  writer.writeString(offsets[20], object.quality.name);
-  writer.writeString(offsets[21], object.speed.name);
+  writer.writeBool(offsets[16], object.isTranscriptionModel);
+  writer.writeDateTime(offsets[17], object.lastErrorAt);
+  writer.writeString(offsets[18], object.lastErrorMessage);
+  writer.writeLong(offsets[19], object.maxOutputTokens);
+  writer.writeString(offsets[20], object.name);
+  writer.writeDouble(offsets[21], object.outputPricePerMToken);
+  writer.writeLong(offsets[22], object.partialSuccessCount);
+  writer.writeString(offsets[23], object.provider.name);
+  writer.writeString(offsets[24], object.quality.name);
+  writer.writeDouble(offsets[25], object.reliabilityScore);
+  writer.writeString(offsets[26], object.speed.name);
+  writer.writeLong(offsets[27], object.successCount);
   writer.writeStringList(
-    offsets[22],
+    offsets[28],
     object.supportedInputs.map((e) => e.name).toList(),
   );
   writer.writeStringList(
-    offsets[23],
+    offsets[29],
     object.supportedSteps.map((e) => e.name).toList(),
   );
-  writer.writeBool(offsets[24], object.supportsLiveApi);
-  writer.writeBool(offsets[25], object.supportsStreaming);
-  writer.writeBool(offsets[26], object.supportsThinking);
-  writer.writeBool(offsets[27], object.supportsWebSearch);
-  writer.writeString(offsets[28], object.url);
-  writer.writeLong(offsets[29], object.used);
+  writer.writeBool(offsets[30], object.supportsLiveApi);
+  writer.writeBool(offsets[31], object.supportsStreaming);
+  writer.writeBool(offsets[32], object.supportsThinking);
+  writer.writeBool(offsets[33], object.supportsWebSearch);
+  writer.writeLong(offsets[34], object.tokensPerAudioSecond);
+  writer.writeLong(offsets[35], object.tpmLimit);
+  writer.writeString(offsets[36], object.url);
+  writer.writeLong(offsets[37], object.used);
 }
 
 AiModel _aiModelDeserialize(
@@ -287,27 +337,33 @@ AiModel _aiModelDeserialize(
   object.isMaxLimitCustom = reader.readBool(offsets[13]);
   object.isPhrasesPerRequestCustom = reader.readBool(offsets[14]);
   object.isStreamingCustom = reader.readBool(offsets[15]);
-  object.maxOutputTokens = reader.readLong(offsets[16]);
-  object.name = reader.readString(offsets[17]);
-  object.outputPricePerMToken = reader.readDouble(offsets[18]);
+  object.isTranscriptionModel = reader.readBool(offsets[16]);
+  object.lastErrorAt = reader.readDateTimeOrNull(offsets[17]);
+  object.lastErrorMessage = reader.readStringOrNull(offsets[18]);
+  object.maxOutputTokens = reader.readLong(offsets[19]);
+  object.name = reader.readString(offsets[20]);
+  object.outputPricePerMToken = reader.readDouble(offsets[21]);
+  object.partialSuccessCount = reader.readLong(offsets[22]);
   object.provider =
-      _AiModelproviderValueEnumMap[reader.readStringOrNull(offsets[19])] ??
+      _AiModelproviderValueEnumMap[reader.readStringOrNull(offsets[23])] ??
       AiProvider.google;
   object.quality =
-      _AiModelqualityValueEnumMap[reader.readStringOrNull(offsets[20])] ??
+      _AiModelqualityValueEnumMap[reader.readStringOrNull(offsets[24])] ??
       ModelQuality.basic;
+  object.reliabilityScore = reader.readDouble(offsets[25]);
   object.speed =
-      _AiModelspeedValueEnumMap[reader.readStringOrNull(offsets[21])] ??
+      _AiModelspeedValueEnumMap[reader.readStringOrNull(offsets[26])] ??
       ModelSpeed.ultraFast;
+  object.successCount = reader.readLong(offsets[27]);
   object.supportedInputs =
       reader
-          .readStringList(offsets[22])
+          .readStringList(offsets[28])
           ?.map((e) => _AiModelsupportedInputsValueEnumMap[e] ?? InputType.text)
           .toList() ??
       [];
   object.supportedSteps =
       reader
-          .readStringList(offsets[23])
+          .readStringList(offsets[29])
           ?.map(
             (e) =>
                 _AiModelsupportedStepsValueEnumMap[e] ??
@@ -315,12 +371,14 @@ AiModel _aiModelDeserialize(
           )
           .toList() ??
       [];
-  object.supportsLiveApi = reader.readBool(offsets[24]);
-  object.supportsStreaming = reader.readBool(offsets[25]);
-  object.supportsThinking = reader.readBool(offsets[26]);
-  object.supportsWebSearch = reader.readBool(offsets[27]);
-  object.url = reader.readString(offsets[28]);
-  object.used = reader.readLong(offsets[29]);
+  object.supportsLiveApi = reader.readBool(offsets[30]);
+  object.supportsStreaming = reader.readBool(offsets[31]);
+  object.supportsThinking = reader.readBool(offsets[32]);
+  object.supportsWebSearch = reader.readBool(offsets[33]);
+  object.tokensPerAudioSecond = reader.readLong(offsets[34]);
+  object.tpmLimit = reader.readLong(offsets[35]);
+  object.url = reader.readString(offsets[36]);
+  object.used = reader.readLong(offsets[37]);
   return object;
 }
 
@@ -364,24 +422,36 @@ P _aiModelDeserializeProp<P>(
     case 15:
       return (reader.readBool(offset)) as P;
     case 16:
-      return (reader.readLong(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 17:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 18:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 19:
+      return (reader.readLong(offset)) as P;
+    case 20:
+      return (reader.readString(offset)) as P;
+    case 21:
+      return (reader.readDouble(offset)) as P;
+    case 22:
+      return (reader.readLong(offset)) as P;
+    case 23:
       return (_AiModelproviderValueEnumMap[reader.readStringOrNull(offset)] ??
               AiProvider.google)
           as P;
-    case 20:
+    case 24:
       return (_AiModelqualityValueEnumMap[reader.readStringOrNull(offset)] ??
               ModelQuality.basic)
           as P;
-    case 21:
+    case 25:
+      return (reader.readDouble(offset)) as P;
+    case 26:
       return (_AiModelspeedValueEnumMap[reader.readStringOrNull(offset)] ??
               ModelSpeed.ultraFast)
           as P;
-    case 22:
+    case 27:
+      return (reader.readLong(offset)) as P;
+    case 28:
       return (reader
                   .readStringList(offset)
                   ?.map(
@@ -392,7 +462,7 @@ P _aiModelDeserializeProp<P>(
                   .toList() ??
               [])
           as P;
-    case 23:
+    case 29:
       return (reader
                   .readStringList(offset)
                   ?.map(
@@ -403,17 +473,21 @@ P _aiModelDeserializeProp<P>(
                   .toList() ??
               [])
           as P;
-    case 24:
+    case 30:
       return (reader.readBool(offset)) as P;
-    case 25:
+    case 31:
       return (reader.readBool(offset)) as P;
-    case 26:
+    case 32:
       return (reader.readBool(offset)) as P;
-    case 27:
+    case 33:
       return (reader.readBool(offset)) as P;
-    case 28:
+    case 34:
+      return (reader.readLong(offset)) as P;
+    case 35:
+      return (reader.readLong(offset)) as P;
+    case 36:
       return (reader.readString(offset)) as P;
-    case 29:
+    case 37:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -424,12 +498,14 @@ const _AiModelproviderEnumValueMap = {
   r'google': r'google',
   r'openai': r'openai',
   r'anthropic': r'anthropic',
+  r'xai': r'xai',
   r'custom': r'custom',
 };
 const _AiModelproviderValueEnumMap = {
   r'google': AiProvider.google,
   r'openai': AiProvider.openai,
   r'anthropic': AiProvider.anthropic,
+  r'xai': AiProvider.xai,
   r'custom': AiProvider.custom,
 };
 const _AiModelqualityEnumValueMap = {
@@ -472,6 +548,7 @@ const _AiModelsupportedInputsValueEnumMap = {
 };
 const _AiModelsupportedStepsEnumValueMap = {
   r'research': r'research',
+  r'transcribe': r'transcribe',
   r'translate': r'translate',
   r'tokenize': r'tokenize',
   r'morphemes': r'morphemes',
@@ -479,6 +556,7 @@ const _AiModelsupportedStepsEnumValueMap = {
 };
 const _AiModelsupportedStepsValueEnumMap = {
   r'research': TranslationPipelineStep.research,
+  r'transcribe': TranslationPipelineStep.transcribe,
   r'translate': TranslationPipelineStep.translate,
   r'tokenize': TranslationPipelineStep.tokenize,
   r'morphemes': TranslationPipelineStep.morphemes,
@@ -1451,6 +1529,255 @@ extension AiModelQueryFilter
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  isTranscriptionModelEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'isTranscriptionModel',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> lastErrorAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'lastErrorAt'),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> lastErrorAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'lastErrorAt'),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> lastErrorAtEqualTo(
+    DateTime? value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'lastErrorAt', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> lastErrorAtGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'lastErrorAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> lastErrorAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'lastErrorAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> lastErrorAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'lastErrorAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  lastErrorMessageIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'lastErrorMessage'),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  lastErrorMessageIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'lastErrorMessage'),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> lastErrorMessageEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'lastErrorMessage',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  lastErrorMessageGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'lastErrorMessage',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  lastErrorMessageLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'lastErrorMessage',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> lastErrorMessageBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'lastErrorMessage',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  lastErrorMessageStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'lastErrorMessage',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  lastErrorMessageEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'lastErrorMessage',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  lastErrorMessageContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'lastErrorMessage',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> lastErrorMessageMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'lastErrorMessage',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  lastErrorMessageIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'lastErrorMessage', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  lastErrorMessageIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'lastErrorMessage', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QAfterFilterCondition> maxOutputTokensEqualTo(
     int value,
   ) {
@@ -1724,6 +2051,61 @@ extension AiModelQueryFilter
           includeUpper: includeUpper,
 
           epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  partialSuccessCountEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'partialSuccessCount', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  partialSuccessCountGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'partialSuccessCount',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  partialSuccessCountLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'partialSuccessCount',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  partialSuccessCountBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'partialSuccessCount',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
         ),
       );
     });
@@ -2021,6 +2403,82 @@ extension AiModelQueryFilter
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> reliabilityScoreEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'reliabilityScore',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  reliabilityScoreGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'reliabilityScore',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  reliabilityScoreLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'reliabilityScore',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> reliabilityScoreBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'reliabilityScore',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QAfterFilterCondition> speedEqualTo(
     ModelSpeed value, {
     bool caseSensitive = true,
@@ -2163,6 +2621,65 @@ extension AiModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'speed', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> successCountEqualTo(
+    int value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'successCount', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> successCountGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'successCount',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> successCountLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'successCount',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> successCountBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'successCount',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
       );
     });
   }
@@ -2602,6 +3119,123 @@ extension AiModelQueryFilter
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  tokensPerAudioSecondEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'tokensPerAudioSecond',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  tokensPerAudioSecondGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'tokensPerAudioSecond',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  tokensPerAudioSecondLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'tokensPerAudioSecond',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition>
+  tokensPerAudioSecondBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'tokensPerAudioSecond',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> tpmLimitEqualTo(
+    int value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'tpmLimit', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> tpmLimitGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'tpmLimit',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> tpmLimitLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'tpmLimit',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterFilterCondition> tpmLimitBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'tpmLimit',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QAfterFilterCondition> urlEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -3016,6 +3650,43 @@ extension AiModelQuerySortBy on QueryBuilder<AiModel, AiModel, QSortBy> {
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByIsTranscriptionModel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isTranscriptionModel', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  sortByIsTranscriptionModelDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isTranscriptionModel', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByLastErrorAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByLastErrorAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByLastErrorMessage() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorMessage', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByLastErrorMessageDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorMessage', Sort.desc);
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByMaxOutputTokens() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'maxOutputTokens', Sort.asc);
@@ -3053,6 +3724,18 @@ extension AiModelQuerySortBy on QueryBuilder<AiModel, AiModel, QSortBy> {
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByPartialSuccessCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'partialSuccessCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByPartialSuccessCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'partialSuccessCount', Sort.desc);
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByProvider() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'provider', Sort.asc);
@@ -3077,6 +3760,18 @@ extension AiModelQuerySortBy on QueryBuilder<AiModel, AiModel, QSortBy> {
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByReliabilityScore() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reliabilityScore', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByReliabilityScoreDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reliabilityScore', Sort.desc);
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QAfterSortBy> sortBySpeed() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'speed', Sort.asc);
@@ -3086,6 +3781,18 @@ extension AiModelQuerySortBy on QueryBuilder<AiModel, AiModel, QSortBy> {
   QueryBuilder<AiModel, AiModel, QAfterSortBy> sortBySpeedDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'speed', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortBySuccessCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'successCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortBySuccessCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'successCount', Sort.desc);
     });
   }
 
@@ -3134,6 +3841,31 @@ extension AiModelQuerySortBy on QueryBuilder<AiModel, AiModel, QSortBy> {
   QueryBuilder<AiModel, AiModel, QAfterSortBy> sortBySupportsWebSearchDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'supportsWebSearch', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByTokensPerAudioSecond() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tokensPerAudioSecond', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  sortByTokensPerAudioSecondDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tokensPerAudioSecond', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByTpmLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tpmLimit', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> sortByTpmLimitDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tpmLimit', Sort.desc);
     });
   }
 
@@ -3379,6 +4111,43 @@ extension AiModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByIsTranscriptionModel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isTranscriptionModel', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  thenByIsTranscriptionModelDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isTranscriptionModel', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByLastErrorAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByLastErrorAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByLastErrorMessage() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorMessage', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByLastErrorMessageDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorMessage', Sort.desc);
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByMaxOutputTokens() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'maxOutputTokens', Sort.asc);
@@ -3416,6 +4185,18 @@ extension AiModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByPartialSuccessCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'partialSuccessCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByPartialSuccessCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'partialSuccessCount', Sort.desc);
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByProvider() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'provider', Sort.asc);
@@ -3440,6 +4221,18 @@ extension AiModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByReliabilityScore() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reliabilityScore', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByReliabilityScoreDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reliabilityScore', Sort.desc);
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QAfterSortBy> thenBySpeed() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'speed', Sort.asc);
@@ -3449,6 +4242,18 @@ extension AiModelQuerySortThenBy
   QueryBuilder<AiModel, AiModel, QAfterSortBy> thenBySpeedDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'speed', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenBySuccessCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'successCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenBySuccessCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'successCount', Sort.desc);
     });
   }
 
@@ -3497,6 +4302,31 @@ extension AiModelQuerySortThenBy
   QueryBuilder<AiModel, AiModel, QAfterSortBy> thenBySupportsWebSearchDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'supportsWebSearch', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByTokensPerAudioSecond() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tokensPerAudioSecond', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy>
+  thenByTokensPerAudioSecondDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tokensPerAudioSecond', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByTpmLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tpmLimit', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QAfterSortBy> thenByTpmLimitDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tpmLimit', Sort.desc);
     });
   }
 
@@ -3627,6 +4457,29 @@ extension AiModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByIsTranscriptionModel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isTranscriptionModel');
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByLastErrorAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastErrorAt');
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByLastErrorMessage({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'lastErrorMessage',
+        caseSensitive: caseSensitive,
+      );
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QDistinct> distinctByMaxOutputTokens() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'maxOutputTokens');
@@ -3647,6 +4500,12 @@ extension AiModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByPartialSuccessCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'partialSuccessCount');
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QDistinct> distinctByProvider({
     bool caseSensitive = true,
   }) {
@@ -3663,11 +4522,23 @@ extension AiModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByReliabilityScore() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'reliabilityScore');
+    });
+  }
+
   QueryBuilder<AiModel, AiModel, QDistinct> distinctBySpeed({
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'speed', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctBySuccessCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'successCount');
     });
   }
 
@@ -3704,6 +4575,18 @@ extension AiModelQueryWhereDistinct
   QueryBuilder<AiModel, AiModel, QDistinct> distinctBySupportsWebSearch() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'supportsWebSearch');
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByTokensPerAudioSecond() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'tokensPerAudioSecond');
+    });
+  }
+
+  QueryBuilder<AiModel, AiModel, QDistinct> distinctByTpmLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'tpmLimit');
     });
   }
 
@@ -3832,6 +4715,24 @@ extension AiModelQueryProperty
     });
   }
 
+  QueryBuilder<AiModel, bool, QQueryOperations> isTranscriptionModelProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isTranscriptionModel');
+    });
+  }
+
+  QueryBuilder<AiModel, DateTime?, QQueryOperations> lastErrorAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastErrorAt');
+    });
+  }
+
+  QueryBuilder<AiModel, String?, QQueryOperations> lastErrorMessageProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastErrorMessage');
+    });
+  }
+
   QueryBuilder<AiModel, int, QQueryOperations> maxOutputTokensProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'maxOutputTokens');
@@ -3851,6 +4752,12 @@ extension AiModelQueryProperty
     });
   }
 
+  QueryBuilder<AiModel, int, QQueryOperations> partialSuccessCountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'partialSuccessCount');
+    });
+  }
+
   QueryBuilder<AiModel, AiProvider, QQueryOperations> providerProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'provider');
@@ -3863,9 +4770,21 @@ extension AiModelQueryProperty
     });
   }
 
+  QueryBuilder<AiModel, double, QQueryOperations> reliabilityScoreProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'reliabilityScore');
+    });
+  }
+
   QueryBuilder<AiModel, ModelSpeed, QQueryOperations> speedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'speed');
+    });
+  }
+
+  QueryBuilder<AiModel, int, QQueryOperations> successCountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'successCount');
     });
   }
 
@@ -3904,6 +4823,18 @@ extension AiModelQueryProperty
   QueryBuilder<AiModel, bool, QQueryOperations> supportsWebSearchProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'supportsWebSearch');
+    });
+  }
+
+  QueryBuilder<AiModel, int, QQueryOperations> tokensPerAudioSecondProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'tokensPerAudioSecond');
+    });
+  }
+
+  QueryBuilder<AiModel, int, QQueryOperations> tpmLimitProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'tpmLimit');
     });
   }
 

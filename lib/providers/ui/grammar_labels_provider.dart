@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import '../../config/localization/localization_hub.dart';
+import '../services/app_configs_provider.dart';
 import '../../../backend/database/schemas/phrase.dart';
 
 class GrammarLabels {
@@ -66,15 +68,12 @@ class GrammarLabelsService {
   }
 }
 
-final grammarLabelsProvider = FutureProvider<GrammarLabelsService>((ref) async {
-  // Current app interface language. 
-  // For now, we use 'en' as the solid primary.
-  const String langCode = 'en'; 
+final grammarLabelsProvider = Provider<GrammarLabelsService>((ref) {
+  final appConfig = ref.watch(appConfigsServiceProvider);
+  final langCode = appConfig.getAppLanguage;
 
-  final String enJsonStr = await rootBundle.loadString('assets/grammar/labels_en.json');
-  final GrammarLabels enLabels = GrammarLabels.fromJson(jsonDecode(enJsonStr));
+  final labelsMap = LocalizationHub.getAppLabels(langCode);
+  final GrammarLabels labels = GrammarLabels.fromJson(labelsMap);
 
-  // If we ever add more UI languages, we would load 'labels_$langCode.json' here
-  // and use enLabels as the fallback for missing keys.
-  return GrammarLabelsService(current: enLabels, fallback: enLabels);
+  return GrammarLabelsService(current: labels, fallback: labels);
 });

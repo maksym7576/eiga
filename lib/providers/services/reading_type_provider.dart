@@ -2,6 +2,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/services/isar_services_providers.dart';
 import 'package:eiga/providers/services/app_configs_provider.dart';
+import 'package:eiga/config/languages/language_hub.dart';
 
 class ReadingTypeNotifier extends AsyncNotifier<ReadingTypeState> {
   String _getMainKey(String lang) => 'reading_main_${lang.toLowerCase()}';
@@ -21,8 +22,7 @@ class ReadingTypeNotifier extends AsyncNotifier<ReadingTypeState> {
     }
 
     final langName = video.originalLanguage!;
-    final languageService = ref.read(languageServiceProvider);
-    final languageData = await languageService.getLanguageByName(langName);
+    final languageData = LanguageHub.getByName(langName);
 
     final List<String> options = languageData?.readingOptions ?? ['original'];
     final List<String> labels = languageData?.readingLabels ?? ['ORIGINAL'];
@@ -135,8 +135,7 @@ class GlobalReadingTypeNotifier extends AsyncNotifier<ReadingTypeState> {
 
   @override
   Future<ReadingTypeState> build() async {
-    final languageService = ref.read(languageServiceProvider);
-    final languageData = await languageService.getLanguageByName(languageName);
+    final languageData = LanguageHub.getByName(languageName);
 
     final List<String> options = languageData?.readingOptions ?? ['original'];
     final List<String> labels = languageData?.readingLabels ?? ['ORIGINAL'];

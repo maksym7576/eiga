@@ -33,17 +33,21 @@ class PlayerControls extends ConsumerWidget {
                     ref.read(playerProvider.notifier).togglePlaying();
                     ref.read(playerProvider.notifier).resetHideTimer();
                   },
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1),
-                    ),
-                    child: Icon(
-                      isPlaying ? Icons.pause : Icons.play_arrow,
-                      color: Colors.white,
-                      size: 24,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: EdgeInsets.all(isFullscreen ? 28 : 20),
+                    child: Container(
+                      padding: EdgeInsets.all(isFullscreen ? 18 : 16),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1),
+                      ),
+                      child: Icon(
+                        isPlaying ? Icons.pause : Icons.play_arrow,
+                        color: Colors.white,
+                        size: isFullscreen ? 32 : 28,
+                      ),
                     ),
                   ),
                 ),

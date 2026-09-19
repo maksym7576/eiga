@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/backend/database/schemas/ai_model.dart';
-import 'package:eiga/backend/database/schemas/translation_pipeline_step.dart';
+import 'package:eiga/backend/database/schemas/ai_model_event.dart';
+import 'package:eiga/config/pipelines/pipeline_steps.dart';
+import 'package:eiga/providers/ui/ai_models_state_provider.dart';
+import 'package:eiga/providers/services/ai_request_state.dart';
 import 'package:eiga/ui/styles/model_selection_theme.dart';
 
 class ModelSelectionCard extends StatelessWidget {
@@ -19,228 +23,284 @@ class ModelSelectionCard extends StatelessWidget {
     required this.onToggleStreaming,
   });
 
+  int get _usagePercent {
+    if (model.currentDailyMaxLimit <= 0) return 0;
+    return ((model.dailyUsed / model.currentDailyMaxLimit) * 100).clamp(0, 100).toInt();
+  }
+
   Color _usageColor(ModelSelectionTheme theme) {
-    if (model.currentDailyMaxLimit <= 0) return theme.mutedText;
-    final ratio = model.dailyUsed / model.currentDailyMaxLimit;
-    if (ratio >= 1.0) return Colors.redAccent;
-    if (ratio >= 0.75) return Colors.orangeAccent;
+    final percent = _usagePercent;
+    if (percent >= 90) return Colors.redAccent;
+    if (percent >= 75) return Colors.orangeAccent;
     return theme.primaryAccent;
   }
 
-  int get _limitSegmentsTotal => 10;
-  int get _limitSegmentsActive {
-    if (model.currentDailyMaxLimit <= 0) return 0;
-    final ratio = (model.dailyUsed / model.currentDailyMaxLimit).clamp(0.0, 1.0);
-    return (ratio * _limitSegmentsTotal).ceil();
-  }
-
-  int get _speedSegmentsActive {
+  String get _speedText {
     switch (model.speed) {
-      case ModelSpeed.ultraFast: return 4;
-      case ModelSpeed.fast: return 3;
-      case ModelSpeed.medium: return 2;
-      case ModelSpeed.slow: return 1;
+      case ModelSpeed.ultraFast: return 'Ultra Fast';
+      case ModelSpeed.fast: return 'Fast';
+      case ModelSpeed.medium: return 'Medium';
+      case ModelSpeed.slow: return 'Slow';
     }
   }
 
-  int get _qualitySegmentsActive {
+  String get _qualityText {
     switch (model.quality) {
-      case ModelQuality.frontier: return 4;
-      case ModelQuality.high: return 3;
-      case ModelQuality.standard: return 2;
-      case ModelQuality.basic: return 1;
+      case ModelQuality.frontier: return 'Frontier';
+      case ModelQuality.high: return 'High Quality';
+      case ModelQuality.standard: return 'Standard';
+      case ModelQuality.basic: return 'Basic';
     }
-  }
-
-  Widget _segmentBar({
-    required int active,
-    required int total,
-    required Color activeColor,
-    required Color offColor,
-  }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(total, (i) {
-        final isOn = i < active;
-        return Container(
-          margin: const EdgeInsets.only(right: 4),
-          width: 16,
-          height: 9,
-          decoration: BoxDecoration(
-            color: isOn ? activeColor : offColor,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _labeledBar(String label, Widget bar, ModelSelectionTheme theme) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 42,
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 12, color: theme.mutedText, fontWeight: FontWeight.w600),
-          ),
-        ),
-        const SizedBox(width: 6),
-        bar,
-      ],
-    );
-  }
-
-  Widget _streamingToggle(ModelSelectionTheme theme) {
-    final supportsStreaming = model.supportsStreaming;
-    final isOn = supportsStreaming && model.currentStreamingEnabled;
-
-    return GestureDetector(
-      onTap: supportsStreaming ? onToggleStreaming : null,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            !supportsStreaming ? 'No streaming' : (isOn ? 'Streaming' : 'Streaming off'),
-            style: TextStyle(
-              fontSize: 12, 
-              fontWeight: FontWeight.w700, 
-              color: !supportsStreaming ? theme.mutedText : (isOn ? theme.primaryAccent : theme.mutedText),
-            ),
-          ),
-          const SizedBox(width: 8),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: 44,
-            height: 22,
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: !supportsStreaming 
-                  ? theme.segmentOffColor 
-                  : (isOn ? theme.primaryAccent.withOpacity(0.2) : theme.segmentOffColor),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            alignment: isOn ? Alignment.centerRight : Alignment.centerLeft,
-            child: Container(
-              width: 18,
-              height: 18,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                !supportsStreaming 
-                    ? Icons.close_rounded 
-                    : (isOn ? Icons.bolt_rounded : Icons.bolt_outlined),
-                size: 11,
-                color: isOn ? theme.primaryAccent : theme.mutedText,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ModelSelectionTheme.of(context);
     final usageColor = _usageColor(theme);
+    final percent = _usagePercent;
 
     return GestureDetector(
       onTap: onSelect,
-      child: Stack(
-        children: [
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: isActive ? theme.activeCardBackground : theme.cardBackground,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isActive ? theme.activeCardBorder : theme.cardBorder,
-                width: isActive ? 2.0 : 1.0,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isActive ? theme.activeCardBackground : theme.cardBackground,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isActive ? theme.primaryAccent : theme.cardBorder,
+            width: isActive ? 1.5 : 1.0,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Row: Status Dot, Name, and Usage Count
+            Row(
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(color: usageColor, shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            model.name,
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.normalText),
-                          ),
-                          if (model.errorCount > 0)
-                            Row(
-                              children: [
-                                Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 10),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Unstable (${model.errorCount} errors)',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.orangeAccent,
-                                  ),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.only(right: isActive ? 24 : 0),
-                      child: Text(
-                        '${model.dailyUsed}/${model.currentDailyMaxLimit}',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.normalText),
-                      ),
-                    ),
-                  ],
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: usageColor,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-                const SizedBox(height: 12),
-                _labeledBar('Limit', _segmentBar(active: _limitSegmentsActive, total: _limitSegmentsTotal, activeColor: usageColor, offColor: theme.segmentOffColor), theme),
-                const SizedBox(height: 8),
-                _labeledBar('Speed', _segmentBar(active: _speedSegmentsActive, total: 4, activeColor: Colors.blue, offColor: theme.segmentOffColor), theme),
-                const SizedBox(height: 8),
-                _labeledBar('Power', _segmentBar(active: _qualitySegmentsActive, total: 4, activeColor: theme.primaryAccent, offColor: theme.segmentOffColor), theme),
-                if (step == TranslationPipelineStep.morphemes || step == TranslationPipelineStep.grammarRole) ...[
-                  const SizedBox(height: 12),
-                  Align(alignment: Alignment.bottomRight, child: _streamingToggle(theme)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    model.name,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                      color: theme.normalText,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$percent%',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: usageColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            
+            // Subtitle Row: Speed & Quality Info
+            Row(
+              children: [
+                Text(
+                  '$_speedText • $_qualityText',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.mutedText,
+                  ),
+                ),
+                if (model.errorCount > 0) ...[
+                  const SizedBox(width: 6),
+                  Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 12),
+                  const SizedBox(width: 2),
+                  Text(
+                    '${model.errorCount} err',
+                    style: const TextStyle(fontSize: 11, color: Colors.orangeAccent, fontWeight: FontWeight.w600),
+                  ),
                 ],
               ],
             ),
-          ),
-          if (isActive)
-            Positioned(
-              top: 0,
-              right: 0,
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: theme.primaryAccent,
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(14),
-                    bottomLeft: Radius.circular(10),
-                  ),
-                ),
-                child: const Icon(Icons.check, color: Colors.white, size: 14),
+            const SizedBox(height: 8),
+
+            // Clean Linear Progress Bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: percent / 100,
+                backgroundColor: theme.segmentOffColor,
+                valueColor: AlwaysStoppedAnimation<Color>(usageColor),
+                minHeight: 5,
               ),
             ),
-        ],
+            const SizedBox(height: 4),
+
+            // Bottom text: raw limits and streaming if active
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Daily Limit: ${model.dailyUsed} / ${model.currentDailyMaxLimit}',
+                      style: TextStyle(fontSize: 10, color: theme.mutedText, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        _StatBadge(label: 'OK', count: model.successCount, color: Colors.green),
+                        const SizedBox(width: 4),
+                        _StatBadge(label: 'PART', count: model.partialSuccessCount, color: Colors.orange),
+                        const SizedBox(width: 4),
+                        _StatBadge(label: 'ERR', count: model.errorCount, color: Colors.redAccent),
+                      ],
+                    ),
+                  ],
+                ),
+
+                if ((step == TranslationPipelineStep.morphemes || step == TranslationPipelineStep.grammarRole) && model.supportsStreaming)
+                  GestureDetector(
+                    onTap: onToggleStreaming,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          model.currentStreamingEnabled ? 'Streaming' : 'Streaming Off',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: model.currentStreamingEnabled ? theme.primaryAccent : theme.mutedText,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          model.currentStreamingEnabled ? Icons.bolt_rounded : Icons.bolt_outlined,
+                          size: 14,
+                          color: model.currentStreamingEnabled ? theme.primaryAccent : theme.mutedText,
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            
+            // Recent Events / Errors
+            _RecentEventsList(modelName: model.name),
+          ],
+        ),
       ),
     );
   }
 }
+
+class _RecentEventsList extends ConsumerWidget {
+  final String modelName;
+  const _RecentEventsList({required this.modelName});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final eventsAsync = ref.watch(aiModelEventsProvider(modelName));
+    
+    return eventsAsync.when(
+      data: (events) {
+        final errors = events.where((e) => e.result == AiRequestPhase.error).take(3).toList();
+        if (errors.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 12),
+            Text(
+              'RECENT ERRORS',
+              style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.redAccent.withValues(alpha: 0.7), letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 6),
+            ...errors.map((e) => Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.redAccent.withValues(alpha: 0.1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        (e.step ?? 'Unknown').toUpperCase(),
+                        style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.redAccent),
+                      ),
+                      Text(
+                        _formatTime(e.timestamp),
+                        style: TextStyle(fontSize: 8, color: Colors.redAccent.withValues(alpha: 0.6)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    e.message ?? 'Unknown error',
+                    style: const TextStyle(fontSize: 10, color: Colors.redAccent),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            )),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  String _formatTime(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${dt.day}.${dt.month}';
+  }
+}
+
+class _StatBadge extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+
+  const _StatBadge({required this.label, required this.count, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    if (count == 0) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Text(
+        '$label: $count',
+        style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: color),
+      ),
+    );
+  }
+}
+
+
+

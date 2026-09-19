@@ -9,7 +9,7 @@ import 'package:eiga/ui/widgets/animations/translation_progress_bar.dart';
 import 'package:eiga/providers/services/translation_queue_provider.dart';
 import 'package:eiga/providers/ui/redirect_providers.dart';
 
-import 'package:eiga/ui/utils/responsive_helper.dart';
+import 'package:eiga/utils/ui/responsive_helper.dart';
 
 class AppAppBar extends ConsumerWidget implements PreferredSizeWidget {
   const AppAppBar({super.key});

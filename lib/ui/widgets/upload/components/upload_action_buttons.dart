@@ -16,7 +16,7 @@ class UploadActionButtons extends ConsumerWidget {
     final languages = ref.watch(languageProvider);
     
     final bool canAdd = state.videoPath != null && 
-                       state.subtitlePath != null && 
+                       (state.subtitleSource == SubtitleSource.ai || state.subtitlePath != null) && 
                        languages.original != null && 
                        languages.target != null &&
                        !state.isSaving;

@@ -70,7 +70,7 @@ class GeminiService {
       final String jsonResponse = await sendRequest(url, prompt, model: model);
       
       // Log received data - Simplified
-      logger.d('[AiHttp] Received data (${jsonResponse.length} chars)');
+      logger.v('[AiHttp] Received data (${jsonResponse.length} chars)');
 
       final result = await phraseResponseHandler.processResponse(jsonResponse, expectedIds: expectedIds, language: language);
       
@@ -81,105 +81,212 @@ class GeminiService {
       return result;
     } catch (error) {
       if (error is GeminiException) {
-        return AiRequestResult.failure(error.type);
+        return AiRequestResult.failure(error.type, message: error.message);
       }
-      rethrow;
+      return AiRequestResult.failure(AiErrorType.unknown, message: error.toString());
     }
   }
 
   Future<String> sendRequest(String url, String prompt, {required AiModel model}) async {
-    logger.d('[AiHttp] Sending request (Provider: ${model.provider.name})');
-    
-    final Map<String, String> headers = {'Content-Type': 'application/json'};
-    
-    // Add provider-specific headers
-    switch (model.provider) {
-      case AiProvider.google:
-        // Key is already in the URL
-        break;
-      case AiProvider.openai:
-        final token = await SecureTokenStorage.getToken(ApiTokenType.openai);
-        headers['Authorization'] = 'Bearer $token';
-        break;
-      case AiProvider.anthropic:
-        final token = await SecureTokenStorage.getToken(ApiTokenType.anthropic);
-        headers['x-api-key'] = token;
-        headers['anthropic-version'] = '2023-06-01'; // Required for Anthropic
-        break;
-      case AiProvider.custom:
-        break;
-    }
-
-    final Map<String, dynamic> requestBody;
-    
-    // Format body based on provider
-    if (model.provider == AiProvider.openai) {
-      requestBody = {
-        "model": model.name,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.1,
-      };
-    } else if (model.provider == AiProvider.anthropic) {
-      requestBody = {
-        "model": model.name,
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 4096,
-      };
-    } else {
-      // Default (Google)
-      requestBody = {
-        "contents": [
-          {
-            "parts": [{"text": prompt}],
-          },
-        ],
-      };
-    }
-
-    final response = await http
-        .post(
-      Uri.parse(url),
-      headers: headers,
-      body: jsonEncode(requestBody),
-    )
-    .timeout(
-      const Duration(seconds: 160),
-      onTimeout: () => throw GeminiGeneralException("AI request time out"),
-    );
-
-    // Increment usage for each request
-    await ref.read(aiModelServiceProvider).incrementUsage(model.name, 1);
-
-    if (response.statusCode == 200) {
-      final bodyText = response.body;
-      if (bodyText.trim().isEmpty) {
-        throw GeminiGeneralException("Empty response body from AI");
+    try {
+      logger.d('[AiHttp] Sending request (Provider: ${model.provider.name})');
+      
+      final Map<String, String> headers = {'Content-Type': 'application/json'};
+      
+      // Add provider-specific headers
+      switch (model.provider) {
+        case AiProvider.google:
+          // Key is already in the URL
+          break;
+        case AiProvider.openai:
+          final token = await SecureTokenStorage.getToken(ApiTokenType.openai);
+          headers['Authorization'] = 'Bearer $token';
+          break;
+        case AiProvider.anthropic:
+          final token = await SecureTokenStorage.getToken(ApiTokenType.anthropic);
+          headers['x-api-key'] = token;
+          headers['anthropic-version'] = '2023-06-01'; // Required for Anthropic
+          break;
+        case AiProvider.xai:
+          final token = await SecureTokenStorage.getToken(ApiTokenType.xai);
+          headers['Authorization'] = 'Bearer $token';
+          break;
+        case AiProvider.custom:
+          break;
       }
 
-      final data = jsonDecode(bodyText);
+      final Map<String, dynamic> requestBody;
       
-      // Extract text based on provider
+      // Format body based on provider
       if (model.provider == AiProvider.openai) {
-        return data['choices'][0]['message']['content'].toString();
+        requestBody = {
+          "model": model.name,
+          "messages": [{"role": "user", "content": prompt}],
+          "temperature": 0.1,
+        };
       } else if (model.provider == AiProvider.anthropic) {
-        return data['content'][0]['text'].toString();
+        requestBody = {
+          "model": model.name,
+          "messages": [{"role": "user", "content": prompt}],
+          "max_tokens": 4096,
+        };
       } else {
-        // Google
+        // Default (Google)
+        requestBody = {
+          "contents": [
+            {
+              "parts": [{"text": prompt}],
+            },
+          ],
+        };
+      }
+
+      final response = await http
+          .post(
+        Uri.parse(url),
+        headers: headers,
+        body: jsonEncode(requestBody),
+      )
+      .timeout(
+        const Duration(seconds: 160),
+        onTimeout: () => throw GeminiGeneralException("AI request time out"),
+      );
+
+      // Increment usage for each request
+      await ref.read(aiModelServiceProvider).incrementUsage(model.name, 1);
+
+      if (response.statusCode == 200) {
+        final bodyText = response.body;
+        if (bodyText.trim().isEmpty) {
+          throw GeminiGeneralException("Empty response body from AI");
+        }
+
+        final data = jsonDecode(bodyText);
+        
+        // Extract text based on provider
+        if (model.provider == AiProvider.openai) {
+          return data['choices'][0]['message']['content'].toString();
+        } else if (model.provider == AiProvider.anthropic) {
+          return data['content'][0]['text'].toString();
+        } else {
+          // Google
+          if (data is Map && data['candidates'] != null && data['candidates'].isNotEmpty) {
+            final candidate = data['candidates'][0];
+            if (candidate['content'] != null &&
+                candidate['content']['parts'] != null &&
+                candidate['content']['parts'].isNotEmpty) {
+              String rawText = candidate['content']['parts'][0]['text'].toString();
+              String cleanedResponse = rawText.replaceAll('```json', '').replaceAll('```', '').trim();
+              return cleanedResponse;
+            }
+          }
+        }
+        throw GeminiGeneralException("Unexpected response shape from AI");
+      } else {
+        _handleHttpError(response);
+        throw Exception("Unreachable code");
+      }
+    } catch (e) {
+      if (e is GeminiException) rethrow;
+      throw GeminiGeneralException("Connection error: ${e.toString()}");
+    }
+  }
+
+  Future<String> sendRequestWithAudio(String url, String prompt, String base64Audio, {required AiModel model, String mimeType = 'audio/mp3'}) async {
+    try {
+      logger.d('[AiHttp] Sending audio request (Provider: ${model.provider.name})');
+      
+      final Map<String, String> headers = {'Content-Type': 'application/json'};
+      
+      // Only Google Gemini supports inline_data easily in this format for now
+      if (model.provider != AiProvider.google) {
+        throw GeminiGeneralException("Audio input only supported for Google provider currently");
+      }
+
+      final Map<String, dynamic> requestBody = {
+        "contents": [
+          {
+            "parts": [
+              {"text": prompt},
+              {
+                "inline_data": {
+                  "mime_type": mimeType,
+                  "data": base64Audio
+                }
+              }
+            ],
+          },
+        ],
+        "generationConfig": {
+          "responseMimeType": "application/json",
+        }
+      };
+
+      final response = await http
+          .post(
+        Uri.parse(url),
+        headers: headers,
+        body: jsonEncode(requestBody),
+      )
+      .timeout(
+        const Duration(seconds: 300),
+        onTimeout: () => throw GeminiGeneralException("AI audio request time out"),
+      );
+
+      await ref.read(aiModelServiceProvider).incrementUsage(model.name, 1);
+
+      if (response.statusCode == 200) {
+        final bodyText = response.body;
+        final data = jsonDecode(bodyText);
+        
         if (data is Map && data['candidates'] != null && data['candidates'].isNotEmpty) {
           final candidate = data['candidates'][0];
           if (candidate['content'] != null &&
               candidate['content']['parts'] != null &&
               candidate['content']['parts'].isNotEmpty) {
             String rawText = candidate['content']['parts'][0]['text'].toString();
-            String cleanedResponse = rawText.replaceAll('```json', '').replaceAll('```', '').trim();
-            return cleanedResponse;
+            logger.v('[AiHttp] Valid audio response received from ${model.name}');
+            // If model doesn't support JSON mode but we asked for it, we might get markdown
+            return rawText.replaceAll('```json', '').replaceAll('```', '').trim();
           }
         }
+        logger.e('[AiHttp] Audio response 200 but unexpected shape: $bodyText');
+        throw GeminiGeneralException("Unexpected audio response shape from AI");
+      } else if (response.statusCode == 400 && response.body.contains('JSON mode')) {
+        // FALLBACK: If model doesn't support JSON mode, retry without it
+        logger.w('[AiHttp] Model ${model.name} does not support JSON mode. Retrying without it...');
+        final Map<String, dynamic> fallbackBody = {
+          "contents": [
+            {
+              "parts": [
+                {"text": "$prompt\nIMPORTANT: Return ONLY valid JSON array as requested."},
+                {"inline_data": {"mime_type": mimeType, "data": base64Audio}}
+              ],
+            },
+          ],
+        };
+        final fallbackResponse = await http.post(
+          Uri.parse(url),
+          headers: headers,
+          body: jsonEncode(fallbackBody),
+        ).timeout(const Duration(seconds: 300));
+
+        if (fallbackResponse.statusCode == 200) {
+          final data = jsonDecode(fallbackResponse.body);
+          String rawText = data['candidates'][0]['content']['parts'][0]['text'].toString();
+          return rawText.replaceAll('```json', '').replaceAll('```', '').trim();
+        } else {
+          _handleHttpError(fallbackResponse);
+        }
+        throw Exception("Unreachable");
+      } else {
+        logger.e('[AiHttp] Audio request failed. Status: ${response.statusCode}, Body: ${response.body}');
+        _handleHttpError(response);
+        throw Exception("Unreachable code");
       }
-      throw GeminiGeneralException("Unexpected response shape from AI");
-    } else {
-      _handleHttpError(response);
-      throw Exception("Unreachable code");
+    } catch (e) {
+      if (e is GeminiException) rethrow;
+      throw GeminiGeneralException("Audio connection error: ${e.toString()}");
     }
   }
 

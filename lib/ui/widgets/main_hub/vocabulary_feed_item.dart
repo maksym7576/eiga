@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../backend/database/schemas/phrase.dart';
-import '../../../backend/database/schemas/specific_word_style.dart';
+import '../../../config/ui/word_styles.dart';
 import 'package:eiga/providers/ui/vocabulary_provider.dart';
 import 'package:eiga/providers/ui/grammar_labels_provider.dart';
 import 'package:eiga/providers/services/external_api_providers.dart';
@@ -18,17 +18,13 @@ class VocabularyFeedItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final style = item.style;
-    final wordColor = style?.color ?? AppColors.slate900;
+    final status = item.status;
+    final wordColor = status?.color ?? AppColors.slate900;
     
-    final labelsAsync = ref.watch(grammarLabelsProvider);
+    final labels = ref.watch(grammarLabelsProvider);
 
-    return labelsAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (labels) {
-        return Container(
-          padding: const EdgeInsets.all(20),
+    return Container(
+      padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
@@ -103,7 +99,7 @@ class VocabularyFeedItem extends ConsumerWidget {
                 children: [
                   if (item.words.isNotEmpty) _buildPosBadge(labels, item.words.first, item.isIdiom),
                   const SizedBox(height: 8),
-                  _buildStatusBadge(style),
+                  _buildStatusBadge(status),
                   const SizedBox(height: 8),
                   GestureDetector(
                     onTap: () async {
@@ -193,13 +189,11 @@ class VocabularyFeedItem extends ConsumerWidget {
               ),
             ],
           ),
-        );
-      }
     );
   }
 
-  Widget _buildStatusBadge(SpecificWordStyle? style) {
-    final color = style?.color ?? AppColors.brandBlue;
+  Widget _buildStatusBadge(WordStatus? status) {
+    final color = status?.color ?? AppColors.brandBlue;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -208,7 +202,7 @@ class VocabularyFeedItem extends ConsumerWidget {
         border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
       ),
       child: Text(
-        style?.name ?? 'Standard',
+        status?.displayName ?? 'Standard',
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w900,

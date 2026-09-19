@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../backend/database/schemas/phrase.dart';
-import '../../../../backend/database/schemas/specific_word_style.dart';
+import '../../../../config/ui/word_styles.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import '../../../styles/app_colors.dart';
@@ -15,7 +15,7 @@ class RubyText extends HookConsumerWidget {
   final String? additionalOption;
   final TextStyle? baseStyle;
   final TextStyle? annotationStyle;
-  final SpecificWordStyle? style;
+  final WordStatus? status;
   final int? blockId;
   final bool isFirstInBlock;
   final bool isLastInBlock;
@@ -38,7 +38,7 @@ class RubyText extends HookConsumerWidget {
     this.additionalOption,
     this.baseStyle,
     this.annotationStyle,
-    this.style,
+    this.status,
     this.blockId,
     this.isFirstInBlock = true,
     this.isLastInBlock = true,
@@ -81,8 +81,8 @@ class RubyText extends HookConsumerWidget {
     }
 
     final effectiveBaseStyle = (baseStyle ?? const TextStyle()).copyWith(
-      color: style?.color ?? baseStyle?.color,
-      fontWeight: (isHighlighted) ? FontWeight.w800 : (style?.fontWeight ?? baseStyle?.fontWeight),
+      color: status?.color ?? baseStyle?.color,
+      fontWeight: (isHighlighted) ? FontWeight.w800 : (status != null ? WordStatusUI(status!).fontWeight : baseStyle?.fontWeight),
     );
 
     final bool isPunctuation = RegExp(r'^[\p{P}\p{S}]+$', unicode: true).hasMatch(baseText.trim());
@@ -167,7 +167,7 @@ class RubyText extends HookConsumerWidget {
         onTap: () {
           final playerNotifier = ref.read(playerProvider.notifier);
           
-          if (isHighlighted && selectionAnchorType == SelectionAnchor.word) {
+          if (isAnchor) {
             playerNotifier.clearSelection();
           } else {
             final RenderBox? box = context.findRenderObject() as RenderBox?;

@@ -136,6 +136,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   Timer? _hideTimer;
   Timer? _autoLockStage1Timer;
   Timer? _autoLockStage2Timer;
+  Timer? _positionSaveTimer;
   Player? _player;
   mkv.VideoController? _videoController;
 
@@ -262,8 +263,18 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       await _player!.setSubtitleTrack(SubtitleTrack.no());
 
       if (state.videoId == videoId) {
+        // Auto-resume from last position
+        final video = await ref.read(videoServiceProvider).getVideoById(videoId);
+        if (video != null && video.lastPositionMs != null && video.lastPositionMs! > 0) {
+          debugPrint('PlayerNotifier: Resuming from last position: ${video.lastPositionMs}ms');
+          await _player!.seek(Duration(milliseconds: video.lastPositionMs!));
+        }
+
         state = state.copyWith(isInitialized: true);
         setPlaying(true);
+
+        // Start periodic position saving
+        _startPositionSaveTimer();
       } else {
         disposeController();
       }
@@ -277,6 +288,11 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     _posSub?.cancel();
     _durSub?.cancel();
     _playingSub?.cancel();
+    
+    _positionSaveTimer?.cancel();
+    if (_player != null && state.videoId != null) {
+      await _saveCurrentPosition();
+    }
 
     final oldPlayer = _player;
     _player = null;
@@ -293,6 +309,23 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     if (oldPlayer != null) {
       await oldPlayer.dispose();
     }
+  }
+
+  void _startPositionSaveTimer() {
+    _positionSaveTimer?.cancel();
+    _positionSaveTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      _saveCurrentPosition();
+    });
+  }
+
+  Future<void> _saveCurrentPosition() async {
+    if (_player == null || state.videoId == null) return;
+    
+    final positionMs = _player!.state.position.inMilliseconds;
+    if (positionMs <= 0) return;
+
+    // Run in background without blocking UI
+    unawaited(ref.read(videoServiceProvider).updateVideoPosition(state.videoId!, positionMs));
   }
 
   void _cancelAutoLockTimer() {

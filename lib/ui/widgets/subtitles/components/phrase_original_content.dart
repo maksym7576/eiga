@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../backend/database/schemas/phrase.dart';
-import '../../../../backend/database/schemas/specific_word_style.dart';
+import '../../../../backend/database/schemas/user_word_status.dart';
+import '../../../../config/ui/word_styles.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/ui/subtitle_settings_provider.dart';
 import 'package:eiga/providers/services/app_configs_provider.dart';
+import 'package:eiga/config/languages/language_hub.dart';
 import 'ruby_text.dart';
 import 'outlined_text.dart';
 
 class PhraseOriginalContent extends HookConsumerWidget {
   final Phrase phrase;
   final PhraseLinkIndex index;
-  final Map<String, dynamic> statusMap;
-  final Map<int, SpecificWordStyle> stylesMap;
+  final Map<String, UserWordStatus> statusMap;
   final Set<int> highlightedWordIds;
   final int? clickedWordId;
   final SelectionAnchor? anchorType;
@@ -34,7 +35,6 @@ class PhraseOriginalContent extends HookConsumerWidget {
     required this.phrase,
     required this.index,
     required this.statusMap,
-    required this.stylesMap,
     required this.highlightedWordIds,
     this.clickedWordId,
     this.anchorType,
@@ -53,7 +53,10 @@ class PhraseOriginalContent extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final languageAsync = ref.watch(videoLanguageProvider);
+    final video = ref.watch(currentVideoProvider).value;
+    final languageName = video?.originalLanguage ?? 'Japanese';
+    final languageConfig = LanguageHub.getByName(languageName);
+    
     final bool hideBrackets = ref.watch(appConfigsServiceProvider.select((c) => c.getHideParenthesesContent));
 
     final settings = ref.watch(subtitleSettingsProvider);
@@ -105,8 +108,7 @@ class PhraseOriginalContent extends HookConsumerWidget {
       );
     }
 
-    final language = languageAsync.value;
-    final bool removeSpaces = language?.removeAllSpaces ?? false;
+    final bool removeSpaces = languageConfig?.removeAllSpaces ?? false;
 
     return Wrap(
       key: ValueKey('words_wrap_${phrase.id}'),
@@ -120,10 +122,9 @@ class PhraseOriginalContent extends HookConsumerWidget {
         final bool isFirst = i == 0 || originalTokens[i - 1].blockId != token.blockId;
         final bool isLast = i == originalTokens.length - 1 || originalTokens[i + 1].blockId != token.blockId;
 
-        SpecificWordStyle? wordStyle;
+        WordStatus? wordStatus;
         if (token.lemma != null) {
-          final status = statusMap[token.lemma];
-          if (status?.styleId != null) wordStyle = stylesMap[status!.styleId!];
+          wordStatus = statusMap[token.lemma]?.status;
         }
 
         return RubyText(
@@ -132,7 +133,7 @@ class PhraseOriginalContent extends HookConsumerWidget {
           phraseId: phrase.id,
           index: index,
           blockId: token.blockId,
-          style: wordStyle,
+          status: wordStatus,
           mainOption: mainOption,
           additionalOption: additionalOption,
           isFirstInBlock: isFirst,

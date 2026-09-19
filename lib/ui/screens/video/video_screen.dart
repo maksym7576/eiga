@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:eiga/ui/utils/responsive_helper.dart';
+import 'package:eiga/utils/ui/responsive_helper.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/services/translation_provider.dart';

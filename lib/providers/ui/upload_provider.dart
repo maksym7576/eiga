@@ -17,16 +17,16 @@ import 'metadata_state_provider.dart';
 import 'package:eiga/providers/services/external_api_providers.dart';
 import 'search_provider.dart';
 import 'video_data_providers.dart';
-import '../../backend/services/sync/audio_sync_service.dart';
-import '../services/app_configs_provider.dart';
-
-import '../services/token_provider.dart';
-import '../../config/secure_storage.dart';
+import 'package:eiga/backend/services/audio/audio_sync_service.dart';
+import 'package:eiga/backend/services/background/translation_background_manager.dart';
+import 'package:eiga/providers/services/app_configs_provider.dart';
+import 'package:eiga/providers/services/token_provider.dart';
+import 'package:eiga/config/secure_storage.dart';
 
 final videoPathProvider = StateProvider<String?>((ref) => null);
 
 enum VideoSource { file }
-enum SubtitleSource { local, jimaku, wyzie }
+enum SubtitleSource { local, jimaku, ai }
 enum SyncMatchStatus { idle, analyzing, perfect, offset, mismatch, error }
 
 class AnalyzedSubtitle {
@@ -96,6 +96,8 @@ class UploadState {
   final Map<String, List<Phrase>> availableStreams;
   final String? selectedStreamKey;
 
+  final String? aiTranscriptionLanguage;
+
   UploadState({
     this.videoSource = VideoSource.file,
     this.subtitleSource = SubtitleSource.local,
@@ -110,6 +112,7 @@ class UploadState {
     this.originalPreviewPhrases = const [],
     this.availableStreams = const {},
     this.selectedStreamKey,
+    this.aiTranscriptionLanguage,
     this.isParsing = false,
     this.isSaving = false,
     this.isInitialized = false,
@@ -166,6 +169,7 @@ class UploadState {
     bool? isEvaluatingBatch,
     int? currentEvaluationIndex,
     int? totalEvaluationCount,
+    String? aiTranscriptionLanguage,
   }) {
     return UploadState(
       videoSource: videoSource ?? this.videoSource,
@@ -181,6 +185,7 @@ class UploadState {
       originalPreviewPhrases: originalPreviewPhrases ?? this.originalPreviewPhrases,
       availableStreams: availableStreams ?? this.availableStreams,
       selectedStreamKey: selectedStreamKey ?? this.selectedStreamKey,
+      aiTranscriptionLanguage: aiTranscriptionLanguage ?? this.aiTranscriptionLanguage,
       isParsing: isParsing ?? this.isParsing,
       isSaving: isSaving ?? this.isSaving,
       isInitialized: isInitialized ?? this.isInitialized,
@@ -209,20 +214,16 @@ class UploadNotifier extends Notifier<UploadState> {
   @override
   UploadState build() {
     final jimakuTokenAsync = ref.watch(tokenProvider(ApiTokenType.jimaku));
-    final wyzieTokenAsync = ref.watch(tokenProvider(ApiTokenType.wyzie));
     
-    if (jimakuTokenAsync.isLoading || wyzieTokenAsync.isLoading) {
+    if (jimakuTokenAsync.isLoading) {
       return UploadState(isInitialized: false);
     }
 
     final jimakuToken = jimakuTokenAsync.value ?? '';
-    final wyzieToken = wyzieTokenAsync.value ?? '';
     
     SubtitleSource defaultSource = SubtitleSource.local;
     if (jimakuToken.isNotEmpty) {
       defaultSource = SubtitleSource.jimaku;
-    } else if (wyzieToken.isNotEmpty) {
-      defaultSource = SubtitleSource.wyzie;
     }
     
     return UploadState(
@@ -239,6 +240,10 @@ class UploadNotifier extends Notifier<UploadState> {
     state = state.copyWith(subtitleSource: source);
   }
 
+  void setAiTranscriptionLanguage(String? lang) {
+    state = state.copyWith(aiTranscriptionLanguage: lang);
+  }
+
   void setEpisode(String? episode) {
     state = state.copyWith(episode: episode);
   }
@@ -251,13 +256,10 @@ class UploadNotifier extends Notifier<UploadState> {
     developer.log('UploadProvider: reset() called from:\n${StackTrace.current}', name: 'UploadProvider');
     
     final jimakuToken = ref.read(tokenProvider(ApiTokenType.jimaku)).value ?? '';
-    final wyzieToken = ref.read(tokenProvider(ApiTokenType.wyzie)).value ?? '';
     
     SubtitleSource defaultSource = SubtitleSource.local;
     if (jimakuToken.isNotEmpty) {
       defaultSource = SubtitleSource.jimaku;
-    } else if (wyzieToken.isNotEmpty) {
-      defaultSource = SubtitleSource.wyzie;
     }
 
     state = UploadState(
@@ -271,13 +273,10 @@ class UploadNotifier extends Notifier<UploadState> {
     ref.read(audioSyncServiceProvider).clearCache();
     
     ref.read(selectedEntryProvider(SearchSourceKeys.jimaku).notifier).state = null;
-    ref.read(selectedEntryProvider(SearchSourceKeys.wyzie).notifier).state = null;
     ref.read(selectedEntryProvider(SearchSourceKeys.anilist).notifier).state = null;
     ref.read(selectedResultProvider(SearchSourceKeys.jimaku).notifier).state = null;
-    ref.read(selectedResultProvider(SearchSourceKeys.wyzie).notifier).state = null;
     ref.read(selectedResultProvider(SearchSourceKeys.anilist).notifier).state = null;
     ref.read(searchResultsProvider(SearchSourceKeys.jimaku).notifier).state = [];
-    ref.read(searchResultsProvider(SearchSourceKeys.wyzie).notifier).state = [];
     ref.read(searchResultsProvider(SearchSourceKeys.anilist).notifier).state = [];
     ref.read(searchResultsProvider(SearchSourceKeys.tvmaze).notifier).state = [];
     ref.read(jimakuSearchFullResultsProvider.notifier).state = [];
@@ -285,7 +284,6 @@ class UploadNotifier extends Notifier<UploadState> {
     ref.read(tvMazeProvider.notifier).clear();
     
     ref.invalidate(searchMetadataProvider(SearchSourceKeys.jimaku));
-    ref.invalidate(searchMetadataProvider(SearchSourceKeys.wyzie));
     ref.invalidate(searchMetadataProvider(SearchSourceKeys.anilist));
   }
 
@@ -371,6 +369,11 @@ class UploadNotifier extends Notifier<UploadState> {
   }
 
   void optimizeTimings(int paddingMs, {bool fillGaps = false}) {
+    // Force immediate UI updates first before checking audio waveform synchronization
+    state = state.copyWith(
+      appliedPaddingMs: paddingMs,
+      appliedFillGaps: fillGaps,
+    );
     if (state.originalPreviewPhrases.isEmpty) return;
 
     final baseDate = DateTime(1970, 1, 1);
@@ -435,8 +438,6 @@ class UploadNotifier extends Notifier<UploadState> {
 
     state = state.copyWith(
       previewPhrases: optimized,
-      appliedPaddingMs: paddingMs,
-      appliedFillGaps: fillGaps,
     );
   }
 
@@ -498,7 +499,7 @@ class UploadNotifier extends Notifier<UploadState> {
       syncConsensus: result.consensusCount,
       syncTotalSegments: max(3, result.consensusCount), 
       analyzedVersions: updatedVersions,
-      isWrongEpisodePromptVisible: finalStatus == SyncMatchStatus.mismatch && (state.subtitleSource == SubtitleSource.jimaku || state.subtitleSource == SubtitleSource.wyzie),
+      isWrongEpisodePromptVisible: finalStatus == SyncMatchStatus.mismatch && (state.subtitleSource == SubtitleSource.jimaku),
     );
   }
 
@@ -613,7 +614,7 @@ class UploadNotifier extends Notifier<UploadState> {
 
   Future<void> evaluateAllEpisodeSubtitles() async {
     final isJimaku = state.subtitleSource == SubtitleSource.jimaku;
-    final sourceKey = isJimaku ? SearchSourceKeys.jimaku : SearchSourceKeys.wyzie;
+    final sourceKey = SearchSourceKeys.jimaku;
     final entry = ref.read(selectedEntryProvider(sourceKey)) as UnifiedMetadataDTO?;
     if (entry == null || state.episode == null || state.videoPath == null) return;
 
@@ -640,9 +641,6 @@ class UploadNotifier extends Notifier<UploadState> {
           if (idInt != null) {
             rawFiles = await service.getFiles(idInt, episode: episodeInt);
           }
-        } else {
-          final service = await ref.read(wyzieServiceProvider.future);
-          rawFiles = await service.getFiles(id, episode: episodeInt);
         }
       } catch (e) {
         developer.log('Episode-specific fetch failed, falling back to all files: $e', name: 'UploadProvider');
@@ -652,9 +650,6 @@ class UploadNotifier extends Notifier<UploadState> {
           if (idInt != null) {
             rawFiles = await service.getFiles(idInt);
           }
-        } else {
-          final service = await ref.read(wyzieServiceProvider.future);
-          rawFiles = await service.getFiles(id);
         }
       }
 
@@ -692,9 +687,7 @@ class UploadNotifier extends Notifier<UploadState> {
             await Future.delayed(const Duration(milliseconds: 800));
           }
 
-          final path = isJimaku
-              ? await (await ref.read(jimakuServiceProvider.future)).downloadAndCacheFile(file.url, preferredName: file.name)
-              : await (await ref.read(wyzieServiceProvider.future)).downloadAndCacheFile(file.url, preferredName: file.name);
+          final path = await (await ref.read(jimakuServiceProvider.future)).downloadAndCacheFile(file.url, preferredName: file.name);
           
           final depacker = ref.read(subtitleDepackerServiceProvider);
           final phrases = await depacker.parseSrtPreview(filePath: path, language: 'Japanese');
@@ -737,7 +730,7 @@ class UploadNotifier extends Notifier<UploadState> {
       final newState = state.copyWith(
         analyzedVersions: List.from(analyzed),
         isEvaluatingBatch: false,
-        isWrongEpisodePromptVisible: (analyzed.isEmpty || (best != null && best.confidence < 0.4)) && (state.subtitleSource == SubtitleSource.jimaku || state.subtitleSource == SubtitleSource.wyzie),
+        isWrongEpisodePromptVisible: (analyzed.isEmpty || (best != null && best.confidence < 0.4)) && (state.subtitleSource == SubtitleSource.jimaku),
         subtitlePath: best?.path ?? state.subtitlePath,
         subtitleFileName: best?.fileName ?? state.subtitleFileName,
         previewPhrases: best?.phrases ?? state.previewPhrases,
@@ -773,7 +766,7 @@ class UploadNotifier extends Notifier<UploadState> {
   Future<bool> saveVideo() async {
     final languages = ref.read(languageProvider);
     if (state.videoPath == null || 
-        state.subtitlePath == null || 
+        (state.subtitleSource != SubtitleSource.ai && state.subtitlePath == null) || 
         languages.original == null || 
         languages.target == null) {
       return false;
@@ -793,17 +786,10 @@ class UploadNotifier extends Notifier<UploadState> {
 
     if (finalMetadata == null) {
       final jimakuEntry = ref.read(selectedEntryProvider(SearchSourceKeys.jimaku));
-      final wyzieEntry = ref.read(selectedEntryProvider(SearchSourceKeys.wyzie));
       if (jimakuEntry != null && jimakuEntry is UnifiedMetadataDTO) {
         final jimakuId = int.tryParse(jimakuEntry.sourceId);
         if (jimakuId != null) {
           final cached = ref.read(searchMetadataProvider(SearchSourceKeys.jimaku))[jimakuId];
-          if (cached != null && cached is UnifiedMetadataDTO) finalMetadata = cached;
-        }
-      } else if (wyzieEntry != null && wyzieEntry is UnifiedMetadataDTO) {
-        final wyzieId = int.tryParse(wyzieEntry.sourceId);
-        if (wyzieId != null) {
-          final cached = ref.read(searchMetadataProvider(SearchSourceKeys.wyzie))[wyzieId];
           if (cached != null && cached is UnifiedMetadataDTO) finalMetadata = cached;
         }
       }
@@ -832,13 +818,20 @@ class UploadNotifier extends Notifier<UploadState> {
 
     final video = Video()
       ..videoPath = state.videoPath
-      ..pathSubtitle = state.subtitlePath
+      ..pathSubtitle = state.subtitleSource == SubtitleSource.ai ? null : state.subtitlePath
       ..fileName = state.fileName
-      ..subtitleFileName = state.subtitleFileName
+      ..subtitleFileName = state.subtitleSource == SubtitleSource.ai ? 'AI Generated' : state.subtitleFileName
       ..episode = state.episode
       ..season = state.season
       ..originalLanguage = languages.original ?? 'Japanese'
       ..translatedLanguage = languages.target ?? 'Ukrainian'
+      ..isSubtitleReady = state.subtitleSource != SubtitleSource.ai
+      ..subtitleSource = state.subtitleSource.name
+      ..appliedPaddingMs = state.appliedPaddingMs
+      ..appliedFillGaps = state.appliedFillGaps
+      ..audioStatus = state.subtitleSource == SubtitleSource.ai ? 'pending' : 'completed'
+      ..transcriptionStatus = state.subtitleSource == SubtitleSource.ai ? 'pending' : 'completed'
+      ..processingProgress = state.subtitleSource == SubtitleSource.ai ? 0.0 : 1.0
       ..createdAt = DateTime.now();
 
     if (finalMetadata != null) {
@@ -868,8 +861,48 @@ class UploadNotifier extends Notifier<UploadState> {
 
     try {
       final videoId = await ref.read(videoServiceProvider).addVideo(video);
+      final config = ref.read(appConfigsServiceProvider);
+      
+      if (state.subtitleSource == SubtitleSource.ai) {
+        ref.read(translationBackgroundManagerProvider).addTask(
+          TranslationTask(
+            videoId: videoId,
+            isTranscription: true,
+            transcriptionLanguage: languages.original ?? 'Japanese',
+            priority: TaskPriority.normal,
+          ),
+        );
+        state = state.copyWith(isSaving: false);
+        return true;
+      }
+
       final depacker = ref.read(subtitleDepackerServiceProvider);
       await depacker.depack(video..id = videoId, preParsedPhrases: state.previewPhrases);
+
+      // Auto-translate first batch if enabled
+      if (config.getAutoTranslateOnImport && state.previewPhrases.isNotEmpty) {
+        final batchSize = config.getNumberOfPhrases;
+        
+        // We need the IDs assigned by Isar. Depack method updates phrases with IDs.
+        // Actually depack might not update the input list instances if it creates new ones in Isar.
+        // But we can fetch them back or assume the manager will handle it if we pass a task.
+        // The manager needs IDs.
+        
+        // Let's fetch the first batch of IDs from DB to be safe
+        final savedPhrases = await ref.read(phraseServiceProvider).getPhrasesByVideoId(videoId);
+        if (savedPhrases.isNotEmpty) {
+          final chunk = savedPhrases.take(batchSize).toList();
+          ref.read(translationBackgroundManagerProvider).addTask(
+            TranslationTask(
+              videoId: videoId,
+              phraseIds: chunk.map((e) => e.id).toList(),
+              phraseOrders: chunk.map((e) => e.phraseOrder ?? 0).toList(),
+              priority: TaskPriority.normal,
+            )
+          );
+        }
+      }
+
       state = state.copyWith(isSaving: false);
       return true;
     } catch (e) {

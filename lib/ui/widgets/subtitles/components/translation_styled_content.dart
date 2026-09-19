@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../backend/database/schemas/phrase.dart';
-import '../../../../backend/database/schemas/specific_word_style.dart';
+import '../../../../backend/database/schemas/user_word_status.dart';
+import '../../../../config/ui/word_styles.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/ui/subtitle_settings_provider.dart';
 import 'package:eiga/providers/services/app_configs_provider.dart';
 import 'outlined_text.dart';
+import 'shimmer_text.dart';
 
 class TranslationStyledContent extends HookConsumerWidget {
   final Phrase phrase;
   final PhraseLinkIndex index;
-  final Map<String, dynamic> statusMap;
-  final Map<int, SpecificWordStyle> stylesMap;
+  final Map<String, UserWordStatus> statusMap;
   final Set<int> highlightedTranslationIds;
   final int? clickedTranslationId;
   final SelectionAnchor? anchorType;
@@ -30,7 +31,6 @@ class TranslationStyledContent extends HookConsumerWidget {
     required this.phrase,
     required this.index,
     required this.statusMap,
-    required this.stylesMap,
     required this.highlightedTranslationIds,
     this.clickedTranslationId,
     this.anchorType,
@@ -68,7 +68,23 @@ class TranslationStyledContent extends HookConsumerWidget {
         text = text.replaceAll(bracketRegExp, '').trim();
       }
       
-      if (text.isEmpty) return const SizedBox.shrink();
+      if (text.isEmpty) {
+        // If we are in the middle of translation, show a shimmering placeholder
+        if (phrase.uiStatus.activeStageKey == StageKey.translation) {
+          return ShimmerText(
+            child: Container(
+              margin: EdgeInsets.only(top: baseFontSize * 0.2),
+              width: baseFontSize * 8, // Roughly the size of a short sentence
+              height: baseFontSize * 0.8,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      }
 
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: baseFontSize * 0.15, vertical: baseFontSize * 0.05),
@@ -109,10 +125,9 @@ class TranslationStyledContent extends HookConsumerWidget {
           lemma = originalTokens.where((w) => w.blockId == token.blockId).firstOrNull?.lemma;
         }
 
-        SpecificWordStyle? wordStyle;
+        WordStatus? wordStatus;
         if (lemma != null) {
-          final status = statusMap[lemma];
-          if (status?.styleId != null) wordStyle = stylesMap[status!.styleId!];
+          wordStatus = statusMap[lemma]?.status;
         }
 
         return _TranslationTokenWidget(
@@ -120,7 +135,7 @@ class TranslationStyledContent extends HookConsumerWidget {
           token: token,
           index: index,
           lemma: lemma,
-          style: wordStyle,
+          status: wordStatus,
           phraseId: phrase.id,
           isHighlighted: isHighlighted,
           isAnchor: isAnchor,
@@ -144,7 +159,7 @@ class _TranslationTokenWidget extends HookConsumerWidget {
   final TranslationTokenEntry token;
   final PhraseLinkIndex index;
   final String? lemma;
-  final SpecificWordStyle? style;
+  final WordStatus? status;
   final int phraseId;
   final bool isHighlighted;
   final bool isAnchor;
@@ -164,7 +179,7 @@ class _TranslationTokenWidget extends HookConsumerWidget {
     required this.token,
     required this.index,
     this.lemma,
-    this.style,
+    this.status,
     required this.phraseId,
     required this.isHighlighted,
     required this.isAnchor,
@@ -212,8 +227,8 @@ class _TranslationTokenWidget extends HookConsumerWidget {
         outlineColor: Colors.black,
         style: TextStyle(
           fontSize: baseFontSize * modeSettings.translationScale,
-          color: style?.color ?? (isFullscreen ? Colors.white : textColor.withValues(alpha: isPunctuation ? 0.95 : ((isHighlighted && !isPunctuation) ? 1.0 : 0.85))),
-          fontWeight: useOutline ? FontWeight.w800 : ((isHighlighted && !isPunctuation) ? FontWeight.w800 : (style?.fontWeight ?? FontWeight.w700)),
+          color: status?.color ?? (isFullscreen ? Colors.white : textColor.withValues(alpha: isPunctuation ? 0.95 : ((isHighlighted && !isPunctuation) ? 1.0 : 0.85))),
+          fontWeight: useOutline ? FontWeight.w800 : ((isHighlighted && !isPunctuation) ? FontWeight.w800 : (status != null ? WordStatusUI(status!).fontWeight : FontWeight.w700)),
           height: 1.5,
           letterSpacing: modeSettings.translationLetterSpacing,
           decoration: TextDecoration.none,
@@ -227,7 +242,7 @@ class _TranslationTokenWidget extends HookConsumerWidget {
         onTap: () {
           final playerNotifier = ref.read(playerProvider.notifier);
           
-          if (isHighlighted && selectionAnchorType == SelectionAnchor.translation) {
+          if (isAnchor) {
             playerNotifier.clearSelection();
           } else {
             final RenderBox? box = context.findRenderObject() as RenderBox?;

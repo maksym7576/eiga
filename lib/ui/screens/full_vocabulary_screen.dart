@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:eiga/config/ui/word_styles.dart';
 import 'package:eiga/providers/ui/vocabulary_provider.dart';
 import '../widgets/main_hub/vocabulary_feed_item.dart';
 import '../styles/additional_window_theme.dart';
@@ -11,9 +12,8 @@ class FullVocabularyScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final customTheme = AdditionalWindowTheme.of(context);
-    final stylesAsync = ref.watch(allVocabularyStylesProvider);
     final filteredWordsAsync = ref.watch(filteredVocabularyProvider);
-    final selectedStyleId = ref.watch(selectedVocabularyStyleIdProvider);
+    final selectedStatus = ref.watch(selectedVocabularyStatusProvider);
 
     return Scaffold(
       backgroundColor: customTheme.backgroundColor,
@@ -40,29 +40,25 @@ class FullVocabularyScreen extends ConsumerWidget {
           Container(
             height: 60,
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: stylesAsync.when(
-              data: (styles) => ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _FilterChip(
-                    label: 'All',
-                    isSelected: selectedStyleId == null,
-                    onTap: () => ref.read(selectedVocabularyStyleIdProvider.notifier).state = null,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                _FilterChip(
+                  label: 'All',
+                  isSelected: selectedStatus == null,
+                  onTap: () => ref.read(selectedVocabularyStatusProvider.notifier).state = null,
+                ),
+                ...WordStatus.values.map((status) => Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: _FilterChip(
+                    label: status.displayName,
+                    isSelected: selectedStatus == status,
+                    color: status.color,
+                    onTap: () => ref.read(selectedVocabularyStatusProvider.notifier).state = status,
                   ),
-                  ...styles.map((style) => Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: _FilterChip(
-                      label: style.name ?? '',
-                      isSelected: selectedStyleId == style.id,
-                      color: style.color,
-                      onTap: () => ref.read(selectedVocabularyStyleIdProvider.notifier).state = style.id,
-                    ),
-                  )),
-                ],
-              ),
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
+                )),
+              ],
             ),
           ),
           

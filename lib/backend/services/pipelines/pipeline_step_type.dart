@@ -1,4 +1,4 @@
-import 'package:eiga/backend/database/schemas/translation_pipeline_step.dart';
+import 'package:eiga/config/pipelines/pipeline_steps.dart';
 
 enum PipelineStepType { contextResearch, translation, tokenize, morphemes, grammarRole }
 

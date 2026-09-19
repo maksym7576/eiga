@@ -5,11 +5,9 @@ import 'isar_services_providers.dart';
 final subtitleDepackerServiceProvider = Provider<SubtitleDepackerService>((ref) {
   final videoService = ref.watch(videoServiceProvider);
   final phraseService = ref.watch(phraseServiceProvider);
-  final languageService = ref.watch(languageServiceProvider);
   
   return SubtitleDepackerService(
     videoService: videoService,
     phraseService: phraseService,
-    languageService: languageService,
   );
 });

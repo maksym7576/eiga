@@ -6,7 +6,7 @@ import 'package:eiga/providers/database/isar_providers.dart';
 import 'package:eiga/providers/services/isar_services_providers.dart';
 import 'package:eiga/providers/services/token_provider.dart';
 import 'package:eiga/providers/ui/redirect_providers.dart';
-import '../../../models/settings/guide_step.dart';
+import '../../../models/ui/guide_step.dart';
 import '../../styles/additional_window_theme.dart';
 import '../../screens/settings/api_key_config_screen.dart';
 
@@ -46,6 +46,35 @@ class ControlButtonWidget extends ConsumerStatefulWidget {
     );
   }
 
+  static void openXAiKeyDialog(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ApiKeyConfigScreen(
+          type: ApiTokenType.xai,
+          title: 'Grok (X.AI) API Key',
+          description: 'Alternative high-performance AI translation',
+          iconGradient: [Color(0xFF000000), Color(0xFF333333)],
+          icon: Icons.vpn_key_rounded,
+          steps: [
+            GuideStep(
+              title: 'Go to X.AI Console',
+              link: 'https://console.x.ai/',
+              linkLabel: 'Open X.AI Console',
+            ),
+            GuideStep(
+              title: 'Sign in with your X (Twitter) account',
+            ),
+            GuideStep(
+              title: 'Create a new API Key',
+              subtitle: 'Copy the generated key from the dashboard',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   static void openJimakuKeyDialog(BuildContext context) {
     Navigator.push(
       context,
@@ -73,37 +102,6 @@ class ControlButtonWidget extends ConsumerStatefulWidget {
             GuideStep(
               title: 'Click "Generate" API key',
               subtitle: 'Generate and copy the key',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static void openWyzieKeyDialog(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const ApiKeyConfigScreen(
-          type: ApiTokenType.wyzie,
-          title: 'Wyzie API Key',
-          description: 'Auto-search for subtitles on Wyzie Subs',
-          iconGradient: [Color(0xFFEA580C), Color(0xFFF97316)],
-          icon: Icons.vpn_key_rounded,
-          steps: [
-            GuideStep(
-              title: 'Go to Wyzie Subs Login',
-              link: 'https://wyzie.xyz/login',
-              linkLabel: 'Open Wyzie',
-            ),
-            GuideStep(
-              title: 'Sign in to your account',
-            ),
-            GuideStep(
-              title: 'Open "Developer Dashboard"',
-            ),
-            GuideStep(
-              title: 'Generate or copy your API Token',
             ),
           ],
         ),
@@ -181,6 +179,10 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
         ref.read(openJimakuDialogProvider.notifier).state = false;
         ControlButtonWidget.openJimakuKeyDialog(context);
       }
+      if (ref.read(openXAiDialogProvider)) {
+        ref.read(openXAiDialogProvider.notifier).state = false;
+        ControlButtonWidget.openXAiKeyDialog(context);
+      }
     });
   }
 
@@ -228,6 +230,18 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
             Expanded(
               child: _settingsButton(
                 context,
+                title: 'Grok key',
+                onPressed: () => ControlButtonWidget.openXAiKeyDialog(context),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _settingsButton(
+                context,
                 title: 'Jimaku key',
                 onPressed: () => ControlButtonWidget.openJimakuKeyDialog(context),
               ),
@@ -236,21 +250,15 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
             Expanded(
               child: _settingsButton(
                 context,
-                title: 'Wyzie key',
-                onPressed: () => ControlButtonWidget.openWyzieKeyDialog(context),
+                title: 'Clear Database',
+                onPressed: () => ControlButtonWidget._openSettingDialogStatic(
+                  context,
+                  title: 'Clear Database',
+                  builder: (context) => _clearDatabaseDialog(context),
+                ),
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 8),
-        _settingsButton(
-          context,
-          title: 'Clear Database',
-          onPressed: () => ControlButtonWidget._openSettingDialogStatic(
-            context,
-            title: 'Clear Database',
-            builder: (context) => _clearDatabaseDialog(context),
-          ),
         ),
       ],
     );

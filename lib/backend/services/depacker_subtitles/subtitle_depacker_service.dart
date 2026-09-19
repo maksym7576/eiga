@@ -2,23 +2,21 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:eiga/config/languages/language_hub.dart';
 import '../../database/schemas/phrase.dart';
 import '../../database/schemas/video.dart';
-import '../../database/services/phrase_service.dart';
-import '../../database/services/video_service.dart';
-import '../../database/services/language_service.dart';
+import '../database/phrase_service.dart';
+import '../database/video_service.dart';
 import 'ass_parser_service.dart';
 import 'srt_parser_service.dart';
 
 class SubtitleDepackerService {
   final VideoService videoService;
   final PhraseService phraseService;
-  final LanguageService languageService;
 
   SubtitleDepackerService({
     required this.videoService,
     required this.phraseService,
-    required this.languageService,
   });
 
   Future<List<Phrase>> parseSrtPreview({
@@ -39,7 +37,7 @@ class SubtitleDepackerService {
     String fileContent = await _readFile(filePath);
     if (fileContent.isEmpty) return {};
 
-    final langConfig = await languageService.getLanguageByName(language);
+    final langConfig = LanguageHub.getByName(language);
     final removeAllSpaces = langConfig?.removeAllSpaces ?? false;
     final isAss = filePath.toLowerCase().endsWith('.ass');
 
@@ -83,7 +81,7 @@ class SubtitleDepackerService {
       if (video.pathSubtitle == null) return;
       final content = await _readFile(video.pathSubtitle!);
 
-      final langConfig = await languageService.getLanguageByName(video.originalLanguage ?? '');
+      final langConfig = LanguageHub.getByName(video.originalLanguage ?? '');
       final removeAllSpaces = langConfig?.removeAllSpaces ?? false;
 
       phrases = await compute(_parseSubtitlesInIsolate, _SubtitleParseInput(

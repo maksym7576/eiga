@@ -7,23 +7,19 @@ import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/services/reading_type_provider.dart';
 import 'package:eiga/providers/ui/subtitle_settings_provider.dart';
 import 'subtitle_text_content.dart';
-import '../../utils/scaling_utils.dart';
+import '../../../utils/ui/scaling_utils.dart';
 
 class FullscreenSubtitle extends ConsumerWidget {
   const FullscreenSubtitle({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playerState = ref.watch(playerProvider);
-    final isFullscreen = playerState.isFullscreen;
+    // Fine-grained selectors to prevent whole-widget rebuild on every millisecond/position change
+    final isFullscreen = ref.watch(playerProvider.select((s) => s.isFullscreen));
     
     // Subtitles are ONLY visible in fullscreen mode when over the player.
-    // In windowed mode, they are shown in the phrase list below.
     if (!isFullscreen) return const SizedBox.shrink();
     
-    final activePhraseId = ref.watch(activePhraseIdProvider);
-    if (activePhraseId == null) return const SizedBox.shrink();
-
     final activePhrase = ref.watch(activePhraseProvider);
     if (activePhrase == null) return const SizedBox.shrink();
 
@@ -35,27 +31,19 @@ class FullscreenSubtitle extends ConsumerWidget {
     final settings = ref.watch(subtitleSettingsProvider);
     final scaleFactor = ref.watch(fullscreenSubtitleFontSizeProvider);
     
-    final highlightedWords = ref.watch(highlightedWordIdsProvider);
-    final highlightedTranslations = ref.watch(highlightedTranslationIdsProvider);
-    final bool isBlockSelected = highlightedWords.isNotEmpty || highlightedTranslations.isNotEmpty;
+    final isBlockSelected = ref.watch(playerProvider.select((s) => s.highlightedWordIds.isNotEmpty || s.highlightedTranslationIds.isNotEmpty));
 
     return Positioned.fill(
       child: LayoutBuilder(
         builder: (context, constraints) {
           final fontSize = SubtitleScaling.calculateFontSize(constraints.maxWidth, scaleFactor);
           
-          // Adjust alignment: in windowed mode, move it higher up to avoid overlapping player controls
-          final double effectiveY = isFullscreen 
-              ? (1.0 - (settings.verticalOffset * 2.0))
-              : (0.75 - (settings.verticalOffset * 1.5));
+          final double effectiveY = 1.0 - (settings.verticalOffset * 2.0);
 
           return Align(
             alignment: Alignment(0.0, effectiveY),
             child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isFullscreen ? 24.0 : 16.0,
-                vertical: isFullscreen ? 0 : 8.0,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: GestureDetector(
                 onTap: () {
                   if (isBlockSelected) {
@@ -71,7 +59,7 @@ class FullscreenSubtitle extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: settings.showBackdrop
                         ? Colors.black.withValues(alpha: settings.backdropOpacity)
-                        : (isFullscreen ? Colors.transparent : Colors.black54),
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(SubtitleScaling.calculateFontSize(constraints.maxWidth, 12) / 2.3),
                   ),
                   child: _buildBody(activePhrase, mainOpt, addOpt, showTranslation, fontSize, isFullscreen),

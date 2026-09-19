@@ -21,9 +21,6 @@ class SubtitleSourceSelector extends ConsumerWidget {
     
     final jimakuToken = ref.watch(tokenProvider(ApiTokenType.jimaku)).value ?? '';
     final hasToken = jimakuToken.isNotEmpty;
-    
-    final wyzieToken = ref.watch(tokenProvider(ApiTokenType.wyzie)).value ?? '';
-    final hasWyzieToken = wyzieToken.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,21 +34,21 @@ class SubtitleSourceSelector extends ConsumerWidget {
             switch (type) {
               case SubtitleSource.local: return 'Local';
               case SubtitleSource.jimaku: return 'Jimaku';
-              case SubtitleSource.wyzie: return 'Wyzie';
+              case SubtitleSource.ai: return 'AI Transcribe';
             }
           },
           getSubtitle: (type) {
             switch (type) {
               case SubtitleSource.local: return 'From device storage';
               case SubtitleSource.jimaku: return 'Community cloud';
-              case SubtitleSource.wyzie: return 'Alternative cloud';
+              case SubtitleSource.ai: return 'Automatic AI generation';
             }
           },
           getIcon: (type) {
             switch (type) {
               case SubtitleSource.local: return Icons.folder_open_rounded;
               case SubtitleSource.jimaku: return Icons.cloud_outlined;
-              case SubtitleSource.wyzie: return Icons.cloud_circle_outlined;
+              case SubtitleSource.ai: return Icons.auto_awesome_rounded;
             }
           },
           onExpandedChanged: (expanded) {
@@ -70,19 +67,6 @@ class SubtitleSourceSelector extends ConsumerWidget {
             onAction: () {
               ref.read(openJimakuDialogProvider.notifier).state = true;
               context.push('/settings');
-            },
-          ),
-        ],
-        if (subtitleSource == SubtitleSource.wyzie && !hasWyzieToken) ...[
-          const SizedBox(height: 12),
-          AppWarningBanner(
-            message: 'Wyzie requires API token in Settings',
-            actionLabel: 'Configure',
-            onAction: () {
-              context.push('/settings');
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                ControlButtonWidget.openWyzieKeyDialog(context);
-              });
             },
           ),
         ],

@@ -1,10 +1,11 @@
 import 'dart:convert';
+import 'dart:convert';
 import 'package:isar_community/isar.dart';
 import '../../../database/schemas/phrase.dart';
 import '../../../database/schemas/word_index.dart';
 import '../../../database/schemas/video.dart';
-import '../../../database/schemas/language.dart';
-import '../../../database/services/phrase_service.dart';
+import '../../../../config/languages/language_hub.dart';
+import '../../../services/database/phrase_service.dart';
 import '../../utils/ai_exceptions.dart';
 import 'package:eiga/providers/services/ai_request_state.dart';
 import 'response_parser_utils.dart';
@@ -164,8 +165,21 @@ class PhraseResponseHandler {
     return PhraseOutcome(phraseId: phraseId, ok: !phraseHadErrors);
   }
 
-  Future<void> processTokenizationResult(Phrase phrase, Map<String, dynamic> result, {bool isOriginal = true, required Language language}) async {
+  Future<void> processTokenizationBatch(Map<String, dynamic> batchResult, List<Phrase> phrases, {bool isOriginal = true, required String languageName}) async {
+    final List<dynamic> lines = batchResult['lines'] ?? [];
+    for (var line in lines) {
+      final id = ResponseParserUtils.parseId(line['id']);
+      final phrase = phrases.where((p) => p.id == id).firstOrNull;
+      if (phrase != null) {
+        await processTokenizationResult(phrase, line, isOriginal: isOriginal, languageName: languageName);
+      }
+    }
+  }
+
+  Future<void> processTokenizationResult(Phrase phrase, Map<String, dynamic> result, {bool isOriginal = true, required String languageName}) async {
     final List<dynamic> rawList = result['words'] ?? result['tokens'] ?? [];
+    final config = LanguageHub.getByName(languageName);
+    final readingOptions = config?.readingOptions ?? ['original'];
 
     final List<dynamic> blocks = result['renderBlocks'] ?? result['blocks'] ?? [];
     final Map<int, int> posToBlock = {};
@@ -184,7 +198,7 @@ class PhraseResponseHandler {
         final int pos = ResponseParserUtils.parseId(item['pos'] ?? item['wordPosition'] ?? item['translationPosition']);
         
         final List<ReadingItem> versions = [];
-        for (var opt in language.readingOptions) {
+        for (var opt in readingOptions) {
           final String keyToLook = opt == 'original' ? 'text' : opt;
           final val = item[keyToLook] ?? item[opt];
           if (val != null) {
@@ -214,17 +228,6 @@ class PhraseResponseHandler {
         ));
       }
       await phraseService.updateTokens(phrase.id, original: null, translated: tokens);
-    }
-  }
-
-  Future<void> processTokenizationBatch(Map<String, dynamic> batchResult, List<Phrase> phrases, {bool isOriginal = true, required Language language}) async {
-    final List<dynamic> lines = batchResult['lines'] ?? [];
-    for (var line in lines) {
-      final id = ResponseParserUtils.parseId(line['id']);
-      final phrase = phrases.where((p) => p.id == id).firstOrNull;
-      if (phrase != null) {
-        await processTokenizationResult(phrase, line, isOriginal: isOriginal, language: language);
-      }
     }
   }
 

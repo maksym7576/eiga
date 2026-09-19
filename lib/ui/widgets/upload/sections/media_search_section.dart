@@ -15,7 +15,7 @@ import '../../../../ui/widgets/search/anilist_search_source.dart';
 import '../../../../ui/widgets/search/cloud/cloud_subtitle_source.dart';
 import '../../../../ui/widgets/search/tvmaze_search_source.dart';
 import '../../../../ui/widgets/shared/app_text_field.dart';
-import '../../../../utils/debounce.dart';
+import '../../../../utils/common/debounce.dart';
 import '../../shared/app_text_button.dart';
 import '../selectors/metadata_provider_selector.dart';
 import '../selectors/subtitle_source_selector.dart';
@@ -35,7 +35,6 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
   final _tvMazeSource = TVmazeSearchSource();
   final _shikimoriSource = ShikimoriSearchSource();
   final _jimakuSource = CloudSubtitleSource(SearchSourceKeys.jimaku);
-  final _wyzieSource = CloudSubtitleSource(SearchSourceKeys.wyzie);
 
   @override
   void dispose() {
@@ -79,8 +78,6 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
     SearchSource<dynamic, dynamic> searchSource;
     if (source == SubtitleSource.jimaku) {
       searchSource = _jimakuSource;
-    } else if (source == SubtitleSource.wyzie) {
-      searchSource = _wyzieSource;
     } else {
       switch (metadataType) {
         case MetadataProviderType.tvmaze: searchSource = _tvMazeSource; break;
@@ -92,13 +89,17 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
     final key = searchSource.key;
     ref.read(isSearchingProvider(key).notifier).state = true;
     ref.read(searchResultsProvider(key).notifier).state = [];
+    ref.read(selectedEntryProvider(key).notifier).state = null; // Очищуємо старий вибір при новому пошуку
+    ref.read(searchErrorProvider(key).notifier).state = null; 
     
     try {
       final filters = ref.read(searchFiltersProvider(key));
       final results = await searchSource.search(cleanedQuery, filters, ref);
       ref.read(searchResultsProvider(key).notifier).state = results;
       
-      if (results.isNotEmpty) {
+      if (results.isEmpty) {
+        ref.read(searchErrorProvider(key).notifier).state = 'No metadata found. Try adjusting keywords or checking other providers.';
+      } else {
         final firstEntry = results.first as UnifiedMetadataDTO;
         ref.read(selectedEntryProvider(key).notifier).state = firstEntry;
         
@@ -116,13 +117,12 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
         } else {
           if (source == SubtitleSource.jimaku) {
             _jimakuSource.getFiles(firstEntry, {}, ref);
-          } else if (source == SubtitleSource.wyzie) {
-            _wyzieSource.getFiles(firstEntry, {}, ref);
           }
         }
       }
     } catch (e, st) {
       developer.log('Search error for $key', name: 'UI', error: e, stackTrace: st);
+      ref.read(searchErrorProvider(key).notifier).state = 'Network or API error occurred: ${e.toString().split('\n').first}';
     } finally {
       ref.read(isSearchingProvider(key).notifier).state = false;
     }
@@ -137,8 +137,6 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
     final SearchSource<dynamic, dynamic> activeSource;
     if (subtitleSource == SubtitleSource.jimaku) {
       activeSource = _jimakuSource;
-    } else if (subtitleSource == SubtitleSource.wyzie) {
-      activeSource = _wyzieSource;
     } else {
       switch (metadataType) {
         case MetadataProviderType.tvmaze: activeSource = _tvMazeSource; break;
@@ -150,7 +148,12 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
     final sourceKey = activeSource.key;
 
     ref.listen(uploadProvider.select((s) => s.fileName), (p, next) {
-      if (next != null && _controller.text.isEmpty) _controller.text = next;
+      // Завжди підставляємо назву відео як є (без очищення регулярками), якщо інпут порожній
+      if (next != null && _controller.text.isEmpty) {
+        _controller.text = next;
+        // Одразу запускаємо первинний пошук за назвою медіафайлу
+        _performSearch(next, subtitleSource);
+      }
     });
 
     final isSearching = ref.watch(isSearchingProvider(sourceKey));
@@ -160,9 +163,6 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
     if (subtitleSource == SubtitleSource.jimaku) {
       rawResults = ref.watchJimakuResults();
       selectedEntry = ref.watchJimakuSelectedEntry();
-    } else if (subtitleSource == SubtitleSource.wyzie) {
-      rawResults = ref.watchWyzieResults();
-      selectedEntry = ref.watchWyzieSelectedEntry();
     } else {
       switch (metadataType) {
         case MetadataProviderType.tvmaze:
@@ -182,7 +182,9 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
 
     final results = rawResults.length > 12 ? rawResults.take(12).toList() : [...rawResults];
 
-    if (selectedEntry != null) {
+    // Додаємо вибраний елемент на початок списку тільки якщо пошук повернув хоча б якісь результати
+    // Це запобігає появі "фантомних" карток старого вибору, коли новий пошук нічого не знайшов
+    if (selectedEntry != null && results.isNotEmpty) {
       final index = results.indexWhere((e) => 
           activeSource.entryId(e as dynamic) == activeSource.entryId(selectedEntry as dynamic)
       );
@@ -211,15 +213,32 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
               hintText: 'Search for metadata...',
               prefixIcon: Icon(Icons.auto_awesome, color: theme.mutedText, size: 16),
               suffixIcon: Padding(
-                padding: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.only(right: 4),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (_controller.text.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 16, color: Colors.black54),
+                        onPressed: () {
+                          setState(() {
+                            _controller.clear();
+                          });
+                          final key = activeSource.key;
+                          ref.read(searchResultsProvider(key).notifier).state = [];
+                          ref.read(searchErrorProvider(key).notifier).state = null; // Очищуємо помилку
+                        },
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
                     if (isSearching)
-                      const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3B66F5)),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3B66F5)),
+                        ),
                       ),
                     TextButton(
                       onPressed: () => _performSearch(_controller.text, subtitleSource),
@@ -235,6 +254,44 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
                   ],
                 ),
               ),
+            ),
+            
+            // Динамічний вивід помилок або пустого результату під інпутом пошуку
+            Consumer(
+              builder: (context, ref, child) {
+                final searchError = ref.watch(searchErrorProvider(sourceKey));
+                if (searchError == null) return const SizedBox.shrink();
+                
+                return Padding(
+                  padding: const EdgeInsets.only(top: 10, left: 4, right: 4),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2), // Світло-червоний матовий
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFEE2E2)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.info_outline_rounded, color: Colors.redAccent, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            searchError,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF991B1B),
+                              fontWeight: FontWeight.w500,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -282,7 +339,7 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
                     isActive: isSelected,
                     onTap: () {
                       ref.read(selectedEntryProvider(sourceKey).notifier).state = entry;
-                      if (activeSource == _jimakuSource || activeSource == _wyzieSource) {
+                      if (activeSource == _jimakuSource) {
                         if (entry.anilistId != null) {
                           ref.read(aniListProvider.notifier).load(entry.anilistId!, downloadImages: true);
                         }
@@ -306,8 +363,6 @@ class _MediaSearchSectionState extends ConsumerState<MediaSearchSection> {
     SearchSource<dynamic, dynamic> searchSource;
     if (source == SubtitleSource.jimaku) {
       searchSource = _jimakuSource;
-    } else if (source == SubtitleSource.wyzie) {
-      searchSource = _wyzieSource;
     } else {
       if (metadataType == MetadataProviderType.tvmaze) {
         searchSource = _tvMazeSource;

@@ -1,7 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/legacy.dart';
 import '../../backend/database/schemas/video.dart';
-import '../../backend/database/schemas/translation_job.dart';
+import '../../backend/database/schemas/job.dart';
 import '../services/isar_services_providers.dart';
 
 enum LibrarySortOrder { title, recent, language }
@@ -43,7 +43,7 @@ final filteredVideosProvider = Provider<AsyncValue<List<Video>>>((ref) {
   });
 });
 
-final activeJobsProvider = StreamProvider<List<TranslationJob>>((ref) {
-  final service = ref.watch(translationJobServiceProvider);
+final activeJobsProvider = StreamProvider<List<Job>>((ref) {
+  final service = ref.watch(jobServiceProvider);
   return service.watchAllActiveJobs();
 });

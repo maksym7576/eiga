@@ -6,12 +6,12 @@ import 'package:window_manager/window_manager.dart';
 import 'package:media_kit/media_kit.dart';
 import 'dart:io';
 
-import 'package:eiga/backend/database/services/isar_service.dart';
+import 'package:eiga/backend/services/database/database_service.dart';
 import 'package:eiga/providers/database/isar_providers.dart';
 import 'package:eiga/providers/services/app_configs_provider.dart';
 import 'package:eiga/ui/navigators/router.dart';
-import 'package:eiga/ui/widgets/ai_error_overlay.dart';
-import 'package:eiga/ui/widgets/global_hint_overlay.dart';
+import 'package:eiga/ui/widgets/overlays/ai_error_overlay.dart';
+import 'package:eiga/ui/widgets/overlays/global_hint_overlay.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,7 +42,7 @@ void main() async {
   ));
   
   // Initialize Isar and Seeding
-  final isar = await IsarService.openIsar();
+  final isar = await DatabaseService.openIsar();
   
   // Initialize SharedPreferences
   final prefs = await SharedPreferences.getInstance();

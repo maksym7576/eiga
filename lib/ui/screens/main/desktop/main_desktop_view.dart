@@ -115,12 +115,13 @@ class _MainDesktopViewState extends ConsumerState<MainDesktopView> {
                           (context, index) {
                             final video = videos[index];
                             return VideoLibraryCard(
-                              video: video,
+                              videoId: video.id,
                               onTap: () {
                                 ref.read(playerIdProvider.notifier).state = video.id;
                                 context.push('/player');
                               },
                             );
+
                           },
                           childCount: videos.length,
                         ),

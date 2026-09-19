@@ -55,7 +55,6 @@ final metadataStatusProvider = Provider.family<ServiceStatus, MetadataProviderTy
 
 class SearchSourceKeys {
   static const String jimaku = 'jimaku';
-  static const String wyzie = 'wyzie';
   static const String anilist = 'anilist';
   static const String tvmaze = 'tvmaze';
   static const String shikimori = 'shikimori';
@@ -63,6 +62,9 @@ class SearchSourceKeys {
 
 final searchResultsProvider =
     StateProvider.family<List<dynamic>, String>((ref, key) => []);
+
+final searchErrorProvider =
+    StateProvider.family<String?, String>((ref, key) => null);
 
 final selectedEntryProvider =
     StateProvider.family<dynamic, String>((ref, key) => null);
@@ -150,42 +152,6 @@ extension JimakuProviders on WidgetRef {
   JimakuFileOrGroupDTO? watchJimakuSelectedResult() {
     try {
       final res = watch(selectedResultProvider(SearchSourceKeys.jimaku));
-      return res is JimakuFileOrGroupDTO ? res : null;
-    } catch (e) {
-      return null;
-    }
-  }
-}
-
-extension WyzieProviders on WidgetRef {
-  List<UnifiedMetadataDTO> watchWyzieResults() {
-    try {
-      return watch(searchResultsProvider(SearchSourceKeys.wyzie)).whereType<UnifiedMetadataDTO>().toList();
-    } catch (e) {
-      return [];
-    }
-  }
-
-  UnifiedMetadataDTO? watchWyzieSelectedEntry() {
-    try {
-      final entry = watch(selectedEntryProvider(SearchSourceKeys.wyzie));
-      return entry is UnifiedMetadataDTO ? entry : null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  List<JimakuFileOrGroupDTO> watchWyzieFiles() {
-    try {
-      return watch(filesProvider(SearchSourceKeys.wyzie)).whereType<JimakuFileOrGroupDTO>().toList();
-    } catch (e) {
-      return [];
-    }
-  }
-
-  JimakuFileOrGroupDTO? watchWyzieSelectedResult() {
-    try {
-      final res = watch(selectedResultProvider(SearchSourceKeys.wyzie));
       return res is JimakuFileOrGroupDTO ? res : null;
     } catch (e) {
       return null;

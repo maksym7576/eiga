@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../../../backend/database/schemas/language.dart';
-import 'package:eiga/providers/services/isar_services_providers.dart';
-import 'package:eiga/providers/ui/language_provider.dart';
+import 'package:eiga/config/languages/language_hub.dart';
+import 'package:eiga/providers/services/app_configs_provider.dart';
 import '../../styles/additional_window_theme.dart';
 
 class LanguageTokenizationScreen extends ConsumerWidget {
-  final int languageId;
+  final String languageName;
 
   const LanguageTokenizationScreen({
     super.key,
-    required this.languageId,
+    required this.languageName,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = AdditionalWindowTheme.of(context);
-    final languageService = ref.watch(languageServiceProvider);
+    final config = LanguageHub.getByName(languageName);
+    if (config == null) return const Scaffold(body: Center(child: Text('Language not found')));
+
+    final appConfig = ref.watch(appConfigsServiceProvider);
+    final currentMethod = appConfig.getTokenizationMethod(languageName);
 
     return Scaffold(
       backgroundColor: theme.backgroundColor,
@@ -31,51 +34,41 @@ class LanguageTokenizationScreen extends ConsumerWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: FutureBuilder<Language?>(
-        future: languageService.getLanguageById(languageId),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          final lang = snapshot.data!;
-
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Choose how ${lang.name} text should be split into words:',
-                  style: TextStyle(color: theme.mutedText, fontSize: 13, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 20),
-                _MethodCard(
-                  title: 'Local Tokenization',
-                  subtitle: 'Fast, works offline. Recommended for space-separated languages.',
-                  icon: Icons.speed_rounded,
-                  isSelected: lang.tokenizationMethod == TokenizationMethod.local,
-                  onTap: () async {
-                    lang.tokenizationMethod = TokenizationMethod.local;
-                    await languageService.updateLanguage(lang);
-                    ref.invalidate(allLanguagesProvider);
-                    if (context.mounted) Navigator.pop(context);
-                  },
-                ),
-                const SizedBox(height: 12),
-                _MethodCard(
-                  title: 'AI Tokenization',
-                  subtitle: 'Most accurate, handles complex grammar. Requires internet.',
-                  icon: Icons.auto_awesome_rounded,
-                  isSelected: lang.tokenizationMethod == TokenizationMethod.ai,
-                  onTap: () async {
-                    lang.tokenizationMethod = TokenizationMethod.ai;
-                    await languageService.updateLanguage(lang);
-                    ref.invalidate(allLanguagesProvider);
-                    if (context.mounted) Navigator.pop(context);
-                  },
-                ),
-              ],
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Choose how ${config.name} text should be split into words:',
+              style: TextStyle(color: theme.mutedText, fontSize: 13, fontWeight: FontWeight.w500),
             ),
-          );
-        },
+            const SizedBox(height: 20),
+            _MethodCard(
+              title: 'Local Tokenization',
+              subtitle: 'Fast, works offline. Recommended for space-separated languages.',
+              icon: Icons.speed_rounded,
+              isSelected: currentMethod == TokenizationMethod.local,
+              onTap: () async {
+                await appConfig.setTokenizationMethod(languageName, TokenizationMethod.local);
+                ref.invalidate(appConfigsServiceProvider);
+                if (context.mounted) Navigator.pop(context);
+              },
+            ),
+            const SizedBox(height: 12),
+            _MethodCard(
+              title: 'AI Tokenization',
+              subtitle: 'Most accurate, handles complex grammar. Requires internet.',
+              icon: Icons.auto_awesome_rounded,
+              isSelected: currentMethod == TokenizationMethod.ai,
+              onTap: () async {
+                await appConfig.setTokenizationMethod(languageName, TokenizationMethod.ai);
+                ref.invalidate(appConfigsServiceProvider);
+                if (context.mounted) Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

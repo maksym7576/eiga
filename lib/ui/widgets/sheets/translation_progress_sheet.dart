@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:eiga/backend/database/schemas/translation_job.dart';
+import 'package:eiga/backend/database/schemas/job.dart';
 import 'package:eiga/backend/services/background/translation_background_manager.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/ui/styles/app_colors.dart';
@@ -22,7 +22,7 @@ class TranslationProgressSheet extends HookConsumerWidget {
         final jobsAsync = ref.watch(translationJobsStreamProvider(video.id));
         
         return jobsAsync.when(
-          data: (List<TranslationJob> jobs) {
+          data: (List<Job> jobs) {
             final activeJobs = jobs.where((j) => j.status == 'active').toList();
             final completedJobs = jobs.where((j) => j.status != 'active').toList();
 

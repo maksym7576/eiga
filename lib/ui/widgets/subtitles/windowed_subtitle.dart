@@ -5,7 +5,7 @@ import 'package:eiga/providers/services/reading_type_provider.dart';
 import 'package:eiga/providers/ui/subtitle_settings_provider.dart';
 import 'components/shimmer_text.dart';
 import 'subtitle_text_content.dart';
-import '../../utils/scaling_utils.dart';
+import '../../../utils/ui/scaling_utils.dart';
 
 class WindowedSubtitle extends ConsumerWidget {
   final Phrase phrase;
@@ -22,10 +22,11 @@ class WindowedSubtitle extends ConsumerWidget {
     final uiStatus = phrase.uiStatus;
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Priority 1: If we have a translation text, show it using the rich content widget
-        if (phrase.translatedPhrase != null && phrase.translatedPhrase!.isNotEmpty) {
-          final isMorphologyRunning = uiStatus.activeStageKey == StageKey.morphology;
+        // Priority 1: If we have ANY content (original or translation), show it via rich content
+        if ((phrase.originalPhrase != null && phrase.originalPhrase!.isNotEmpty) || 
+            (phrase.translatedPhrase != null && phrase.translatedPhrase!.isNotEmpty)) {
           
+          final isMorphologyRunning = uiStatus.activeStageKey == StageKey.morphology;
           final content = _buildTranslatedContent(context, ref, constraints.maxWidth);
 
           if (isMorphologyRunning) {

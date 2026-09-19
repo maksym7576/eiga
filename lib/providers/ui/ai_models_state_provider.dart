@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/backend/database/schemas/ai_model.dart';
-import 'package:eiga/backend/database/schemas/translation_pipeline_step.dart';
+import 'package:eiga/backend/database/schemas/ai_model_event.dart';
+import 'package:eiga/config/pipelines/pipeline_steps.dart';
 import 'package:eiga/providers/database/isar_providers.dart';
 import 'package:eiga/providers/services/app_configs_provider.dart';
 
@@ -86,10 +87,11 @@ class AiModelsNotifier extends Notifier<Map<TranslationPipelineStep, String>> {
 
 final aiModelsProvider = NotifierProvider<AiModelsNotifier, Map<TranslationPipelineStep, String>>(AiModelsNotifier.new);
 
-/// Pre-fetches all models once to ensure instant switching in the UI.
-final allModelsProvider = FutureProvider<List<AiModel>>((ref) async {
+/// Watches all models live from Isar database to ensure reactive UI updates.
+final allModelsProvider = StreamProvider<List<AiModel>>((ref) {
   final service = ref.watch(aiModelServiceProvider);
-  return await service.getAllModels();
+  // Isar v3 collections can watch general changes directly through the collection instance
+  return service.isar.aiModels.watchLazy(fireImmediately: true).asyncMap((_) => service.getAllModels());
 });
 
 /// Synchronously filters models for a specific step.
@@ -116,7 +118,14 @@ final modelsForStepProvider = Provider.family<List<AiModel>, TranslationPipeline
   );
 });
 
+/// Watches events for a specific model.
+final aiModelEventsProvider = StreamProvider.family<List<AiModelEvent>, String>((ref, modelName) {
+  final service = ref.watch(aiModelServiceProvider);
+  return service.watchEventsForModel(modelName);
+});
+
 /// Provider that emits the duration until the next UTC midnight.
+
 final utcCountdownProvider = StreamProvider<Duration>((ref) async* {
   while (true) {
     final now = DateTime.now().toUtc();

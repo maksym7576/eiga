@@ -272,8 +272,9 @@ class _MainMobileViewState extends ConsumerState<MainMobileView> {
                     itemBuilder: (context, index) {
                       final video = videos[index];
                       return VideoLibraryCard(
-                        video: video,
+                        videoId: video.id,
                         width: 150,
+
                         onTap: () {
                           ref.read(playerIdProvider.notifier).state = video.id;
                           context.push('/player');

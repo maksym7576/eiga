@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:eiga/ui/utils/responsive_helper.dart';
+import 'package:eiga/utils/ui/responsive_helper.dart';
 import 'package:eiga/providers/database/isar_providers.dart';
 import 'package:eiga/providers/services/app_configs_provider.dart';
 import 'package:eiga/providers/ui/redirect_providers.dart';

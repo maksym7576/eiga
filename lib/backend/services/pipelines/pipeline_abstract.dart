@@ -1,8 +1,8 @@
 import 'package:isar_community/isar.dart';
 import 'package:eiga/backend/database/schemas/ai_model.dart';
 import 'package:eiga/backend/database/schemas/video.dart';
-import 'package:eiga/backend/database/schemas/translation_pipeline_step.dart';
-import 'package:eiga/backend/database/services/ai_model_service.dart';
+import 'package:eiga/config/pipelines/pipeline_steps.dart';
+import 'package:eiga/backend/services/database/ai_model_service.dart';
 import 'pipeline_step_type.dart';
 
 class PipelineStepResult {

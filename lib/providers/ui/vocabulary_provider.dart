@@ -4,8 +4,8 @@ import 'package:hooks_riverpod/legacy.dart';
 import 'package:isar_community/isar.dart';
 import '../../backend/database/schemas/phrase.dart';
 import '../../backend/database/schemas/word_index.dart';
-import '../../backend/database/schemas/known_word_status.dart';
-import '../../backend/database/schemas/specific_word_style.dart';
+import '../../backend/database/schemas/user_word_status.dart';
+import '../../config/ui/word_styles.dart';
 import '../services/isar_services_providers.dart';
 import 'video_data_providers.dart';
 
@@ -13,7 +13,7 @@ class StyledVocabularyItem {
   final EmbeddedBlock block;
   final List<TokenEntry> words;
   final List<TranslationTokenEntry> translationWords;
-  final SpecificWordStyle? style;
+  final WordStatus? status;
   final String? seriesName;
   final String? contextOriginal;
   final String? contextTranslated;
@@ -25,7 +25,7 @@ class StyledVocabularyItem {
     required this.words,
     required this.translationWords,
     required this.phraseId,
-    this.style,
+    this.status,
     this.seriesName,
     this.contextOriginal,
     this.contextTranslated,
@@ -36,19 +36,18 @@ class StyledVocabularyItem {
 final styledVocabularyProvider = StreamProvider<List<StyledVocabularyItem>>((ref) async* {
   final statusService = ref.watch(knownWordStatusServiceProvider);
   final indexService = ref.watch(wordIndexServiceProvider);
-  final stylesMap = ref.watch(allStylesMapProvider);
   final phraseService = ref.watch(phraseServiceProvider);
 
-  await for (final statuses in statusService.watchKnownWithStyles()) {
+  await for (final statuses in statusService.watchUserStatuses()) {
     if (statuses.isEmpty) {
       yield [];
       continue;
     }
 
-    final List<KnownWordStatus> sortedStatuses = List<KnownWordStatus>.from(statuses)
+    final List<UserWordStatus> sortedStatuses = List<UserWordStatus>.from(statuses)
       ..sort((a, b) => b.id.compareTo(a.id));
     
-    final lemmas = sortedStatuses.map((s) => s.base).whereType<String>().toList();
+    final lemmas = sortedStatuses.map((s) => s.lemma).toList();
     if (lemmas.isEmpty) {
       yield [];
       continue;
@@ -60,11 +59,8 @@ final styledVocabularyProvider = StreamProvider<List<StyledVocabularyItem>>((ref
     final Set<int> processedBlockPhrasePairs = {};
 
     for (final s in sortedStatuses) {
-      if (s.base == null) continue;
-      final matches = allIndexMatches.where((m) => m.lemma == s.base).toList();
+      final matches = allIndexMatches.where((m) => m.lemma == s.lemma).toList();
       if (matches.isEmpty) continue;
-
-      final style = s.styleId != null ? stylesMap[s.styleId!] : null;
 
       for (final m in matches) {
         final pairKey = (m.phraseId << 32) | (m.blockId ?? 0);
@@ -88,7 +84,7 @@ final styledVocabularyProvider = StreamProvider<List<StyledVocabularyItem>>((ref
           words: blockWords,
           translationWords: blockTrWords,
           phraseId: m.phraseId,
-          style: style,
+          status: s.status,
           seriesName: m.seriesName,
           contextOriginal: m.contextOriginal,
           contextTranslated: m.contextTranslated,
@@ -101,19 +97,14 @@ final styledVocabularyProvider = StreamProvider<List<StyledVocabularyItem>>((ref
   }
 });
 
-final allVocabularyStylesProvider = StreamProvider<List<SpecificWordStyle>>((ref) {
-  final service = ref.watch(specificWordStyleServiceProvider);
-  return service.watchAllStyles();
-});
-
-final selectedVocabularyStyleIdProvider = StateProvider<int?>((ref) => null);
+final selectedVocabularyStatusProvider = StateProvider<WordStatus?>((ref) => null);
 
 final filteredVocabularyProvider = Provider<AsyncValue<List<StyledVocabularyItem>>>((ref) {
   final allItemsAsync = ref.watch(styledVocabularyProvider);
-  final selectedStyleId = ref.watch(selectedVocabularyStyleIdProvider);
+  final selectedStatus = ref.watch(selectedVocabularyStatusProvider);
 
   return allItemsAsync.whenData((items) {
-    if (selectedStyleId == null) return items;
-    return items.where((item) => item.style?.id == selectedStyleId).toList();
+    if (selectedStatus == null) return items;
+    return items.where((item) => item.status == selectedStatus).toList();
   });
 });

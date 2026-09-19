@@ -101,6 +101,30 @@ class _ProcessingBatchSettingsScreenState extends ConsumerState<ProcessingBatchS
               setState(() {});
             },
           ),
+          const SizedBox(height: 24),
+          _buildSectionHeader(context, 'AI Transcription (Automatic Subtitles)'),
+          const SizedBox(height: 12),
+          _BatchInputTile(
+            key: ValueKey('transcribe_chunk_$_resetCounter'),
+            title: 'Audio Chunk Duration',
+            subtitle: 'Minutes of audio to process in one AI request',
+            value: config.getAudioChunkDurationMinutes,
+            onChanged: (val) async {
+              await config.setAudioChunkDurationMinutes(val);
+              setState(() {});
+            },
+          ),
+          const SizedBox(height: 12),
+          _BatchInputTile(
+            key: ValueKey('transcribe_overlap_$_resetCounter'),
+            title: 'Transcription Overlap',
+            subtitle: 'Seconds to overlap between audio chunks',
+            value: config.getTranscriptionOverlapSeconds,
+            onChanged: (val) async {
+              await config.setTranscriptionOverlapSeconds(val);
+              setState(() {});
+            },
+          ),
         ],
       ),
     );

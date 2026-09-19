@@ -1,6 +1,5 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../../backend/database/schemas/language.dart';
-import '../services/isar_services_providers.dart';
+import '../../config/languages/language_hub.dart';
 
 class LanguageState {
   final String? original;
@@ -39,15 +38,13 @@ final languageProvider = NotifierProvider.autoDispose<LanguageNotifier, Language
   LanguageNotifier.new,
 );
 
-final allLanguagesProvider = FutureProvider<List<Language>>((ref) async {
-  final service = ref.watch(languageServiceProvider);
-  return await service.getAllLanguages();
+final allLanguagesProvider = Provider<List<LanguageConfig>>((ref) {
+  return LanguageHub.all;
 });
 
-final languageCodesProvider = FutureProvider<Map<String, String>>((ref) async {
-  final languages = await ref.watch(allLanguagesProvider.future);
+final languageCodesProvider = Provider<Map<String, String>>((ref) {
+  final languages = ref.watch(allLanguagesProvider);
   return {
-    for (var l in languages)
-      if (l.name != null && l.code != null) l.name!: l.code!,
+    for (var l in languages) l.name: l.code,
   };
 });

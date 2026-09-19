@@ -4,7 +4,7 @@ import '../animations/eiga_logo_animation.dart';
 import 'eiga_logo.dart';
 import '../../styles/app_colors.dart';
 
-import 'package:eiga/ui/utils/responsive_helper.dart';
+import 'package:eiga/utils/ui/responsive_helper.dart';
 
 class LoadingSplash extends StatelessWidget {
   final bool useAlternativeLogo;

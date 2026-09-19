@@ -12,11 +12,20 @@ class FileJimakuDTO {
   });
 
   factory FileJimakuDTO.fromJson(Map<String, dynamic> json) {
+    // Робимо парсинг безпечним для різних провайдерів (Jimaku)
+    String? rawDate = json['last_modified'] as String?;
+    DateTime parsedDate;
+    try {
+      parsedDate = rawDate != null ? DateTime.parse(rawDate) : DateTime.now();
+    } catch (_) {
+      parsedDate = DateTime.now();
+    }
+
     return FileJimakuDTO(
-      name: json['name'] as String? ?? '',
+      name: json['name'] as String? ?? json['filename'] as String? ?? json['display_name'] as String? ?? 'Unknown file',
       url: json['url'] as String? ?? '',
       size: json['size'] as int? ?? 0,
-      lastModified: DateTime.parse(json['last_modified'] as String),
+      lastModified: parsedDate,
     );
   }
 }

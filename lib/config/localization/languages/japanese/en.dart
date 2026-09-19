@@ -1,0 +1,52 @@
+const Map<String, dynamic> jaGrammarRulesEn = {
+  "ptl.wa.top": {
+    "title": "Topic Marker (は)",
+    "shortLabel": "topic",
+    "description": "Indicates the topic of the sentence. Often translated as 'as for' or 'speaking of'.",
+    "contrastWith": "ptl.ga.subj"
+  },
+  "ptl.ga.subj": {
+    "title": "Subject Marker (が)",
+    "shortLabel": "subject",
+    "description": "Indicates the grammatical subject that performs the action or exists in a state.",
+    "contrastWith": "ptl.wa.top"
+  },
+  "ptl.wo.obj": {
+    "title": "Object Marker (を)",
+    "shortLabel": "object",
+    "description": "Indicates the direct object of a transitive verb."
+  },
+  "ptl.ni.loc": {
+    "title": "Location of Existence (に)",
+    "shortLabel": "locative",
+    "description": "Indicates the location where something exists or the destination of movement.",
+    "contrastWith": "ptl.de.loc"
+  },
+  "ptl.de.loc": {
+    "title": "Location of Action (で)",
+    "shortLabel": "locative",
+    "description": "Indicates the location where an action takes place.",
+    "contrastWith": "ptl.ni.loc"
+  },
+  "aux.teiru.prog": {
+    "title": "Continuous Aspect (ている)",
+    "shortLabel": "progressive",
+    "description": "Indicates an action currently in progress (e.g., 'is eating')."
+  },
+  "aux.teiru.result": {
+    "title": "Resultative Aspect (ている)",
+    "shortLabel": "resultative",
+    "description": "Indicates a state that persists after an action has been completed (e.g., 'is married', 'knows')."
+  },
+  "aux.souda.hearsay": {
+    "title": "Hearsay (そうだ)",
+    "shortLabel": "hearsay",
+    "description": "Indicates that the information was heard from someone else. Often translated as 'I heard that...' or 'They say...'",
+    "contrastWith": "aux.souda.appear"
+  },
+  "suf.tachi.plural": {
+    "title": "Plural Suffix (たち)",
+    "shortLabel": "plural",
+    "description": "Makes a noun plural, specifically for people or animate objects."
+  }
+};

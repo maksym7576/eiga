@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../../../backend/database/schemas/translation_job.dart';
+import '../../../backend/database/schemas/job.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import '../../styles/app_colors.dart';
@@ -24,7 +24,7 @@ class PlayerBottomDock extends HookConsumerWidget {
     final videoId = ref.watch(playerIdProvider);
     final activeJobsAsync = videoId != null 
         ? ref.watch(translationJobsStreamProvider(videoId)) 
-        : const AsyncValue<List<TranslationJob>>.data([]);
+        : const AsyncValue<List<Job>>.data([]);
 
     return phrasesAsync.when(
       data: (phrases) {

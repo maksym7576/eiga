@@ -1,5 +1,6 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../services/app_configs_provider.dart';
+import '../../config/languages/language_hub.dart';
 import 'video_data_providers.dart';
 
 class ModeSubtitleSettings {
@@ -92,8 +93,9 @@ class SubtitleSettingsNotifier extends Notifier<SubtitleSettings> {
   @override
   SubtitleSettings build() {
     final config = ref.watch(appConfigsServiceProvider);
-    final languageAsync = ref.watch(videoLanguageProvider);
-    final language = languageAsync.value;
+    final video = ref.watch(currentVideoProvider).value;
+    final languageName = video?.originalLanguage ?? 'Japanese';
+    final language = LanguageHub.getByName(languageName);
 
     double defaultOriginalSpacing = 0.0;
     if (language?.code == 'ja' || language?.name?.toLowerCase().contains('japanese') == true) {

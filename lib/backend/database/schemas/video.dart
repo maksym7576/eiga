@@ -51,7 +51,19 @@ class Video {
   bool? isResearchDone = false;
   String? researchInformation;
 
+  bool? isSubtitleReady;
+  String? subtitleSource; // 'local', 'jimaku', 'ai'
+  int? appliedPaddingMs;
+  bool? appliedFillGaps;
+
+  String? audioStatus = 'pending'; 
+  String? transcriptionStatus = 'pending';
+  double? processingProgress = 0.0;
+  int? transcriptionResumeSeconds = 0;
+
   bool isCached = false;
+
+  int? lastPositionMs;
 
   Video();
 
@@ -103,7 +115,16 @@ class Video {
     String? pipelineIndetificator,
     bool? isResearchDone,
     String? researchInformation,
+    bool? isSubtitleReady,
+    String? subtitleSource,
+    int? appliedPaddingMs,
+    bool? appliedFillGaps,
+    String? audioStatus,
+    String? transcriptionStatus,
+    double? processingProgress,
+    int? transcriptionResumeSeconds,
     bool? isCached,
+    int? lastPositionMs,
   }) {
     return Video()
       ..id = id ?? this.id
@@ -142,6 +163,15 @@ class Video {
       ..pipelineIndetificator = pipelineIndetificator ?? this.pipelineIndetificator
       ..isResearchDone = isResearchDone ?? this.isResearchDone
       ..researchInformation = researchInformation ?? this.researchInformation
-      ..isCached = isCached ?? this.isCached;
+      ..isSubtitleReady = isSubtitleReady ?? this.isSubtitleReady
+      ..subtitleSource = subtitleSource ?? this.subtitleSource
+      ..appliedPaddingMs = appliedPaddingMs ?? this.appliedPaddingMs
+      ..appliedFillGaps = appliedFillGaps ?? this.appliedFillGaps
+      ..audioStatus = audioStatus ?? this.audioStatus
+      ..transcriptionStatus = transcriptionStatus ?? this.transcriptionStatus
+      ..processingProgress = processingProgress ?? this.processingProgress
+      ..transcriptionResumeSeconds = transcriptionResumeSeconds ?? this.transcriptionResumeSeconds
+      ..isCached = isCached ?? this.isCached
+      ..lastPositionMs = lastPositionMs ?? this.lastPositionMs;
   }
 }

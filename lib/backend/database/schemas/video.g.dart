@@ -22,130 +22,175 @@ const VideoSchema = CollectionSchema(
       name: r'anilistId',
       type: IsarType.long,
     ),
-    r'bannerImage': PropertySchema(
+    r'appliedFillGaps': PropertySchema(
       id: 1,
+      name: r'appliedFillGaps',
+      type: IsarType.bool,
+    ),
+    r'appliedPaddingMs': PropertySchema(
+      id: 2,
+      name: r'appliedPaddingMs',
+      type: IsarType.long,
+    ),
+    r'audioStatus': PropertySchema(
+      id: 3,
+      name: r'audioStatus',
+      type: IsarType.string,
+    ),
+    r'bannerImage': PropertySchema(
+      id: 4,
       name: r'bannerImage',
       type: IsarType.string,
     ),
     r'colorThemeValue': PropertySchema(
-      id: 2,
+      id: 5,
       name: r'colorThemeValue',
       type: IsarType.long,
     ),
     r'coverImagePath': PropertySchema(
-      id: 3,
+      id: 6,
       name: r'coverImagePath',
       type: IsarType.string,
     ),
     r'createdAt': PropertySchema(
-      id: 4,
+      id: 7,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'description': PropertySchema(
-      id: 5,
+      id: 8,
       name: r'description',
       type: IsarType.string,
     ),
-    r'episode': PropertySchema(id: 6, name: r'episode', type: IsarType.string),
+    r'episode': PropertySchema(id: 9, name: r'episode', type: IsarType.string),
     r'fileName': PropertySchema(
-      id: 7,
+      id: 10,
       name: r'fileName',
       type: IsarType.string,
     ),
     r'genres': PropertySchema(
-      id: 8,
+      id: 11,
       name: r'genres',
       type: IsarType.stringList,
     ),
-    r'imdbId': PropertySchema(id: 9, name: r'imdbId', type: IsarType.string),
-    r'isAdult': PropertySchema(id: 10, name: r'isAdult', type: IsarType.bool),
-    r'isAnime': PropertySchema(id: 11, name: r'isAnime', type: IsarType.bool),
-    r'isCached': PropertySchema(id: 12, name: r'isCached', type: IsarType.bool),
-    r'isMovie': PropertySchema(id: 13, name: r'isMovie', type: IsarType.bool),
+    r'imdbId': PropertySchema(id: 12, name: r'imdbId', type: IsarType.string),
+    r'isAdult': PropertySchema(id: 13, name: r'isAdult', type: IsarType.bool),
+    r'isAnime': PropertySchema(id: 14, name: r'isAnime', type: IsarType.bool),
+    r'isCached': PropertySchema(id: 15, name: r'isCached', type: IsarType.bool),
+    r'isMovie': PropertySchema(id: 16, name: r'isMovie', type: IsarType.bool),
     r'isResearchDone': PropertySchema(
-      id: 14,
+      id: 17,
       name: r'isResearchDone',
       type: IsarType.bool,
     ),
+    r'isSubtitleReady': PropertySchema(
+      id: 18,
+      name: r'isSubtitleReady',
+      type: IsarType.bool,
+    ),
     r'isUnverified': PropertySchema(
-      id: 15,
+      id: 19,
       name: r'isUnverified',
       type: IsarType.bool,
     ),
-    r'malId': PropertySchema(id: 16, name: r'malId', type: IsarType.long),
+    r'lastPositionMs': PropertySchema(
+      id: 20,
+      name: r'lastPositionMs',
+      type: IsarType.long,
+    ),
+    r'malId': PropertySchema(id: 21, name: r'malId', type: IsarType.long),
     r'nameJumaku': PropertySchema(
-      id: 17,
+      id: 22,
       name: r'nameJumaku',
       type: IsarType.string,
     ),
     r'originalLanguage': PropertySchema(
-      id: 18,
+      id: 23,
       name: r'originalLanguage',
       type: IsarType.string,
     ),
     r'originalName': PropertySchema(
-      id: 19,
+      id: 24,
       name: r'originalName',
       type: IsarType.string,
     ),
     r'pathSubtitle': PropertySchema(
-      id: 20,
+      id: 25,
       name: r'pathSubtitle',
       type: IsarType.string,
     ),
     r'pipelineIndetificator': PropertySchema(
-      id: 21,
+      id: 26,
       name: r'pipelineIndetificator',
       type: IsarType.string,
     ),
+    r'processingProgress': PropertySchema(
+      id: 27,
+      name: r'processingProgress',
+      type: IsarType.double,
+    ),
     r'researchInformation': PropertySchema(
-      id: 22,
+      id: 28,
       name: r'researchInformation',
       type: IsarType.string,
     ),
-    r'score': PropertySchema(id: 23, name: r'score', type: IsarType.double),
-    r'season': PropertySchema(id: 24, name: r'season', type: IsarType.string),
+    r'score': PropertySchema(id: 29, name: r'score', type: IsarType.double),
+    r'season': PropertySchema(id: 30, name: r'season', type: IsarType.string),
     r'seriesName': PropertySchema(
-      id: 25,
+      id: 31,
       name: r'seriesName',
       type: IsarType.string,
     ),
     r'shikimoriId': PropertySchema(
-      id: 26,
+      id: 32,
       name: r'shikimoriId',
       type: IsarType.long,
     ),
-    r'status': PropertySchema(id: 27, name: r'status', type: IsarType.string),
+    r'status': PropertySchema(id: 33, name: r'status', type: IsarType.string),
     r'subtitleFileName': PropertySchema(
-      id: 28,
+      id: 34,
       name: r'subtitleFileName',
       type: IsarType.string,
     ),
+    r'subtitleSource': PropertySchema(
+      id: 35,
+      name: r'subtitleSource',
+      type: IsarType.string,
+    ),
     r'textFormat': PropertySchema(
-      id: 29,
+      id: 36,
       name: r'textFormat',
       type: IsarType.string,
     ),
     r'thetvdbId': PropertySchema(
-      id: 30,
+      id: 37,
       name: r'thetvdbId',
       type: IsarType.string,
     ),
-    r'tmdbId': PropertySchema(id: 31, name: r'tmdbId', type: IsarType.string),
+    r'tmdbId': PropertySchema(id: 38, name: r'tmdbId', type: IsarType.string),
     r'totalEpisodes': PropertySchema(
-      id: 32,
+      id: 39,
       name: r'totalEpisodes',
       type: IsarType.long,
     ),
+    r'transcriptionResumeSeconds': PropertySchema(
+      id: 40,
+      name: r'transcriptionResumeSeconds',
+      type: IsarType.long,
+    ),
+    r'transcriptionStatus': PropertySchema(
+      id: 41,
+      name: r'transcriptionStatus',
+      type: IsarType.string,
+    ),
     r'translatedLanguage': PropertySchema(
-      id: 33,
+      id: 42,
       name: r'translatedLanguage',
       type: IsarType.string,
     ),
-    r'tvmazeId': PropertySchema(id: 34, name: r'tvmazeId', type: IsarType.long),
+    r'tvmazeId': PropertySchema(id: 43, name: r'tvmazeId', type: IsarType.long),
     r'videoPath': PropertySchema(
-      id: 35,
+      id: 44,
       name: r'videoPath',
       type: IsarType.string,
     ),
@@ -172,6 +217,12 @@ int _videoEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.audioStatus;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   {
     final value = object.bannerImage;
     if (value != null) {
@@ -281,6 +332,12 @@ int _videoEstimateSize(
     }
   }
   {
+    final value = object.subtitleSource;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.textFormat;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -294,6 +351,12 @@ int _videoEstimateSize(
   }
   {
     final value = object.tmdbId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.transcriptionStatus;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -320,41 +383,50 @@ void _videoSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeLong(offsets[0], object.anilistId);
-  writer.writeString(offsets[1], object.bannerImage);
-  writer.writeLong(offsets[2], object.colorThemeValue);
-  writer.writeString(offsets[3], object.coverImagePath);
-  writer.writeDateTime(offsets[4], object.createdAt);
-  writer.writeString(offsets[5], object.description);
-  writer.writeString(offsets[6], object.episode);
-  writer.writeString(offsets[7], object.fileName);
-  writer.writeStringList(offsets[8], object.genres);
-  writer.writeString(offsets[9], object.imdbId);
-  writer.writeBool(offsets[10], object.isAdult);
-  writer.writeBool(offsets[11], object.isAnime);
-  writer.writeBool(offsets[12], object.isCached);
-  writer.writeBool(offsets[13], object.isMovie);
-  writer.writeBool(offsets[14], object.isResearchDone);
-  writer.writeBool(offsets[15], object.isUnverified);
-  writer.writeLong(offsets[16], object.malId);
-  writer.writeString(offsets[17], object.nameJumaku);
-  writer.writeString(offsets[18], object.originalLanguage);
-  writer.writeString(offsets[19], object.originalName);
-  writer.writeString(offsets[20], object.pathSubtitle);
-  writer.writeString(offsets[21], object.pipelineIndetificator);
-  writer.writeString(offsets[22], object.researchInformation);
-  writer.writeDouble(offsets[23], object.score);
-  writer.writeString(offsets[24], object.season);
-  writer.writeString(offsets[25], object.seriesName);
-  writer.writeLong(offsets[26], object.shikimoriId);
-  writer.writeString(offsets[27], object.status);
-  writer.writeString(offsets[28], object.subtitleFileName);
-  writer.writeString(offsets[29], object.textFormat);
-  writer.writeString(offsets[30], object.thetvdbId);
-  writer.writeString(offsets[31], object.tmdbId);
-  writer.writeLong(offsets[32], object.totalEpisodes);
-  writer.writeString(offsets[33], object.translatedLanguage);
-  writer.writeLong(offsets[34], object.tvmazeId);
-  writer.writeString(offsets[35], object.videoPath);
+  writer.writeBool(offsets[1], object.appliedFillGaps);
+  writer.writeLong(offsets[2], object.appliedPaddingMs);
+  writer.writeString(offsets[3], object.audioStatus);
+  writer.writeString(offsets[4], object.bannerImage);
+  writer.writeLong(offsets[5], object.colorThemeValue);
+  writer.writeString(offsets[6], object.coverImagePath);
+  writer.writeDateTime(offsets[7], object.createdAt);
+  writer.writeString(offsets[8], object.description);
+  writer.writeString(offsets[9], object.episode);
+  writer.writeString(offsets[10], object.fileName);
+  writer.writeStringList(offsets[11], object.genres);
+  writer.writeString(offsets[12], object.imdbId);
+  writer.writeBool(offsets[13], object.isAdult);
+  writer.writeBool(offsets[14], object.isAnime);
+  writer.writeBool(offsets[15], object.isCached);
+  writer.writeBool(offsets[16], object.isMovie);
+  writer.writeBool(offsets[17], object.isResearchDone);
+  writer.writeBool(offsets[18], object.isSubtitleReady);
+  writer.writeBool(offsets[19], object.isUnverified);
+  writer.writeLong(offsets[20], object.lastPositionMs);
+  writer.writeLong(offsets[21], object.malId);
+  writer.writeString(offsets[22], object.nameJumaku);
+  writer.writeString(offsets[23], object.originalLanguage);
+  writer.writeString(offsets[24], object.originalName);
+  writer.writeString(offsets[25], object.pathSubtitle);
+  writer.writeString(offsets[26], object.pipelineIndetificator);
+  writer.writeDouble(offsets[27], object.processingProgress);
+  writer.writeString(offsets[28], object.researchInformation);
+  writer.writeDouble(offsets[29], object.score);
+  writer.writeString(offsets[30], object.season);
+  writer.writeString(offsets[31], object.seriesName);
+  writer.writeLong(offsets[32], object.shikimoriId);
+  writer.writeString(offsets[33], object.status);
+  writer.writeString(offsets[34], object.subtitleFileName);
+  writer.writeString(offsets[35], object.subtitleSource);
+  writer.writeString(offsets[36], object.textFormat);
+  writer.writeString(offsets[37], object.thetvdbId);
+  writer.writeString(offsets[38], object.tmdbId);
+  writer.writeLong(offsets[39], object.totalEpisodes);
+  writer.writeLong(offsets[40], object.transcriptionResumeSeconds);
+  writer.writeString(offsets[41], object.transcriptionStatus);
+  writer.writeString(offsets[42], object.translatedLanguage);
+  writer.writeLong(offsets[43], object.tvmazeId);
+  writer.writeString(offsets[44], object.videoPath);
 }
 
 Video _videoDeserialize(
@@ -365,42 +437,51 @@ Video _videoDeserialize(
 ) {
   final object = Video();
   object.anilistId = reader.readLongOrNull(offsets[0]);
-  object.bannerImage = reader.readStringOrNull(offsets[1]);
-  object.colorThemeValue = reader.readLongOrNull(offsets[2]);
-  object.coverImagePath = reader.readStringOrNull(offsets[3]);
-  object.createdAt = reader.readDateTimeOrNull(offsets[4]);
-  object.description = reader.readStringOrNull(offsets[5]);
-  object.episode = reader.readStringOrNull(offsets[6]);
-  object.fileName = reader.readStringOrNull(offsets[7]);
-  object.genres = reader.readStringList(offsets[8]);
+  object.appliedFillGaps = reader.readBoolOrNull(offsets[1]);
+  object.appliedPaddingMs = reader.readLongOrNull(offsets[2]);
+  object.audioStatus = reader.readStringOrNull(offsets[3]);
+  object.bannerImage = reader.readStringOrNull(offsets[4]);
+  object.colorThemeValue = reader.readLongOrNull(offsets[5]);
+  object.coverImagePath = reader.readStringOrNull(offsets[6]);
+  object.createdAt = reader.readDateTimeOrNull(offsets[7]);
+  object.description = reader.readStringOrNull(offsets[8]);
+  object.episode = reader.readStringOrNull(offsets[9]);
+  object.fileName = reader.readStringOrNull(offsets[10]);
+  object.genres = reader.readStringList(offsets[11]);
   object.id = id;
-  object.imdbId = reader.readStringOrNull(offsets[9]);
-  object.isAdult = reader.readBoolOrNull(offsets[10]);
-  object.isAnime = reader.readBoolOrNull(offsets[11]);
-  object.isCached = reader.readBool(offsets[12]);
-  object.isMovie = reader.readBoolOrNull(offsets[13]);
-  object.isResearchDone = reader.readBoolOrNull(offsets[14]);
-  object.isUnverified = reader.readBoolOrNull(offsets[15]);
-  object.malId = reader.readLongOrNull(offsets[16]);
-  object.nameJumaku = reader.readStringOrNull(offsets[17]);
-  object.originalLanguage = reader.readStringOrNull(offsets[18]);
-  object.originalName = reader.readStringOrNull(offsets[19]);
-  object.pathSubtitle = reader.readStringOrNull(offsets[20]);
-  object.pipelineIndetificator = reader.readStringOrNull(offsets[21]);
-  object.researchInformation = reader.readStringOrNull(offsets[22]);
-  object.score = reader.readDoubleOrNull(offsets[23]);
-  object.season = reader.readStringOrNull(offsets[24]);
-  object.seriesName = reader.readStringOrNull(offsets[25]);
-  object.shikimoriId = reader.readLongOrNull(offsets[26]);
-  object.status = reader.readStringOrNull(offsets[27]);
-  object.subtitleFileName = reader.readStringOrNull(offsets[28]);
-  object.textFormat = reader.readStringOrNull(offsets[29]);
-  object.thetvdbId = reader.readStringOrNull(offsets[30]);
-  object.tmdbId = reader.readStringOrNull(offsets[31]);
-  object.totalEpisodes = reader.readLongOrNull(offsets[32]);
-  object.translatedLanguage = reader.readStringOrNull(offsets[33]);
-  object.tvmazeId = reader.readLongOrNull(offsets[34]);
-  object.videoPath = reader.readStringOrNull(offsets[35]);
+  object.imdbId = reader.readStringOrNull(offsets[12]);
+  object.isAdult = reader.readBoolOrNull(offsets[13]);
+  object.isAnime = reader.readBoolOrNull(offsets[14]);
+  object.isCached = reader.readBool(offsets[15]);
+  object.isMovie = reader.readBoolOrNull(offsets[16]);
+  object.isResearchDone = reader.readBoolOrNull(offsets[17]);
+  object.isSubtitleReady = reader.readBoolOrNull(offsets[18]);
+  object.isUnverified = reader.readBoolOrNull(offsets[19]);
+  object.lastPositionMs = reader.readLongOrNull(offsets[20]);
+  object.malId = reader.readLongOrNull(offsets[21]);
+  object.nameJumaku = reader.readStringOrNull(offsets[22]);
+  object.originalLanguage = reader.readStringOrNull(offsets[23]);
+  object.originalName = reader.readStringOrNull(offsets[24]);
+  object.pathSubtitle = reader.readStringOrNull(offsets[25]);
+  object.pipelineIndetificator = reader.readStringOrNull(offsets[26]);
+  object.processingProgress = reader.readDoubleOrNull(offsets[27]);
+  object.researchInformation = reader.readStringOrNull(offsets[28]);
+  object.score = reader.readDoubleOrNull(offsets[29]);
+  object.season = reader.readStringOrNull(offsets[30]);
+  object.seriesName = reader.readStringOrNull(offsets[31]);
+  object.shikimoriId = reader.readLongOrNull(offsets[32]);
+  object.status = reader.readStringOrNull(offsets[33]);
+  object.subtitleFileName = reader.readStringOrNull(offsets[34]);
+  object.subtitleSource = reader.readStringOrNull(offsets[35]);
+  object.textFormat = reader.readStringOrNull(offsets[36]);
+  object.thetvdbId = reader.readStringOrNull(offsets[37]);
+  object.tmdbId = reader.readStringOrNull(offsets[38]);
+  object.totalEpisodes = reader.readLongOrNull(offsets[39]);
+  object.transcriptionResumeSeconds = reader.readLongOrNull(offsets[40]);
+  object.transcriptionStatus = reader.readStringOrNull(offsets[41]);
+  object.translatedLanguage = reader.readStringOrNull(offsets[42]);
+  object.tvmazeId = reader.readLongOrNull(offsets[43]);
+  object.videoPath = reader.readStringOrNull(offsets[44]);
   return object;
 }
 
@@ -414,63 +495,63 @@ P _videoDeserializeProp<P>(
     case 0:
       return (reader.readLongOrNull(offset)) as P;
     case 1:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 2:
       return (reader.readLongOrNull(offset)) as P;
     case 3:
       return (reader.readStringOrNull(offset)) as P;
     case 4:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 5:
       return (reader.readStringOrNull(offset)) as P;
+    case 5:
+      return (reader.readLongOrNull(offset)) as P;
     case 6:
       return (reader.readStringOrNull(offset)) as P;
     case 7:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 8:
-      return (reader.readStringList(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 9:
       return (reader.readStringOrNull(offset)) as P;
     case 10:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readStringList(offset)) as P;
     case 12:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 13:
       return (reader.readBoolOrNull(offset)) as P;
     case 14:
       return (reader.readBoolOrNull(offset)) as P;
     case 15:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 16:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 17:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 18:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 19:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 20:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 21:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 22:
       return (reader.readStringOrNull(offset)) as P;
     case 23:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 24:
       return (reader.readStringOrNull(offset)) as P;
     case 25:
       return (reader.readStringOrNull(offset)) as P;
     case 26:
-      return (reader.readLongOrNull(offset)) as P;
-    case 27:
       return (reader.readStringOrNull(offset)) as P;
+    case 27:
+      return (reader.readDoubleOrNull(offset)) as P;
     case 28:
       return (reader.readStringOrNull(offset)) as P;
     case 29:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 30:
       return (reader.readStringOrNull(offset)) as P;
     case 31:
@@ -480,8 +561,26 @@ P _videoDeserializeProp<P>(
     case 33:
       return (reader.readStringOrNull(offset)) as P;
     case 34:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 35:
+      return (reader.readStringOrNull(offset)) as P;
+    case 36:
+      return (reader.readStringOrNull(offset)) as P;
+    case 37:
+      return (reader.readStringOrNull(offset)) as P;
+    case 38:
+      return (reader.readStringOrNull(offset)) as P;
+    case 39:
+      return (reader.readLongOrNull(offset)) as P;
+    case 40:
+      return (reader.readLongOrNull(offset)) as P;
+    case 41:
+      return (reader.readStringOrNull(offset)) as P;
+    case 42:
+      return (reader.readStringOrNull(offset)) as P;
+    case 43:
+      return (reader.readLongOrNull(offset)) as P;
+    case 44:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -650,6 +749,270 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
           upper: upper,
           includeUpper: includeUpper,
         ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> appliedFillGapsIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'appliedFillGaps'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> appliedFillGapsIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'appliedFillGaps'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> appliedFillGapsEqualTo(
+    bool? value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'appliedFillGaps', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> appliedPaddingMsIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'appliedPaddingMs'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  appliedPaddingMsIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'appliedPaddingMs'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> appliedPaddingMsEqualTo(
+    int? value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'appliedPaddingMs', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> appliedPaddingMsGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'appliedPaddingMs',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> appliedPaddingMsLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'appliedPaddingMs',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> appliedPaddingMsBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'appliedPaddingMs',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> audioStatusIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'audioStatus'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> audioStatusIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'audioStatus'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> audioStatusEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'audioStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> audioStatusGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'audioStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> audioStatusLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'audioStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> audioStatusBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'audioStatus',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> audioStatusStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'audioStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> audioStatusEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'audioStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> audioStatusContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'audioStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> audioStatusMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'audioStatus',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> audioStatusIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'audioStatus', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> audioStatusIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'audioStatus', value: ''),
       );
     });
   }
@@ -2164,6 +2527,32 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterFilterCondition> isSubtitleReadyIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'isSubtitleReady'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> isSubtitleReadyIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'isSubtitleReady'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> isSubtitleReadyEqualTo(
+    bool? value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'isSubtitleReady', value: value),
+      );
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterFilterCondition> isUnverifiedIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -2186,6 +2575,81 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(property: r'isUnverified', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> lastPositionMsIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'lastPositionMs'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> lastPositionMsIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'lastPositionMs'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> lastPositionMsEqualTo(
+    int? value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'lastPositionMs', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> lastPositionMsGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'lastPositionMs',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> lastPositionMsLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'lastPositionMs',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> lastPositionMsBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'lastPositionMs',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
       );
     });
   }
@@ -3070,6 +3534,98 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
         FilterCondition.greaterThan(
           property: r'pipelineIndetificator',
           value: '',
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> processingProgressIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'processingProgress'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  processingProgressIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'processingProgress'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> processingProgressEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'processingProgress',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  processingProgressGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'processingProgress',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> processingProgressLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'processingProgress',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> processingProgressBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'processingProgress',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+
+          epsilon: epsilon,
         ),
       );
     });
@@ -4058,6 +4614,168 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleSourceIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'subtitleSource'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleSourceIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'subtitleSource'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleSourceEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'subtitleSource',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleSourceGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'subtitleSource',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleSourceLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'subtitleSource',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleSourceBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'subtitleSource',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleSourceStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'subtitleSource',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleSourceEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'subtitleSource',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleSourceContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'subtitleSource',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleSourceMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'subtitleSource',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleSourceIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'subtitleSource', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleSourceIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'subtitleSource', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterFilterCondition> textFormatIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -4619,6 +5337,252 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  transcriptionResumeSecondsIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'transcriptionResumeSeconds'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  transcriptionResumeSecondsIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(
+          property: r'transcriptionResumeSeconds',
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  transcriptionResumeSecondsEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'transcriptionResumeSeconds',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  transcriptionResumeSecondsGreaterThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'transcriptionResumeSeconds',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  transcriptionResumeSecondsLessThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'transcriptionResumeSeconds',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  transcriptionResumeSecondsBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'transcriptionResumeSeconds',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  transcriptionStatusIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'transcriptionStatus'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  transcriptionStatusIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'transcriptionStatus'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> transcriptionStatusEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'transcriptionStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  transcriptionStatusGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'transcriptionStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> transcriptionStatusLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'transcriptionStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> transcriptionStatusBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'transcriptionStatus',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  transcriptionStatusStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'transcriptionStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> transcriptionStatusEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'transcriptionStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> transcriptionStatusContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'transcriptionStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> transcriptionStatusMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'transcriptionStatus',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  transcriptionStatusIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'transcriptionStatus', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  transcriptionStatusIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          property: r'transcriptionStatus',
+          value: '',
+        ),
+      );
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterFilterCondition> translatedLanguageIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -5038,6 +6002,42 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> sortByAppliedFillGaps() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'appliedFillGaps', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByAppliedFillGapsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'appliedFillGaps', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByAppliedPaddingMs() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'appliedPaddingMs', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByAppliedPaddingMsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'appliedPaddingMs', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByAudioStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'audioStatus', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByAudioStatusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'audioStatus', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> sortByBannerImage() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'bannerImage', Sort.asc);
@@ -5194,6 +6194,18 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> sortByIsSubtitleReady() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSubtitleReady', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByIsSubtitleReadyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSubtitleReady', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> sortByIsUnverified() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isUnverified', Sort.asc);
@@ -5203,6 +6215,18 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
   QueryBuilder<Video, Video, QAfterSortBy> sortByIsUnverifiedDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isUnverified', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByLastPositionMs() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastPositionMs', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByLastPositionMsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastPositionMs', Sort.desc);
     });
   }
 
@@ -5275,6 +6299,18 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
   QueryBuilder<Video, Video, QAfterSortBy> sortByPipelineIndetificatorDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pipelineIndetificator', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByProcessingProgress() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'processingProgress', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByProcessingProgressDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'processingProgress', Sort.desc);
     });
   }
 
@@ -5362,6 +6398,18 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> sortBySubtitleSource() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subtitleSource', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortBySubtitleSourceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subtitleSource', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> sortByTextFormat() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'textFormat', Sort.asc);
@@ -5407,6 +6455,31 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
   QueryBuilder<Video, Video, QAfterSortBy> sortByTotalEpisodesDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'totalEpisodes', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByTranscriptionResumeSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transcriptionResumeSeconds', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy>
+  sortByTranscriptionResumeSecondsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transcriptionResumeSeconds', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByTranscriptionStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transcriptionStatus', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByTranscriptionStatusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transcriptionStatus', Sort.desc);
     });
   }
 
@@ -5457,6 +6530,42 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
   QueryBuilder<Video, Video, QAfterSortBy> thenByAnilistIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'anilistId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByAppliedFillGaps() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'appliedFillGaps', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByAppliedFillGapsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'appliedFillGaps', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByAppliedPaddingMs() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'appliedPaddingMs', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByAppliedPaddingMsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'appliedPaddingMs', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByAudioStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'audioStatus', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByAudioStatusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'audioStatus', Sort.desc);
     });
   }
 
@@ -5628,6 +6737,18 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> thenByIsSubtitleReady() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSubtitleReady', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByIsSubtitleReadyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSubtitleReady', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> thenByIsUnverified() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isUnverified', Sort.asc);
@@ -5637,6 +6758,18 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
   QueryBuilder<Video, Video, QAfterSortBy> thenByIsUnverifiedDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isUnverified', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByLastPositionMs() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastPositionMs', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByLastPositionMsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastPositionMs', Sort.desc);
     });
   }
 
@@ -5709,6 +6842,18 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
   QueryBuilder<Video, Video, QAfterSortBy> thenByPipelineIndetificatorDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pipelineIndetificator', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByProcessingProgress() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'processingProgress', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByProcessingProgressDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'processingProgress', Sort.desc);
     });
   }
 
@@ -5796,6 +6941,18 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> thenBySubtitleSource() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subtitleSource', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenBySubtitleSourceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subtitleSource', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> thenByTextFormat() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'textFormat', Sort.asc);
@@ -5844,6 +7001,31 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> thenByTranscriptionResumeSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transcriptionResumeSeconds', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy>
+  thenByTranscriptionResumeSecondsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transcriptionResumeSeconds', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByTranscriptionStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transcriptionStatus', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByTranscriptionStatusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transcriptionStatus', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> thenByTranslatedLanguage() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'translatedLanguage', Sort.asc);
@@ -5885,6 +7067,26 @@ extension VideoQueryWhereDistinct on QueryBuilder<Video, Video, QDistinct> {
   QueryBuilder<Video, Video, QDistinct> distinctByAnilistId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'anilistId');
+    });
+  }
+
+  QueryBuilder<Video, Video, QDistinct> distinctByAppliedFillGaps() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'appliedFillGaps');
+    });
+  }
+
+  QueryBuilder<Video, Video, QDistinct> distinctByAppliedPaddingMs() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'appliedPaddingMs');
+    });
+  }
+
+  QueryBuilder<Video, Video, QDistinct> distinctByAudioStatus({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'audioStatus', caseSensitive: caseSensitive);
     });
   }
 
@@ -5987,9 +7189,21 @@ extension VideoQueryWhereDistinct on QueryBuilder<Video, Video, QDistinct> {
     });
   }
 
+  QueryBuilder<Video, Video, QDistinct> distinctByIsSubtitleReady() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isSubtitleReady');
+    });
+  }
+
   QueryBuilder<Video, Video, QDistinct> distinctByIsUnverified() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isUnverified');
+    });
+  }
+
+  QueryBuilder<Video, Video, QDistinct> distinctByLastPositionMs() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastPositionMs');
     });
   }
 
@@ -6042,6 +7256,12 @@ extension VideoQueryWhereDistinct on QueryBuilder<Video, Video, QDistinct> {
         r'pipelineIndetificator',
         caseSensitive: caseSensitive,
       );
+    });
+  }
+
+  QueryBuilder<Video, Video, QDistinct> distinctByProcessingProgress() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'processingProgress');
     });
   }
 
@@ -6103,6 +7323,17 @@ extension VideoQueryWhereDistinct on QueryBuilder<Video, Video, QDistinct> {
     });
   }
 
+  QueryBuilder<Video, Video, QDistinct> distinctBySubtitleSource({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'subtitleSource',
+        caseSensitive: caseSensitive,
+      );
+    });
+  }
+
   QueryBuilder<Video, Video, QDistinct> distinctByTextFormat({
     bool caseSensitive = true,
   }) {
@@ -6130,6 +7361,23 @@ extension VideoQueryWhereDistinct on QueryBuilder<Video, Video, QDistinct> {
   QueryBuilder<Video, Video, QDistinct> distinctByTotalEpisodes() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'totalEpisodes');
+    });
+  }
+
+  QueryBuilder<Video, Video, QDistinct> distinctByTranscriptionResumeSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'transcriptionResumeSeconds');
+    });
+  }
+
+  QueryBuilder<Video, Video, QDistinct> distinctByTranscriptionStatus({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'transcriptionStatus',
+        caseSensitive: caseSensitive,
+      );
     });
   }
 
@@ -6169,6 +7417,24 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
   QueryBuilder<Video, int?, QQueryOperations> anilistIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'anilistId');
+    });
+  }
+
+  QueryBuilder<Video, bool?, QQueryOperations> appliedFillGapsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'appliedFillGaps');
+    });
+  }
+
+  QueryBuilder<Video, int?, QQueryOperations> appliedPaddingMsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'appliedPaddingMs');
+    });
+  }
+
+  QueryBuilder<Video, String?, QQueryOperations> audioStatusProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'audioStatus');
     });
   }
 
@@ -6256,9 +7522,21 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Video, bool?, QQueryOperations> isSubtitleReadyProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isSubtitleReady');
+    });
+  }
+
   QueryBuilder<Video, bool?, QQueryOperations> isUnverifiedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isUnverified');
+    });
+  }
+
+  QueryBuilder<Video, int?, QQueryOperations> lastPositionMsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastPositionMs');
     });
   }
 
@@ -6296,6 +7574,12 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
   pipelineIndetificatorProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'pipelineIndetificator');
+    });
+  }
+
+  QueryBuilder<Video, double?, QQueryOperations> processingProgressProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'processingProgress');
     });
   }
 
@@ -6341,6 +7625,12 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Video, String?, QQueryOperations> subtitleSourceProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'subtitleSource');
+    });
+  }
+
   QueryBuilder<Video, String?, QQueryOperations> textFormatProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'textFormat');
@@ -6362,6 +7652,19 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
   QueryBuilder<Video, int?, QQueryOperations> totalEpisodesProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'totalEpisodes');
+    });
+  }
+
+  QueryBuilder<Video, int?, QQueryOperations>
+  transcriptionResumeSecondsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'transcriptionResumeSeconds');
+    });
+  }
+
+  QueryBuilder<Video, String?, QQueryOperations> transcriptionStatusProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'transcriptionStatus');
     });
   }
 

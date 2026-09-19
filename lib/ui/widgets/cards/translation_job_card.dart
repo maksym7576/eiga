@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import '../../../../backend/database/schemas/translation_job.dart';
+import '../../../../backend/database/schemas/job.dart';
 import '../../../../backend/services/background/translation_background_manager.dart';
 import 'package:eiga/providers/ui/hint_provider.dart';
 
@@ -27,7 +27,7 @@ class _C {
 enum _StepState { done, current, failed, pending }
 
 class TranslationJobCard extends HookConsumerWidget {
-  final TranslationJob job;
+  final Job job;
   final int index;
   final int total;
   final bool isCompact;
@@ -93,7 +93,27 @@ class TranslationJobCard extends HookConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _Header(job: job, isActive: isActive, isError: isError, ref: ref, formattedOrders: _formatPhraseOrders(job.phraseOrders)),
-          if (job.executionPlan != null) ...[
+          if (job.pipelineId == 'ai_transcription_v1' && job.phase != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              job.phase!,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isActive ? _C.accent : _C.dark,
+              ),
+            ),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(
+              value: (job.totalPhrases ?? 0) > 0 || (job.status != 'active')
+                  ? (job.processedPhrases ?? 0) / 100
+                  : 0.0,
+              backgroundColor: _C.greyLine,
+              color: _C.accent,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ],
+          if (job.executionPlan != null && job.pipelineId != 'ai_transcription_v1') ...[
             const SizedBox(height: 20),
             _StepperGrid(job: job, isCompact: isCompact),
           ],
@@ -109,7 +129,7 @@ class TranslationJobCard extends HookConsumerWidget {
 
 /// Верхній рядок: тег, модель, лічильник, іконка статусу / кнопка стоп
 class _Header extends StatelessWidget {
-  final TranslationJob job;
+  final Job job;
   final bool isActive;
   final bool isError;
   final WidgetRef ref;
@@ -128,7 +148,7 @@ class _Header extends StatelessWidget {
             Expanded(
               child: Row(
                 children: [
-                  _Tag(text: (job.isAuto ?? true) ? 'Auto' : 'Manual'),
+                  _Tag(text: job.pipelineId == 'ai_transcription_v1' ? 'AI Transcribe' : ((job.isAuto ?? true) ? 'Auto' : 'Manual')),
                   const SizedBox(width: 8),
                   if (job.modelName != null)
                     Flexible(
@@ -148,8 +168,16 @@ class _Header extends StatelessWidget {
                     TextSpan(
                       children: [
                         TextSpan(text: '${job.processedPhrases ?? 0} '),
-                        const TextSpan(text: '/ ', style: TextStyle(color: _C.grey, fontWeight: FontWeight.normal)),
-                        TextSpan(text: '${job.totalPhrases ?? 0}'),
+                        if (job.pipelineId != 'ai_transcription_v1') ...[
+                          const TextSpan(text: '/ ', style: TextStyle(color: _C.grey, fontWeight: FontWeight.normal)),
+                          TextSpan(text: '${job.totalPhrases ?? 0}'),
+                        ] else ...[
+                          const TextSpan(text: '% ', style: TextStyle(color: _C.grey, fontWeight: FontWeight.normal)),
+                          TextSpan(
+                            text: '(${job.totalPhrases ?? 0})',
+                            style: const TextStyle(fontSize: 10, color: _C.grey),
+                          ),
+                        ],
                       ],
                     ),
                     style: const TextStyle(
@@ -259,7 +287,7 @@ class _ErrorBanner extends StatelessWidget {
 
 /// Сітка кроків (grid, рівна ширина колонок) — лінії позаду кружечків.
 class _StepperGrid extends StatelessWidget {
-  final TranslationJob job;
+  final Job job;
   final bool isCompact;
   const _StepperGrid({required this.job, required this.isCompact});
 
@@ -338,7 +366,7 @@ class _StepColumn extends HookConsumerWidget {
   final Color leftColor;
   final Color rightColor;
   final bool isCompact;
-  final TranslationJob job;
+  final Job job;
   final int index;
 
   const _StepColumn({

@@ -4,7 +4,9 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../backend/database/schemas/phrase.dart';
-import '../../../backend/database/schemas/specific_word_style.dart';
+import '../../../config/ui/word_styles.dart';
+import '../../../config/languages/language_hub.dart';
+import 'package:eiga/providers/services/app_configs_provider.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/services/isar_services_providers.dart';
@@ -32,11 +34,10 @@ class WordDetailsPopover extends ConsumerWidget {
     if (phrase == null) return const SizedBox.shrink();
 
     final index = PhraseLinkIndex(phrase.originalTokens ?? [], phrase.translatedWords ?? [], phrase.linkGroups);
-    final stylesAsync = ref.watch(specificWordStylesStreamProvider);
     final clickedPosition = ref.watch(clickedWordPositionProvider);
     final isFullscreen = ref.watch(playerProvider.select((s) => s.isFullscreen));
     
-    final labelsAsync = ref.watch(grammarLabelsProvider);
+    final labels = ref.watch(grammarLabelsProvider);
 
     // Geometry calculations
     final mediaQuery = MediaQuery.of(context);
@@ -77,44 +78,40 @@ class WordDetailsPopover extends ConsumerWidget {
       top: top,
       bottom: bottom,
       width: popoverWidth,
-      child: labelsAsync.when(
-        loading: () => const SizedBox.shrink(),
-        error: (_, __) => const SizedBox.shrink(),
-        data: (labels) => Material(
-          color: Colors.transparent,
-          child: TapRegion(
-            groupId: 'word_selection_group',
-            onTapOutside: (event) => ref.read(playerProvider.notifier).clearSelection(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isFullscreen ? 0.25 : 0.15),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                  border: Border.all(color: const Color(0xFFF1F5F9), width: 1),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxHeight: screenHeight * 0.6,
-                    ),
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildMainContent(context, ref, labels, phrase, index, highlightedWordIds, highlightedTranslationIds),
-                          _buildBottomStyles(ref, labels, stylesAsync, highlightedWordIds),
-                        ],
-                      ),
+      child: Material(
+        color: Colors.transparent,
+        child: TapRegion(
+          groupId: 'word_selection_group',
+          onTapOutside: (event) => ref.read(playerProvider.notifier).clearSelection(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isFullscreen ? 0.25 : 0.15),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+                border: Border.all(color: const Color(0xFFF1F5F9), width: 1),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: screenHeight * 0.6,
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildMainContent(context, ref, labels, phrase, index, highlightedWordIds, highlightedTranslationIds),
+                        _buildBottomStyles(ref, labels, highlightedWordIds),
+                      ],
                     ),
                   ),
                 ),
@@ -537,21 +534,26 @@ class WordDetailsPopover extends ConsumerWidget {
     final first = words.first;
     final code = first.grammarCode;
 
-    return FutureBuilder<String>(
-      future: code != null ? rootBundle.loadString('assets/grammar/grammar_ja.json').catchError((_) => '{}') : Future.value('{}'),
-      builder: (context, snapshot) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final video = ref.watch(currentVideoProvider).value;
+        final appConfig = ref.watch(appConfigsServiceProvider);
+        
+        final langName = video?.originalLanguage ?? 'Japanese';
+        final config = LanguageHub.getByName(langName);
+        final uiLangCode = appConfig.getAppLanguage;
+        
+        final rules = config.grammarRules?[uiLangCode] ?? config.grammarRules?['en'];
+
         String title = labels.getUiLabel('analysis_logic');
         String description = '';
 
-        if (snapshot.hasData && snapshot.data != '{}' && code != null) {
-          try {
-            final Map<String, dynamic> data = jsonDecode(snapshot.data!);
-            if (data.containsKey(code)) {
-              final rule = data[code];
-              title = rule['title'] ?? title;
-              description = rule['description'] ?? '';
-            }
-          } catch (_) {}
+        if (rules != null && code != null) {
+          if (rules.containsKey(code)) {
+            final rule = rules[code];
+            title = rule['title'] ?? title;
+            description = rule['description'] ?? '';
+          }
         }
 
         if (description.isEmpty) {
@@ -650,35 +652,38 @@ class WordDetailsPopover extends ConsumerWidget {
     );
   }
 
-  Widget _buildBottomStyles(WidgetRef ref, GrammarLabelsService labels, AsyncValue<List<SpecificWordStyle>> stylesAsync, Set<int> highlightedIds) {
+  Widget _buildBottomStyles(WidgetRef ref, GrammarLabelsService labels, Set<int> highlightedIds) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         color: AppColors.slate50,
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
       ),
-      child: stylesAsync.when(
-        data: (styles) => Row(
-          children: [
-            _KnowledgeBtn(label: labels.getUiLabel('standard'), color: AppColors.slate500, onTap: () => _updateStyle(ref, null)),
-            const SizedBox(width: 12),
-            for (final s in styles) ...[
-              _KnowledgeBtn(
-                label: s.name ?? '',
-                color: s.color,
-                onTap: () => _updateStyle(ref, s.id),
-              ),
-              if (s != styles.last) const SizedBox(width: 12),
-            ],
-          ],
-        ),
-        loading: () => const SizedBox(height: 44, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
-        error: (_, __) => const SizedBox.shrink(),
+      child: Row(
+        children: [
+          _KnowledgeBtn(
+            label: labels.getUiLabel('unknown'), 
+            color: WordStatus.unknown.color, 
+            onTap: () => _updateStatus(ref, WordStatus.unknown),
+          ),
+          const SizedBox(width: 12),
+          _KnowledgeBtn(
+            label: labels.getUiLabel('learning'), 
+            color: WordStatus.learning.color, 
+            onTap: () => _updateStatus(ref, WordStatus.learning),
+          ),
+          const SizedBox(width: 12),
+          _KnowledgeBtn(
+            label: labels.getUiLabel('known'), 
+            color: WordStatus.known.color, 
+            onTap: () => _updateStatus(ref, WordStatus.known),
+          ),
+        ],
       ),
     );
   }
 
-  Future<void> _updateStyle(WidgetRef ref, int? styleId) async {
+  Future<void> _updateStatus(WidgetRef ref, WordStatus status) async {
     final statusService = ref.read(knownWordStatusServiceProvider);
     final phraseService = ref.read(phraseServiceProvider);
     final highlightedIds = ref.read(highlightedWordIdsProvider);
@@ -696,13 +701,13 @@ class WordDetailsPopover extends ConsumerWidget {
     final expressionBase = highlightedWords.map((w) => w.lemma ?? '').join(' ').trim();
 
     if (expressionBase.isNotEmpty) {
-      await statusService.setStyleForBase(expressionBase, styleId: styleId);
+      await statusService.setStatusForLemma(expressionBase, status);
     }
 
     for (final wId in highlightedIds) {
       final w = allWordsInPhrase.where((e) => e.wordPosition == wId).firstOrNull;
       if (w != null && w.lemma != null && w.lemma!.isNotEmpty && w.lemma != expressionBase) {
-        await statusService.setStyleForBase(w.lemma!, styleId: styleId);
+        await statusService.setStatusForLemma(w.lemma!, status);
       }
     }
     

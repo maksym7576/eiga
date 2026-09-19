@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:eiga/providers/services/isar_services_providers.dart';
-import 'package:eiga/providers/ui/language_provider.dart';
+import 'package:eiga/config/languages/language_hub.dart';
+import 'package:eiga/providers/services/app_configs_provider.dart';
 import '../../styles/additional_window_theme.dart';
 import 'language_tokenization_screen.dart';
 
@@ -11,7 +11,8 @@ class TokenizationSettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = AdditionalWindowTheme.of(context);
-    final languagesAsync = ref.watch(allLanguagesProvider);
+    final languages = LanguageHub.all;
+    final appConfig = ref.watch(appConfigsServiceProvider);
 
     return Scaffold(
       backgroundColor: theme.backgroundColor,
@@ -30,33 +31,29 @@ class TokenizationSettingsScreen extends ConsumerWidget {
           child: Container(color: theme.dividerColor, height: 1),
         ),
       ),
-      body: languagesAsync.when(
-        data: (languages) {
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            itemCount: languages.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final lang = languages[index];
-              return _LanguageTokenTile(
-                name: lang.name ?? 'Unknown',
-                method: lang.tokenizationMethod.name.toUpperCase(),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => LanguageTokenizationScreen(
-                        languageId: lang.id,
-                      ),
-                    ),
-                  );
-                },
+      body: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        itemCount: languages.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final lang = languages[index];
+          final currentMethod = appConfig.getTokenizationMethod(lang.name);
+          
+          return _LanguageTokenTile(
+            name: lang.name,
+            method: currentMethod.name.toUpperCase(),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LanguageTokenizationScreen(
+                    languageName: lang.name,
+                  ),
+                ),
               );
             },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
       ),
     );
   }

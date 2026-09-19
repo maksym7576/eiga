@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
-import '../../../../backend/services/sync/audio_sync_service.dart';
+import '../../../../backend/services/audio/audio_sync_service.dart';
 import '../../../styles/additional_window_theme.dart';
 import '../../../styles/app_colors.dart';
 

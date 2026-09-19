@@ -36,7 +36,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
     
     final selectedEntry = subtitleSource == SubtitleSource.local
         ? ref.watchAniListSelectedEntry()
-        : (subtitleSource == SubtitleSource.jimaku ? ref.watchJimakuSelectedEntry() : ref.watchWyzieSelectedEntry());
+        : ref.watchJimakuSelectedEntry();
 
     if (selectedEntry == null) {
       return Container(
@@ -68,8 +68,8 @@ class EpisodeSelectionSection extends ConsumerWidget {
       epCount = displayData.episodes;
     } else {
       final id = selectedEntry.sourceId;
-      if (subtitleSource == SubtitleSource.jimaku || subtitleSource == SubtitleSource.wyzie) {
-        final sourceKey = subtitleSource == SubtitleSource.jimaku ? SearchSourceKeys.jimaku : SearchSourceKeys.wyzie;
+      if (subtitleSource == SubtitleSource.jimaku) {
+        final sourceKey = SearchSourceKeys.jimaku;
         final summary = ref.watch(cloudSummaryProvider((sourceKey, id)));
         epCount = summary?.episodeCount;
         episodes = summary?.episodes ?? const [];
@@ -95,7 +95,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
                   color: theme.normalText,
                 ),
               ),
-              if ((subtitleSource == SubtitleSource.jimaku || subtitleSource == SubtitleSource.wyzie) && epCount != null && episodes.isNotEmpty && hasMoreEpisodes)
+              if (subtitleSource == SubtitleSource.jimaku && epCount != null && episodes.isNotEmpty && hasMoreEpisodes)
                 AppTextButton(
                   onPressed: () => _showAllEpisodes(context, ref, episodes, selectedEntry, subtitleSource),
                   text: 'See all $epCount',
@@ -104,7 +104,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           
-          if ((subtitleSource == SubtitleSource.jimaku || subtitleSource == SubtitleSource.wyzie) && episodes.isNotEmpty) ...[
+          if (subtitleSource == SubtitleSource.jimaku && episodes.isNotEmpty) ...[
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -127,7 +127,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
                  );
               },
             ),
-          ] else if (subtitleSource == SubtitleSource.local) ...[
+          ] else if (subtitleSource == SubtitleSource.local || subtitleSource == SubtitleSource.ai) ...[
             const SizedBox(height: 4),
             Row(
               children: [
@@ -139,7 +139,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
                     controller: TextEditingController(text: ref.read(uploadProvider).episode),
                   ),
                 ),
-                if (ref.watch(uploadProvider).subtitlePath != null) ...[
+                if (ref.watch(uploadProvider).subtitlePath != null && subtitleSource != SubtitleSource.ai) ...[
                   const SizedBox(width: 12),
                   _LocalSyncStatusIndicator(),
                 ],
@@ -152,62 +152,62 @@ class EpisodeSelectionSection extends ConsumerWidget {
             ),
           ],
           
-          const SizedBox(height: 24),
-
-          Row(
-            children: [
-              Text(
-                'Sync subtitle',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: theme.normalText,
-                  letterSpacing: -0.2,
-                ),
-              ),
-              const Spacer(),
-              if (!state.isEvaluatingBatch && !state.isCheckingSync && state.episode != null && (state.subtitleSource == SubtitleSource.jimaku || state.subtitleSource == SubtitleSource.wyzie)) ...[
-                ElevatedButton(
-                  onPressed: () {
-                    final sourceKey = state.subtitleSource == SubtitleSource.jimaku ? SearchSourceKeys.jimaku : SearchSourceKeys.wyzie;
-                    final entry = ref.read(selectedEntryProvider(sourceKey));
-                    if (entry is UnifiedMetadataDTO) {
-                      ref.read(uploadProvider.notifier).evaluateAllEpisodeSubtitles();
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.primaryAccent,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          if (subtitleSource != SubtitleSource.ai) ...[
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Text(
+                  'Sync subtitle',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: theme.normalText,
+                    letterSpacing: -0.2,
                   ),
-                  child: const Text('Start Analysis', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
-                const SizedBox(width: 8),
+                const Spacer(),
+                if (!state.isEvaluatingBatch && !state.isCheckingSync && state.episode != null && (state.subtitleSource == SubtitleSource.jimaku)) ...[
+                  ElevatedButton(
+                    onPressed: () {
+                      final sourceKey = SearchSourceKeys.jimaku;
+                      final entry = ref.read(selectedEntryProvider(sourceKey));
+                      if (entry is UnifiedMetadataDTO) {
+                        ref.read(uploadProvider.notifier).evaluateAllEpisodeSubtitles();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.primaryAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('Start Analysis', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                if (state.previewPhrases.isNotEmpty)
+                  AppTextButton(
+                    onPressed: () => _showPreview(context, state),
+                    text: 'Manual Preview',
+                  ),
               ],
-              if (state.previewPhrases.isNotEmpty)
-                AppTextButton(
-                  onPressed: () => _showPreview(context, state),
-                  text: 'Manual Preview',
-                ),
-            ],
-          ),
-          if (state.isEvaluatingBatch || state.isCheckingSync) ...[
-            const SizedBox(height: 16),
-            buildBatchProgress(state, theme),
-          ],
-          
-          if (!state.isEvaluatingBatch && !state.isCheckingSync && state.analyzedVersions.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                'No versions analyzed yet',
-                style: TextStyle(fontSize: 11, color: theme.mutedText, fontWeight: FontWeight.w500),
-              ),
             ),
+            if (state.isEvaluatingBatch || state.isCheckingSync) ...[
+              const SizedBox(height: 16),
+              buildBatchProgress(state, theme),
+            ],
+            if (!state.isEvaluatingBatch && !state.isCheckingSync && state.analyzedVersions.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'No versions analyzed yet',
+                  style: TextStyle(fontSize: 11, color: theme.mutedText, fontWeight: FontWeight.w500),
+                ),
+              ),
+          ],
         ],
       ),
     );
@@ -218,7 +218,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
     
     return InkWell(
       onTap: () {
-        final sourceKey = source == SubtitleSource.jimaku ? SearchSourceKeys.jimaku : SearchSourceKeys.wyzie;
+        final sourceKey = SearchSourceKeys.jimaku;
         CloudSubtitleSource(sourceKey).selectEpisodeSubtitle(entry, episode, ref);
       },
       borderRadius: BorderRadius.circular(8),
@@ -282,7 +282,7 @@ class EpisodeSelectionSection extends ConsumerWidget {
                   return InkWell(
                   onTap: () {
                     Navigator.of(sheetContext).pop();
-                    final sourceKey = source == SubtitleSource.jimaku ? SearchSourceKeys.jimaku : SearchSourceKeys.wyzie;
+                    final sourceKey = SearchSourceKeys.jimaku;
                     CloudSubtitleSource(sourceKey).selectEpisodeSubtitle(entry, episode, ref);
                   },
                     borderRadius: BorderRadius.circular(10),

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../backend/database/schemas/translation_pipeline_step.dart';
+import '../config/pipelines/pipeline_steps.dart';
+import 'languages/language_hub.dart';
 
 class AppConfig {
   final SharedPreferences _prefs;
@@ -10,7 +11,6 @@ class AppConfig {
   // --- API Constants ---
   static const String aniListEndpoint = 'https://graphql.anilist.co';
   static const String jimakuBaseUrl = 'https://jimaku.cc/api';
-  static const String wyzieBaseUrl = 'https://api.wyzie.xyz/v1';
   static const String tvMazeEndpoint = 'https://api.tvmaze.com';
   static const String shikimoriBaseUrl = 'https://shikimori.one/api';
   static const Duration defaultTimeout = Duration(seconds: 15);
@@ -21,9 +21,12 @@ class AppConfig {
   static const int defaultMaxConcurrentProcesses = 2;
   static const int defaultSyncSkipMinutes = 5;
   static const int defaultSyncPointDurationMinutes = 2;
+  static const int defaultAudioChunkDurationMinutes = 5;
+  static const int defaultTranscriptionOverlapSeconds = 10;
   
   static const Map<TranslationPipelineStep, String> defaultModels = {
     TranslationPipelineStep.research: 'gemini-3.5-flash-lite',
+    TranslationPipelineStep.transcribe: 'gemini-3.5-transcribe',
     TranslationPipelineStep.translate: 'gemini-3.8-flash',
     TranslationPipelineStep.tokenize: 'gemini-3.5-flash-lite',
     TranslationPipelineStep.morphemes: 'gemini-3.5-flash',
@@ -34,6 +37,7 @@ class AppConfig {
   static const _keySecondsAhead = 'seconds_before_send';
   static const _keyNumberOfPhrases = 'number_of_phrases';
   static const _keyIsAutomaticModelSwitch = 'is_automatic_model_switch';
+  static const _keyIsAdaptiveChunkSizeEnabled = 'is_adaptive_chunk_size_enabled';
   static const _keyIsAutoLockEnabled = 'is_auto_lock_enabled';
   static const _keyLastResetDate = 'last_reset_date_utc';
   static const _keyMaxConcurrentProcesses = 'max_concurrent_processes';
@@ -73,14 +77,19 @@ class AppConfig {
   static const _keyBatchSizeGrammarRole = 'batch_size_grammar_role';
   static const _keySyncSkipMinutes = 'sync_skip_minutes';
   static const _keySyncPointDurationMinutes = 'sync_point_duration_minutes';
+  static const _keyAudioChunkDurationMinutes = 'audio_chunk_duration_minutes';
+  static const _keyTranscriptionOverlapSeconds = 'transcription_overlap_seconds';
+  static const _keyAutoTranslateOnImport = 'auto_translate_on_import';
   static const _keyHideParenthesesContent = 'hide_parentheses_content';
   static const _keyFullscreenAutoShrink = 'fs_auto_shrink';
 
   static const _keyAnkiConnectUrl = 'anki_connect_url';
   static const _keyAnkiDeckName = 'anki_deck_name';
   static const _keyAnkiNoteType = 'anki_note_type';
+  static const _keyAppLanguage = 'app_language';
   
   static String _modelKey(TranslationPipelineStep step) => 'active_model_${step.name}';
+  static String _languageMethodKey(String langName) => 'lang_method_${langName.toLowerCase()}';
 
   // --- Getters & Setters ---
 
@@ -120,8 +129,24 @@ class AppConfig {
     await _prefs.setInt(_keySyncPointDurationMinutes, value);
   }
 
+  Future<void> setAudioChunkDurationMinutes(int value) async {
+    await _prefs.setInt(_keyAudioChunkDurationMinutes, value);
+  }
+
+  Future<void> setTranscriptionOverlapSeconds(int value) async {
+    await _prefs.setInt(_keyTranscriptionOverlapSeconds, value);
+  }
+
+  Future<void> setAutoTranslateOnImport(bool value) async {
+    await _prefs.setBool(_keyAutoTranslateOnImport, value);
+  }
+
   Future<void> setIsAutomaticModelSwitch(bool value) async {
     await _prefs.setBool(_keyIsAutomaticModelSwitch, value);
+  }
+
+  Future<void> setIsAdaptiveChunkSizeEnabled(bool value) async {
+    await _prefs.setBool(_keyIsAdaptiveChunkSizeEnabled, value);
   }
 
   Future<void> setIsAutoLockEnabled(bool value) async {
@@ -220,6 +245,14 @@ class AppConfig {
     await _prefs.setString(_modelKey(step), modelName);
   }
 
+  Future<void> setTokenizationMethod(String langName, TokenizationMethod method) async {
+    await _prefs.setString(_languageMethodKey(langName), method.name);
+  }
+
+  Future<void> setAppLanguage(String langCode) async {
+    await _prefs.setString(_keyAppLanguage, langCode);
+  }
+
   int get getSecondsAhead => _prefs.getInt(_keySecondsAhead) ?? defaultSecondsAhead;
 
   int get getNumberOfPhrases => _prefs.getInt(_keyNumberOfPhrases) ?? defaultPhrasesPerRequest;
@@ -233,8 +266,14 @@ class AppConfig {
 
   int get getSyncSkipMinutes => _prefs.getInt(_keySyncSkipMinutes) ?? defaultSyncSkipMinutes;
   int get getSyncPointDurationMinutes => _prefs.getInt(_keySyncPointDurationMinutes) ?? defaultSyncPointDurationMinutes;
+  int get getAudioChunkDurationMinutes => _prefs.getInt(_keyAudioChunkDurationMinutes) ?? defaultAudioChunkDurationMinutes;
+  int get getTranscriptionOverlapSeconds => _prefs.getInt(_keyTranscriptionOverlapSeconds) ?? defaultTranscriptionOverlapSeconds;
+
+  bool get getAutoTranslateOnImport => _prefs.getBool(_keyAutoTranslateOnImport) ?? false;
 
   bool get getIsAutomaticModelSwitch => _prefs.getBool(_keyIsAutomaticModelSwitch) ?? true;
+
+  bool get getIsAdaptiveChunkSizeEnabled => _prefs.getBool(_keyIsAdaptiveChunkSizeEnabled) ?? true;
 
   bool get getIsAutoLockEnabled => _prefs.getBool(_keyIsAutoLockEnabled) ?? true;
 
@@ -287,6 +326,17 @@ class AppConfig {
     return _prefs.getString(_modelKey(step));
   }
 
+  TokenizationMethod getTokenizationMethod(String langName) {
+    final stored = _prefs.getString(_languageMethodKey(langName));
+    if (stored != null) {
+      return TokenizationMethod.values.byName(stored);
+    }
+    final config = LanguageHub.getByName(langName);
+    return config?.defaultTokenizationMethod ?? TokenizationMethod.local;
+  }
+
+  String get getAppLanguage => _prefs.getString(_keyAppLanguage) ?? 'en';
+
   Future<void> resetToDefault() async {
     await _prefs.remove(_keySecondsAhead);
     await _prefs.remove(_keyNumberOfPhrases);
@@ -307,6 +357,9 @@ class AppConfig {
     await _prefs.remove(_keySubOriginalScaleWin);
     await _prefs.remove(_keySubTranslationScaleWin);
     await _prefs.remove(_keySubAdditionalScaleWin);
+    await _prefs.remove(_keyAudioChunkDurationMinutes);
+    await _prefs.remove(_keyTranscriptionOverlapSeconds);
+    await _prefs.remove(_keyAutoTranslateOnImport);
     
     for (final step in TranslationPipelineStep.values) {
       await _prefs.remove(_modelKey(step));
@@ -328,5 +381,8 @@ class AppConfig {
     await _prefs.remove(_keyBatchSizeTokenize);
     await _prefs.remove(_keyBatchSizeMorphemes);
     await _prefs.remove(_keyBatchSizeGrammarRole);
+    await _prefs.remove(_keyAudioChunkDurationMinutes);
+    await _prefs.remove(_keyTranscriptionOverlapSeconds);
+    await _prefs.remove(_keyAutoTranslateOnImport);
   }
 }

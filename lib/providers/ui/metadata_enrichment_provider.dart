@@ -48,9 +48,6 @@ final metadataEnrichmentProvider = Provider.family.autoDispose<EnrichedMetadata,
   if (entry.linkUrl?.contains('jimaku.cc') == true) {
     final summary = ref.watch(cloudSummaryProvider((SearchSourceKeys.jimaku, entry.sourceId)));
     episodes = summary?.episodeCount ?? episodes;
-  } else if (entry.linkUrl?.contains('wyzie.xyz') == true) {
-    final summary = ref.watch(cloudSummaryProvider((SearchSourceKeys.wyzie, entry.sourceId)));
-    episodes = summary?.episodeCount ?? episodes;
   }
 
   // 2. Enrich based on active provider

@@ -29,6 +29,7 @@ class AniListService {
     query ($id: Int) {
       Media(id: $id, type: ANIME) {
         id
+        idMal
         title {
           romaji
           english
@@ -57,6 +58,7 @@ class AniListService {
       Page(page: $page, perPage: $perPage) {
         media(search: $search, type: ANIME) {
           id
+          idMal
           title {
             romaji
             english
@@ -85,6 +87,7 @@ class AniListService {
       Page(page: $page, perPage: $perPage) {
         media(id_in: $idIn, type: ANIME) {
           id
+          idMal
           title {
             romaji
             english
@@ -211,6 +214,7 @@ class AniListService {
     return UnifiedMetadataDTO(
       sourceId: id?.toString() ?? '',
       anilistId: id,
+      malId: json['idMal'] as int?,
       title: title['romaji'] as String? ?? title['english'] as String? ?? 'Unknown',
       subtitle: title['english'] as String?,
       originalTitle: title['native'] as String?,

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:eiga/backend/database/schemas/translation_pipeline_step.dart';
+import 'package:eiga/config/pipelines/pipeline_steps.dart';
 import 'package:eiga/providers/ui/ai_models_state_provider.dart';
 import 'package:eiga/ui/styles/model_selection_theme.dart';
-import 'package:eiga/ui/widgets/buttons/equal_toggle_buttons.dart';
 import 'model_selection_card.dart';
 
 class ModelSelectionSheet extends ConsumerStatefulWidget {
@@ -55,68 +54,128 @@ class _ModelSelectionSheetState extends ConsumerState<ModelSelectionSheet> {
     final activeName = aiState[effectiveStep];
 
     return Column(
-        children: [
-          _buildHeader(theme),
-          const SizedBox(height: 12),
-          
-          Padding(
+      children: [
+        _buildHeader(theme),
+        const SizedBox(height: 8),
+        
+        // Scrollable step buttons (chips) - no text cramming
+        SizedBox(
+          height: 38,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: EqualToggleButtons<TranslationPipelineStep>(
-              items: visibleSteps,
-              activeItem: effectiveStep,
-              onChanged: (step) => setState(() => _activeStep = step),
-              labelBuilder: (step) => step.displayName,
-              iconBuilder: (step) {
+            child: Row(
+              children: visibleSteps.map((step) {
+                final isActive = step == effectiveStep;
+                IconData stepIcon;
                 switch (step) {
                   case TranslationPipelineStep.research:
-                    return Icons.search_rounded;
+                    stepIcon = Icons.search_rounded;
+                  case TranslationPipelineStep.transcribe:
+                    stepIcon = Icons.hearing_rounded;
                   case TranslationPipelineStep.translate:
-                    return Icons.translate_rounded;
+                    stepIcon = Icons.translate_rounded;
                   case TranslationPipelineStep.tokenize:
-                    return Icons.extension_rounded;
+                    stepIcon = Icons.extension_rounded;
                   case TranslationPipelineStep.morphemes:
-                    return Icons.auto_awesome_rounded;
+                    stepIcon = Icons.auto_awesome_rounded;
                   case TranslationPipelineStep.grammarRole:
-                    return Icons.schema_rounded;
+                    stepIcon = Icons.schema_rounded;
                 }
-              },
+                
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    showCheckmark: false,
+                    avatar: Icon(
+                      stepIcon, 
+                      size: 14, 
+                      color: isActive ? Colors.white : theme.mutedText,
+                    ),
+                    label: Text(
+                      step.displayName,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                        color: isActive ? Colors.white : theme.normalText,
+                      ),
+                    ),
+                    selected: isActive,
+                    onSelected: (_) => setState(() => _activeStep = step),
+                    selectedColor: theme.primaryAccent,
+                    backgroundColor: theme.segmentOffColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: const BorderSide(color: Colors.transparent),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
-          
-          const SizedBox(height: 12),
-          Expanded(
-            child: models.isEmpty
-                ? Center(
-                    child: ref.watch(allModelsProvider).isLoading 
-                        ? CircularProgressIndicator(color: theme.primaryAccent)
-                        : Text('No models available', style: TextStyle(color: theme.mutedText)),
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                    itemCount: models.length,
-                    itemBuilder: (context, index) {
-                      // Sort: Active model first
-                      final sortedModels = [
-                        ...models.where((m) => m.name == activeName),
-                        ...models.where((m) => m.name != activeName),
-                      ];
-                      
-                      final model = sortedModels[index];
-                      final isActive = model.name == activeName;
-                      
-                      return ModelSelectionCard(
-                        model: model,
-                        step: effectiveStep,
-                        isActive: isActive,
-                        onSelect: () => _selectModel(model.name, effectiveStep),
-                        onToggleStreaming: () => ref.read(aiModelsProvider.notifier).toggleStreaming(model),
-                      );
-                    },
+        ),
+        
+        const SizedBox(height: 12),
+        
+        // Live data with reactive stream states
+        Expanded(
+          child: ref.watch(allModelsProvider).when(
+            data: (_) {
+              if (models.isEmpty) {
+                return Center(
+                  child: Text(
+                    'No models available for this step', 
+                    style: TextStyle(color: theme.mutedText),
                   ),
+                );
+              }
+              return ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                itemCount: models.length,
+                itemBuilder: (context, index) {
+                  // Sort: Active model first
+                  final sortedModels = [
+                    ...models.where((m) => m.name == activeName),
+                    ...models.where((m) => m.name != activeName),
+                  ];
+                  
+                  final model = sortedModels[index];
+                  final isActive = model.name == activeName;
+                  
+                  return ModelSelectionCard(
+                    model: model,
+                    step: effectiveStep,
+                    isActive: isActive,
+                    onSelect: () => _selectModel(model.name, effectiveStep),
+                    onToggleStreaming: () => ref.read(aiModelsProvider.notifier).toggleStreaming(model),
+                  );
+                },
+              );
+            },
+            loading: () => Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: theme.primaryAccent),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Loading AI models...', 
+                    style: TextStyle(color: theme.mutedText, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            error: (err, _) => Center(
+              child: Text(
+                'Error loading models: $err', 
+                style: const TextStyle(color: Colors.redAccent),
+              ),
+            ),
           ),
-        ],
-      );
+        ),
+      ],
+    );
   }
 
   Widget _buildHeader(ModelSelectionTheme theme) {

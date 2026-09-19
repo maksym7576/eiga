@@ -178,7 +178,61 @@ class PhrasesPreviewSection extends ConsumerWidget {
 
   Widget _buildPhrasesList(AdditionalWindowTheme theme, UploadState state) {
     if (state.isParsing) {
-      return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+      final double progress = state.totalEvaluationCount > 0 
+          ? state.currentEvaluationIndex / state.totalEvaluationCount 
+          : 0.0;
+      final bool isBatch = state.isEvaluatingBatch;
+      
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.withOpacity(0.15)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isBatch ? 'Neural Batch Sync Analysis...' : 'Parsing Subtitle File...',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    if (isBatch && state.totalEvaluationCount > 0)
+                      Text(
+                        '${(progress * 100).toInt()}%',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.blue),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: isBatch && progress > 0 ? progress : null,
+                    backgroundColor: Colors.black.withOpacity(0.05),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+                    minHeight: 6,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  isBatch 
+                      ? 'Processing subtitle version ${state.currentEvaluationIndex} of ${state.totalEvaluationCount}'
+                      : 'Extracting markers, checking VAD speech segments, and aligning timeline...',
+                  style: TextStyle(fontSize: 11, color: theme.mutedText),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     return ListView.separated(

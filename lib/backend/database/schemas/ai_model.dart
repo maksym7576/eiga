@@ -1,9 +1,10 @@
 import 'package:isar_community/isar.dart';
-import 'translation_job.dart';
+import '../../../config/pipelines/pipeline_steps.dart';
+import 'job.dart';
 
 part 'ai_model.g.dart';
 
-enum AiProvider { google, openai, anthropic, custom }
+enum AiProvider { google, openai, anthropic, xai, custom }
 
 enum ModelQuality { basic, standard, high, frontier }
 
@@ -33,6 +34,9 @@ class AiModel {
   bool isDailyMaxLimitCustom = false;
   int dailyUsed = 0;
 
+  int tpmLimit = 100000; // Tokens Per Minute limit
+  int tokensPerAudioSecond = 1; // Average tokens per second of audio
+
   int defaultPhrasesPerRequest = 10;
   int currentPhrasesPerRequest = 10;
   bool isPhrasesPerRequestCustom = false;
@@ -50,12 +54,21 @@ class AiModel {
 
   bool supportsThinking = false;
 
+  bool isTranscriptionModel = false;
+
   @Enumerated(EnumType.name)
   late ModelSpeed speed;
 
   int estimatedTokensPerSec = 50;
 
   int errorCount = 0;
+  String? lastErrorMessage;
+  DateTime? lastErrorAt;
+  int successCount = 0;
+  int partialSuccessCount = 0;
+
+
+  double reliabilityScore = 0.0;
 
   int contextWindow = 128000;
   int maxOutputTokens = 8192;

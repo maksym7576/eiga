@@ -1,12 +1,11 @@
-import 'package:eiga/ui/styles/additional_window_theme.dart';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/providers/ui/language_provider.dart';
-import '../../../../backend/database/schemas/language.dart';
+import 'package:eiga/config/languages/language_hub.dart';
+import '../../../styles/additional_window_theme.dart';
 import '../../../styles/app_colors.dart';
 import '../../cards/language_widget.dart';
-
-enum LanguageType { original, translation }
 
 class LanguagePreviewWidget extends ConsumerStatefulWidget {
   const LanguagePreviewWidget({super.key});
@@ -19,301 +18,140 @@ class _LanguagePreviewWidgetState extends ConsumerState<LanguagePreviewWidget> {
   LanguageType _activeTypeNow = LanguageType.original;
 
   @override
-  void initState() {
-    super.initState();
-    _activeTypeNow = LanguageType.original;
-  }
+  Widget build(BuildContext context) {
+    final theme = AdditionalWindowTheme.of(context);
+    final languagesAsync = ref.watch(allLanguagesProvider);
 
-  Widget _buildSelectorTrigger({
-    required String label,
-    required String? selectedValue,
-    required LanguageType type,
-    required AdditionalWindowTheme theme,
-  }) {
-    final isActive = _activeTypeNow == type;
-    final displayValue = selectedValue ?? 'Select';
+    final sorted = languagesAsync.toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
 
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 6),
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: isActive ? theme.primaryAccent : theme.mutedText,
-                letterSpacing: 0.5,
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.9),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.slate200,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-          ),
-          GestureDetector(
-            onTap: () => setState(() => _activeTypeNow = type),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: isActive ? theme.primaryAccent.withValues(alpha: 0.05) : theme.cardBackground,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isActive ? theme.primaryAccent : theme.cardBorder,
-                  width: isActive ? 2 : 1,
-                ),
-                boxShadow: isActive ? [
-                  BoxShadow(
-                    color: theme.primaryAccent.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  )
-                ] : null,
-              ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: isActive ? theme.primaryAccent : theme.mutedText.withValues(alpha: 0.5),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      displayValue,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                        color: isActive ? theme.primaryAccent : theme.normalText,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Select Language',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.slate900,
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                    ),
+                      Text(
+                        'Choose source or target language',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.slate500,
+                        ),
+                      ),
+                    ],
                   ),
-                  Icon(
-                    isActive ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                    size: 18,
-                    color: isActive ? theme.primaryAccent : theme.mutedText,
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.slate100,
+                      foregroundColor: AppColors.slate600,
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.slate100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    _buildTypeTab('Source', LanguageType.original),
+                    _buildTypeTab('Target', LanguageType.translation),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+                itemCount: sorted.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  return LanguageWidget(
+                    language: sorted[index],
+                    type: _activeTypeNow,
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = AdditionalWindowTheme.of(context);
-    final languageState = ref.watch(languageProvider);
-    final languagesAsync = ref.watch(allLanguagesProvider);
-
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.92,
-      ),
-      decoration: BoxDecoration(
-        color: theme.backgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 40,
-            offset: const Offset(0, -10),
-          )
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 12),
-          Container(
-            width: 40,
-            height: 5,
-            decoration: BoxDecoration(
-              color: AppColors.slate300,
-              borderRadius: BorderRadius.circular(2.5),
-            ),
-          ),
-          
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 16, 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Languages',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded, size: 24),
-                  color: AppColors.slate400,
-                ),
-              ],
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Choose the context for the video content.',
-                style: TextStyle(
-                  fontSize: 13.5,
-                  color: AppColors.slate500,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              children: [
-                _buildSelectorTrigger(
-                  label: 'ORIGINAL',
-                  selectedValue: languageState.original,
-                  type: LanguageType.original,
-                  theme: theme,
-                ),
-                const SizedBox(width: 12),
-                _buildSelectorTrigger(
-                  label: 'TRANSLATION',
-                  selectedValue: languageState.target,
-                  type: LanguageType.translation,
-                  theme: theme,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Container(
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.slate200.withValues(alpha: 0.9)),
-                  boxShadow: [
+  Widget _buildTypeTab(String label, LanguageType type) {
+    final bool isSelected = _activeTypeNow == type;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _activeTypeNow = type),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: isSelected
+                ? [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     )
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      color: AppColors.slate50.withValues(alpha: 0.8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Select ${_activeTypeNow == LanguageType.original ? 'source' : 'target'}:',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.slate500,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: theme.primaryAccent.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Text(
-                              'Select',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.brandBlue,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(height: 1, color: AppColors.slate100),
-                    Expanded(
-                      child: languagesAsync.when(
-                        data: (languages) {
-                          final sorted = languages.where((l) => l.name != null).toList()
-                            ..sort((a, b) => a.name!.compareTo(b.name!));
-                          
-                          return ListView.separated(
-                            padding: EdgeInsets.zero,
-                            itemCount: sorted.length,
-                            separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.slate100),
-                            itemBuilder: (context, index) {
-                              return LanguageWidget(
-                                language: sorted[index],
-                                type: _activeTypeNow,
-                              );
-                            },
-                          );
-                        },
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (err, _) => Center(child: Text('Error: $err')),
-                      ),
-                    ),
-                  ],
-                ),
+                  ]
+                : null,
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? AppColors.brandBlue : AppColors.slate500,
               ),
             ),
           ),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-            child: SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.primaryAccent,
-                  foregroundColor: Colors.white,
-                  elevation: 8,
-                  shadowColor: theme.primaryAccent.withValues(alpha: 0.3),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Apply',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

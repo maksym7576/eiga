@@ -30,34 +30,27 @@ class ReaderPreferencesScreen extends ConsumerWidget {
           child: Container(color: theme.dividerColor, height: 1),
         ),
       ),
-      body: languagesAsync.when(
-        data: (languages) {
-          // Show all languages for global preferences
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            itemCount: languages.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final lang = languages[index];
-              return _LanguageTile(
-                name: lang.name ?? 'Unknown',
-                code: lang.code ?? '??',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => LanguageDisplaySettingsScreen(
-                        languageName: lang.name ?? '',
-                      ),
-                    ),
-                  );
-                },
+      body: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        itemCount: languagesAsync.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final lang = languagesAsync[index];
+          return _LanguageTile(
+            name: lang.name,
+            code: lang.code,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LanguageDisplaySettingsScreen(
+                    languageName: lang.name,
+                  ),
+                ),
               );
             },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
       ),
     );
   }

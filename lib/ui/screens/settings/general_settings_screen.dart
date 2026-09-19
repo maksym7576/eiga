@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:eiga/config/localization/localization_hub.dart';
 import 'package:eiga/providers/services/app_configs_provider.dart';
 import 'package:eiga/providers/ui/ai_models_state_provider.dart';
-import '../../../backend/database/schemas/translation_pipeline_step.dart';
+import '../../../config/pipelines/pipeline_steps.dart';
 import '../../styles/additional_window_theme.dart';
 import '../../styles/app_colors.dart';
 import 'model_selection_screen.dart';
@@ -34,6 +35,10 @@ class _GeneralSettingsScreenState extends ConsumerState<GeneralSettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _buildSectionHeader(context, 'APP INTERFACE'),
+            const SizedBox(height: 8),
+            _buildAppLanguageCard(context),
+            const SizedBox(height: 24),
             _buildSectionHeader(context, 'PROCESSING'),
             const SizedBox(height: 8),
             _buildProcessingModeCard(context),
@@ -60,6 +65,29 @@ class _GeneralSettingsScreenState extends ConsumerState<GeneralSettingsScreen> {
               value: isAutoSwitch,
               onChanged: (val) async {
                 await config.setIsAutomaticModelSwitch(val);
+                setState(() {});
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildSwitchCard(
+              context,
+              title: 'Adaptive Audio Chunking',
+              subtitle: 'Automatically reduce chunk size based on model TPM limits.',
+              value: config.getIsAdaptiveChunkSizeEnabled,
+              onChanged: (val) async {
+                await config.setIsAdaptiveChunkSizeEnabled(val);
+                setState(() {});
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildSwitchCard(
+              context,
+              title: 'Auto-Translate on Import',
+              subtitle: 'Start translating the first batch immediately after adding a video.',
+              value: config.getAutoTranslateOnImport,
+
+              onChanged: (val) async {
+                await config.setAutoTranslateOnImport(val);
                 setState(() {});
               },
             ),
@@ -325,6 +353,51 @@ class _GeneralSettingsScreenState extends ConsumerState<GeneralSettingsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildAppLanguageCard(BuildContext context) {
+    final theme = AdditionalWindowTheme.of(context);
+    final config = ref.watch(appConfigsServiceProvider);
+    final currentLang = config.getAppLanguage;
+
+    final Map<String, String> languages = {
+      'en': 'English',
+      'uk': 'Українська',
+    };
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardBackground,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: theme.dividerColor),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: currentLang,
+            isExpanded: true,
+            icon: Icon(Icons.language_rounded, color: theme.primaryAccent, size: 20),
+            items: languages.entries.map((e) {
+              return DropdownMenuItem(
+                value: e.key,
+                child: Text(
+                  e.value,
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.titleColor),
+                ),
+              );
+            }).toList(),
+            onChanged: (val) async {
+              if (val != null) {
+                await config.setAppLanguage(val);
+                ref.invalidate(appConfigsServiceProvider);
+                setState(() {});
+              }
+            },
+          ),
+        ),
+      ),
     );
   }
 }

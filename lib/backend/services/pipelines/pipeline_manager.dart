@@ -1,7 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/backend/database/schemas/video.dart';
-import 'package:eiga/backend/database/services/ai_model_service.dart';
-import 'package:eiga/backend/database/services/video_service.dart';
+import 'package:eiga/backend/services/database/ai_model_service.dart';
+import 'package:eiga/backend/services/database/video_service.dart';
 import 'package:eiga/providers/database/isar_providers.dart';
 import 'package:eiga/providers/ui/ai_models_state_provider.dart';
 import 'package:eiga/providers/services/isar_services_providers.dart';

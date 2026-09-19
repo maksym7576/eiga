@@ -1,18 +1,58 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/legacy.dart';
 import 'package:isar_community/isar.dart';
 import '../../backend/database/schemas/video.dart';
-import '../../backend/database/schemas/translation_job.dart';
+import '../../backend/database/schemas/job.dart';
 import '../../backend/database/schemas/phrase.dart';
-import '../../backend/database/schemas/language.dart';
-import '../../backend/database/schemas/specific_word_style.dart';
-import '../../backend/database/schemas/known_word_status.dart';
+import '../../backend/database/schemas/user_word_status.dart';
+import '../../config/ui/word_styles.dart';
 import '../../backend/services/depacker_subtitles/season_episode_info.dart';
 import '../services/isar_services_providers.dart';
-import '../../utils/logger.dart';
 
 import 'player_provider.dart';
+
+final wordStyleProvider = StreamProvider.family<WordStatus?, String>((ref, lemma) {
+  if (lemma.isEmpty) return Stream.value(null);
+  final statusService = ref.read(knownWordStatusServiceProvider);
+  return statusService.db.userWordStatus
+      .filter()
+      .lemmaEqualTo(lemma)
+      .watch(fireImmediately: true)
+      .map((statuses) {
+    if (statuses.isEmpty) return null;
+    return statuses.first.status;
+  });
+});
+
+final blockStyleProvider = StreamProvider.family<WordStatus?, int>((ref, blockId) async* {
+  final phraseId = ref.watch(stickyActivePhraseIdProvider);
+  if (phraseId == null) {
+    yield null;
+    return;
+  }
+  final phraseService = ref.read(phraseServiceProvider);
+  final phrase = await phraseService.getPhraseById(phraseId);
+  if (phrase == null || phrase.originalTokens == null) {
+    yield null;
+    return;
+  }
+  final blockTokens = phrase.originalTokens!.where((t) => t.blockId == blockId).toList();
+  blockTokens.sort((a, b) => (a.wordPosition ?? 0).compareTo(b.wordPosition ?? 0));
+  final expressionBase = blockTokens.map((w) => w.lemma ?? '').join(' ').trim();
+  if (expressionBase.isEmpty) {
+    yield null;
+    return;
+  }
+  final statusService = ref.read(knownWordStatusServiceProvider);
+  await for (final statuses in statusService.db.userWordStatus.filter().lemmaEqualTo(expressionBase).watch(fireImmediately: true)) {
+    if (statuses.isEmpty) {
+      yield null;
+    } else {
+      yield statuses.first.status;
+    }
+  }
+});
 
 // Providers for video-related data
 final playerIdProvider = StateProvider<int?>((ref) {
@@ -65,7 +105,6 @@ final dimmedWordIdsProvider = Provider<Set<int>>((ref) {
   final phrases = ref.watch(phrasesStreamProvider).value;
   if (phrases == null || phrases.isEmpty) return const {};
   
-  // Efficient lookup
   final phrase = phrases.firstWhere((p) => p.id == phraseId, orElse: () => Phrase());
   if (phrase.id == 0 || phrase.linkGroups == null || phrase.linkGroups!.isEmpty) return const {};
 
@@ -136,7 +175,24 @@ class PhraseLinkIndex {
   final List<TranslationTokenEntry> tWords;
   final List<LinkGroup> linkGroups;
 
-  PhraseLinkIndex(this.words, this.tWords, [List<LinkGroup>? groups]) : linkGroups = groups ?? const [];
+  late final Map<int, List<TokenEntry>> _translationToWords;
+  late final Map<int, List<TranslationTokenEntry>> _wordToTranslations;
+
+  PhraseLinkIndex(this.words, this.tWords, [List<LinkGroup>? groups]) : linkGroups = groups ?? const [] {
+    _translationToWords = {};
+    for (final t in tWords) {
+      if (t.translatedWordPosition != null) {
+        _translationToWords[t.translatedWordPosition!] = words.where((w) => t.sourceWordPositions.contains(w.wordPosition)).toList();
+      }
+    }
+
+    _wordToTranslations = {};
+    for (final w in words) {
+      if (w.wordPosition != null) {
+        _wordToTranslations[w.wordPosition!] = tWords.where((t) => t.sourceWordPositions.contains(w.wordPosition)).toList();
+      }
+    }
+  }
 
   Map<String, Set<int>> getLinkedIdsForWord(int wordId) {
     final tok = words.firstWhere((w) => w.wordPosition == wordId, orElse: () => TokenEntry());
@@ -152,15 +208,18 @@ class PhraseLinkIndex {
 
     final Set<int> wordIds = {wordId};
     final Set<int> translationIds = <int>{};
-    for (final t in tWords) {
-      if (t.sourceWordPositions.contains(wordId)) {
-        if (t.translatedWordPosition != null) translationIds.add(t.translatedWordPosition!);
+    
+    final linkedTranslations = _wordToTranslations[wordId] ?? [];
+    for (final t in linkedTranslations) {
+      if (t.translatedWordPosition != null) {
+        translationIds.add(t.translatedWordPosition!);
+        final linkedBack = _translationToWords[t.translatedWordPosition!] ?? [];
+        for (final w in linkedBack) {
+          if (w.wordPosition != null) wordIds.add(w.wordPosition!);
+        }
       }
     }
-    for (final tId in translationIds) {
-      final t = tWords.firstWhere((tw) => tw.translatedWordPosition == tId, orElse: () => TranslationTokenEntry());
-      wordIds.addAll(t.sourceWordPositions);
-    }
+
     return {
       'words': wordIds,
       'translations': translationIds,
@@ -185,43 +244,16 @@ class PhraseLinkIndex {
     };
   }
 
-  Map<int, List<TokenEntry>> get translationToWords {
-    final Map<int, List<TokenEntry>> map = {};
-    for (final t in tWords) {
-      if (t.translatedWordPosition != null) {
-        map[t.translatedWordPosition!] = words.where((w) => t.sourceWordPositions.contains(w.wordPosition)).toList();
-      }
-    }
-    return map;
-  }
-
-  Map<int, List<TranslationTokenEntry>> get wordToTranslations {
-    final Map<int, List<TranslationTokenEntry>> map = {};
-    for (final w in words) {
-      if (w.wordPosition != null) {
-        map[w.wordPosition!] = tWords.where((t) => t.sourceWordPositions.contains(w.wordPosition)).toList();
-      }
-    }
-    return map;
-  }
+  Map<int, List<TokenEntry>> get translationToWords => _translationToWords;
+  Map<int, List<TranslationTokenEntry>> get wordToTranslations => _wordToTranslations;
 }
 
 final blockLayerLinkProvider = Provider<LayerLink>((ref) => LayerLink());
 
-final specificWordStylesStreamProvider = StreamProvider<List<SpecificWordStyle>>((ref) {
-  final service = ref.read(specificWordStyleServiceProvider);
-  return service.watchAllStyles();
-});
-
-final allStylesMapProvider = Provider<Map<int, SpecificWordStyle>>((ref) {
-  final styles = ref.watch(specificWordStylesStreamProvider).value ?? [];
-  return {for (final s in styles) s.id: s};
-});
-
-final lemmaToStatusMapProvider = StreamProvider<Map<String, KnownWordStatus>>((ref) {
+final lemmaToStatusMapProvider = StreamProvider<Map<String, UserWordStatus>>((ref) {
   final service = ref.read(knownWordStatusServiceProvider);
-  return service.db.collection<KnownWordStatus>().where().watch(fireImmediately: true).map((list) {
-    return {for (final s in list) if (s.base != null) s.base!: s};
+  return service.db.userWordStatus.where().watch(fireImmediately: true).map((list) {
+    return {for (final s in list) s.lemma: s};
   });
 });
 
@@ -245,17 +277,14 @@ final currentVideoStreamProvider = StreamProvider<Video?>((ref) {
   return videoService.watchVideoById(videoId);
 });
 
-final translationJobsStreamProvider = StreamProvider.family<List<TranslationJob>, int>((ref, videoId) {
-  final service = ref.read(translationJobServiceProvider);
-  return service.watchJobsForVideo(videoId);
+final videoProvider = StreamProvider.family<Video?, int>((ref, videoId) {
+  final videoService = ref.read(videoServiceProvider);
+  return videoService.watchVideoById(videoId);
 });
 
-final videoLanguageProvider = FutureProvider<Language?>((ref) async {
-  final video = await ref.watch(currentVideoProvider.future);
-  if (video == null || video.originalLanguage == null) return null;
-
-  final languageService = ref.read(languageServiceProvider);
-  return await languageService.getLanguageByName(video.originalLanguage!);
+final translationJobsStreamProvider = StreamProvider.family<List<Job>, int>((ref, videoId) {
+  final service = ref.read(jobServiceProvider);
+  return service.watchJobsForVideo(videoId);
 });
 
 final phrasesStreamProvider = StreamProvider<List<Phrase>>((ref) {
@@ -276,28 +305,17 @@ final activePhraseIdProvider = Provider<int?>((ref) {
   
   int low = 0;
   int high = phrases.length - 1;
-
+  int mid;
   while (low <= high) {
-    int mid = (low + high) >> 1;
+    mid = (low + high) >> 1;
     final p = phrases[mid];
-    
-    if (p.startTime == null || p.endTime == null) {
-      low++;
-      continue;
-    }
-
+    if (p.startTime == null || p.endTime == null) { low++; continue; }
     final start = p.startTime!.difference(startBase);
     final end = p.endTime!.difference(startBase);
-
-    if (currentTime >= start && currentTime <= end) {
-      return p.id;
-    } else if (currentTime < start) {
-      high = mid - 1;
-    } else {
-      low = mid + 1;
-    }
+    if (currentTime >= start && currentTime <= end) { return p.id; } 
+    else if (currentTime < start) { high = mid - 1; } 
+    else { low = mid + 1; }
   }
-
   return null;
 });
 
@@ -318,24 +336,12 @@ final stickyActivePhraseIdProvider = Provider<int?>((ref) {
   while (low <= high) {
     int mid = (low + high) >> 1;
     final p = phrases[mid];
-    if (p.startTime == null) {
-      low++;
-      continue;
-    }
-
+    if (p.startTime == null) { low++; continue; }
     final start = p.startTime!.difference(startBase);
-    if (start <= currentTime) {
-      lastFinishedIdx = mid;
-      low = mid + 1;
-    } else {
-      high = mid - 1;
-    }
+    if (start <= currentTime) { lastFinishedIdx = mid; low = mid + 1; } 
+    else { high = mid - 1; }
   }
-
-  if (lastFinishedIdx != -1) {
-    return phrases[lastFinishedIdx].id;
-  }
-
+  if (lastFinishedIdx != -1) { return phrases[lastFinishedIdx].id; }
   return null;
 });
 
@@ -343,21 +349,14 @@ final activePhraseProvider = Provider<Phrase?>((ref) {
   final phrases = ref.watch(phrasesStreamProvider).value ?? [];
   final activeId = ref.watch(activePhraseIdProvider);
   if (activeId == null || phrases.isEmpty) return null;
-
-  // Linear or binary search since the list is small and index matched
-  for (final p in phrases) {
-    if (p.id == activeId) return p;
-  }
+  for (final p in phrases) { if (p.id == activeId) return p; }
   return null;
 });
 
 final clickedWordProvider = FutureProvider<TokenEntry?>((ref) async {
   final wordId = ref.watch(clickedWordIdProvider);
-  if (wordId == null) return null;
-  
   final phraseId = ref.watch(selectedPhraseIdProvider);
-  if (phraseId == null) return null;
-  
+  if (wordId == null || phraseId == null) return null;
   final phraseService = ref.read(phraseServiceProvider);
   final phrase = await phraseService.getPhraseById(phraseId);
   return phrase?.originalTokens?.where((t) => (t.wordPosition ?? 0) == wordId).firstOrNull;
@@ -365,11 +364,8 @@ final clickedWordProvider = FutureProvider<TokenEntry?>((ref) async {
 
 final clickedTranslationWordProvider = FutureProvider<TranslationTokenEntry?>((ref) async {
   final twId = ref.watch(clickedTranslationWordIdProvider);
-  if (twId == null) return null;
-  
   final phraseId = ref.watch(selectedPhraseIdProvider);
-  if (phraseId == null) return null;
-  
+  if (twId == null || phraseId == null) return null;
   final phraseService = ref.read(phraseServiceProvider);
   final phrase = await phraseService.getPhraseById(phraseId);
   return phrase?.translatedWords?.where((t) => (t.translatedWordPosition ?? 0) == twId).firstOrNull;
@@ -383,72 +379,14 @@ class EmbeddedBlock {
 class WordWithStyle {
   final TokenEntry word;
   final EmbeddedBlock block;
-  final SpecificWordStyle? style;
-
-  WordWithStyle({required this.word, required this.block, this.style});
+  final WordStatus? status;
+  WordWithStyle({required this.word, required this.block, this.status});
 }
 
 class TranslationTokenWithStyle {
   final TranslationTokenEntry token;
   final EmbeddedBlock? block;
-  final SpecificWordStyle? style;
+  final WordStatus? status;
   final String? lemma;
-
-  TranslationTokenWithStyle({
-    required this.token,
-    this.block,
-    this.style,
-    this.lemma,
-  });
+  TranslationTokenWithStyle({required this.token, this.block, this.status, this.lemma});
 }
-
-final wordStyleProvider = StreamProvider.family<SpecificWordStyle?, String>((ref, lemma) {
-  if (lemma.isEmpty) return Stream.value(null);
-  
-  final statusService = ref.read(knownWordStatusServiceProvider);
-  final stylesMap = ref.watch(allStylesMapProvider);
-  
-  return statusService.db.collection<KnownWordStatus>()
-      .filter()
-      .baseEqualTo(lemma)
-      .watch(fireImmediately: true)
-      .map((statuses) {
-    if (statuses.isEmpty || statuses.first.styleId == null) return null;
-    return stylesMap[statuses.first.styleId!];
-  });
-});
-
-final blockStyleProvider = StreamProvider.family<SpecificWordStyle?, int>((ref, blockId) async* {
-  final phraseId = ref.watch(stickyActivePhraseIdProvider);
-  if (phraseId == null) {
-    yield null;
-    return;
-  }
-  
-  final phraseService = ref.read(phraseServiceProvider);
-  final phrase = await phraseService.getPhraseById(phraseId);
-  if (phrase == null || phrase.originalTokens == null) {
-    yield null;
-    return;
-  }
-
-  final blockTokens = phrase.originalTokens!.where((t) => t.blockId == blockId).toList();
-  blockTokens.sort((a, b) => (a.wordPosition ?? 0).compareTo(b.wordPosition ?? 0));
-  final expressionBase = blockTokens.map((w) => w.lemma ?? '').join(' ').trim();
-  
-  if (expressionBase.isEmpty) {
-    yield null;
-    return;
-  }
-
-  final statusService = ref.read(knownWordStatusServiceProvider);
-  final stylesMap = ref.watch(allStylesMapProvider);
-
-  await for (final statuses in statusService.db.collection<KnownWordStatus>().filter().baseEqualTo(expressionBase).watch(fireImmediately: true)) {
-    if (statuses.isEmpty || statuses.first.styleId == null) {
-      yield null;
-    } else {
-      yield stylesMap[statuses.first.styleId!];
-    }
-  }
-});

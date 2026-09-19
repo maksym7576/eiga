@@ -9,7 +9,7 @@ import 'package:eiga/backend/database/dto/media_dto.dart';
 import 'package:eiga/ui/widgets/search/search_source_abstract.dart';
 import 'package:eiga/ui/widgets/search/shared/unified_search_entry_card.dart';
 import 'package:eiga/ui/widgets/search/cloud/cloud_subtitle_source.dart';
-import 'package:eiga/utils/debounce.dart';
+import 'package:eiga/utils/common/debounce.dart';
 
 class SearchPickerWidget<TEntry, TFile> extends ConsumerStatefulWidget {
   final SearchSource<TEntry, TFile> source;

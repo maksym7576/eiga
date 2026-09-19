@@ -2,17 +2,17 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/legacy.dart';
-import '../../../providers/services/app_configs_provider.dart';
-import '../../../providers/services/ai_services_providers.dart';
-import '../../../providers/services/ai_request_state.dart';
-import '../../../providers/services/isar_services_providers.dart';
-import '../../../providers/ui/ai_models_state_provider.dart';
-import '../../database/schemas/phrase.dart';
-import '../../database/schemas/translation_pipeline_step.dart';
-import '../../../providers/ui/player_provider.dart';
-import '../../../providers/ui/ai_error_state_provider.dart';
-import '../../services/utils/ai_exceptions.dart';
-import '../../../utils/logger.dart';
+import 'package:eiga/providers/services/app_configs_provider.dart';
+import 'package:eiga/providers/services/ai_services_providers.dart';
+import 'package:eiga/providers/services/ai_request_state.dart';
+import 'package:eiga/providers/services/isar_services_providers.dart';
+import 'package:eiga/providers/ui/ai_models_state_provider.dart';
+import 'package:eiga/backend/database/schemas/phrase.dart';
+import 'package:eiga/config/pipelines/pipeline_steps.dart';
+import 'package:eiga/providers/ui/player_provider.dart';
+import 'package:eiga/providers/ui/ai_error_state_provider.dart';
+import 'package:eiga/backend/services/utils/ai_exceptions.dart';
+import 'package:eiga/utils/logger.dart';
 
 enum TaskPriority { high, normal }
 
@@ -22,12 +22,16 @@ class TranslationTask {
   final List<int> phraseOrders;
   final TaskPriority priority;
   final DateTime createdAt;
+  final bool isTranscription;
+  final String? transcriptionLanguage;
 
   TranslationTask({
     required this.videoId,
-    required this.phraseIds,
-    required this.phraseOrders,
+    this.phraseIds = const [],
+    this.phraseOrders = const [],
     this.priority = TaskPriority.normal,
+    this.isTranscription = false,
+    this.transcriptionLanguage,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -37,10 +41,11 @@ class TranslationTask {
       other is TranslationTask &&
           runtimeType == other.runtimeType &&
           videoId == other.videoId &&
+          isTranscription == other.isTranscription &&
           listEquals(phraseIds, other.phraseIds);
 
   @override
-  int get hashCode => videoId.hashCode ^ phraseIds.hashCode;
+  int get hashCode => videoId.hashCode ^ phraseIds.hashCode ^ isTranscription.hashCode;
 }
 
 final translationQueueProvider = StateProvider<List<TranslationTask>>((ref) => []);
@@ -66,11 +71,11 @@ class TranslationBackgroundManager {
     // Deduplication - check if task is identical or if phrase IDs are already in queue
     if (!force && _queue.any((t) => t == task)) return;
     
-    final existingIdsInQueue = _queue.expand((t) => t.phraseIds).toSet();
-    final existingIdsActive = _activeTaskList.expand((t) => t.phraseIds).toSet();
+    final existingIdsInQueue = _queue.where((t) => !t.isTranscription).expand((t) => t.phraseIds).toSet();
+    final existingIdsActive = _activeTaskList.where((t) => !t.isTranscription).expand((t) => t.phraseIds).toSet();
     
     // If ALL phrase IDs in the new task are already covered, skip it
-    if (!force && task.phraseIds.every((id) => existingIdsInQueue.contains(id) || existingIdsActive.contains(id))) {
+    if (!force && !task.isTranscription && task.phraseIds.every((id) => existingIdsInQueue.contains(id) || existingIdsActive.contains(id))) {
       logger.d('[Queue] Task skipped: all phrases already in queue/processing');
       return;
     }
@@ -148,6 +153,23 @@ class TranslationBackgroundManager {
       final video = await videoService.getVideoById(task.videoId);
       if (video == null) return;
 
+      if (task.isTranscription) {
+        logger.d('[Task] Starting background transcription for video ${task.videoId}');
+        final result = await aiService.runTranscriptionForVideo(
+          video: video,
+          spokenLanguage: task.transcriptionLanguage ?? 'Japanese',
+        );
+
+        if (result.phase == AiRequestPhase.error) {
+          ref.read(playerProvider.notifier).setPlaying(false);
+          if (result.error != null) {
+            ref.read(aiErrorStateProvider.notifier).state = result.error;
+          }
+        }
+        logger.i('[Task] Transcription task completed for video ${task.videoId}');
+        return;
+      }
+
       final phrases = <Phrase>[];
       for (var id in task.phraseIds) {
         final p = await phraseService.getPhraseById(id);
@@ -179,8 +201,9 @@ class TranslationBackgroundManager {
              final fallback = await ref.read(aiModelServiceProvider).getBestFallbackModel(stepType, result.failedModel!.name);
              if (fallback != null) {
                logger.i('[Manager] Attempt failed (${result.error?.message}). Switching model to ${fallback.name}. Waiting 3s before retry...');
-               await ref.read(aiModelServiceProvider).incrementErrorCount(result.failedModel!.name);
+               await ref.read(aiModelServiceProvider).incrementErrorCount(result.failedModel!.name, errorMessage: result.error?.message);
                await ref.read(aiModelsProvider.notifier).updateActiveModel(stepType, fallback.name);
+
                
                handledWithFallback = true;
                // Delay to prevent rapid-fire spamming on failures
@@ -235,6 +258,7 @@ class TranslationBackgroundManager {
 
   TranslationPipelineStep? _mapStepToEnum(String stepName) {
     switch (stepName) {
+      case 'transcription': return TranslationPipelineStep.transcribe;
       case 'context': return TranslationPipelineStep.research;
       case 'translation': return TranslationPipelineStep.translate;
       case 'tokenization': return TranslationPipelineStep.tokenize;
@@ -259,7 +283,7 @@ class TranslationBackgroundManager {
     logger.i('[Manager] Translation tasks for video $videoId cancelled from queue.');
 
     try {
-      final jobService = ref.read(translationJobServiceProvider);
+      final jobService = ref.read(jobServiceProvider);
       await jobService.cancelJobsForVideo(videoId);
     } catch (e) {
       logger.e('[Manager] Failed to mark jobs as stopped for video $videoId', error: e);

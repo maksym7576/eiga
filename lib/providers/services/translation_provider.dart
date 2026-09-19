@@ -36,7 +36,7 @@ class TranslationNotifier extends Notifier<void> {
   Future<void> _cleanupDatabaseState() async {
     try {
       await ref.read(phraseServiceProvider).resetAllProcessingStatuses();
-      await ref.read(translationJobServiceProvider).markActiveJobsAsInterrupted();
+      await ref.read(jobServiceProvider).markActiveJobsAsInterrupted();
       logger.d('TranslationNotifier: cleaned up database processing statuses and active jobs');
     } catch (e) {
       logger.e('TranslationNotifier: failed to cleanup database state', error: e);
