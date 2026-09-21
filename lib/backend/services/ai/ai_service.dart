@@ -21,7 +21,6 @@ import '../../database/schemas/ai_model.dart';
 import '../../database/schemas/phrase.dart';
 import '../../database/schemas/job.dart';
 import '../../database/schemas/video.dart';
-import '../petition_ai/gemini/gemini_streaming_service.dart';
 import '../pipelines/pipeline_abstract.dart';
 import '../pipelines/pipeline_manager.dart';
 import '../pipelines/pipeline_step_type.dart';
@@ -31,14 +30,12 @@ class AiService {
   final Ref ref;
   final TextAiService textAiService;
   final AudioAiService audioAiService;
-  final GeminiStreamingService geminiStreamingService;
   final TranscriptionService transcriptionService;
 
   AiService({
     required this.ref,
     required this.textAiService,
     required this.audioAiService,
-    required this.geminiStreamingService,
     required this.transcriptionService,
   });
 
@@ -233,8 +230,8 @@ class AiService {
         // Force v1beta for ALL models for consistency and compatibility
         return 'https://generativelanguage.googleapis.com/v1beta/models/${model.name}$endpoint?key=$token$sse';
       
-      case AiProvider.xai:
-        return 'https://api.x.ai/v1/chat/completions';
+      case AiProvider.groq:
+        return 'https://api.groq.com/openai/v1/chat/completions';
 
       case AiProvider.openai:
       case AiProvider.anthropic:
@@ -271,7 +268,15 @@ class AiService {
            final firstStepType = _mapTypeToStep(plan[0]['type']);
            if (firstStepType != null) {
               final allModels = await ref.read(aiModelServiceProvider).getAllModels();
-              final ranked = AiModelScorer.rankModels(allModels, _mapStepToScorerTask(firstStepType));
+              final enabledProviders = {
+                if (config.getIsGeminiEnabled) AiProvider.google,
+                if (config.getIsGroqEnabled) AiProvider.groq,
+              };
+              final ranked = AiModelScorer.rankModels(
+                allModels, 
+                _mapStepToScorerTask(firstStepType),
+                enabledProviders: enabledProviders,
+              );
               if (ranked.isNotEmpty) {
                  initialJob.modelName = ranked.first.name;
               }
@@ -308,7 +313,15 @@ class AiService {
         // Dynamic model selection for every step if Auto-Switch is enabled
         if (config.getIsAutomaticModelSwitch) {
            final allModels = await ref.read(aiModelServiceProvider).getAllModels();
-           final ranked = AiModelScorer.rankModels(allModels, _mapStepToScorerTask(stepType));
+           final enabledProviders = {
+             if (config.getIsGeminiEnabled) AiProvider.google,
+             if (config.getIsGroqEnabled) AiProvider.groq,
+           };
+           final ranked = AiModelScorer.rankModels(
+             allModels, 
+             _mapStepToScorerTask(stepType),
+             enabledProviders: enabledProviders,
+           );
            if (ranked.isNotEmpty) {
               currentStepResult = PipelineStepResult(
                 type: stepType, 
@@ -419,7 +432,7 @@ class AiService {
     final toMorphIds = phrases.where((p) => p.stageStatuses[StageKey.morphology] != 'completed').map((e) => e.id).toList();
     final toGrammarRoleIds = phrases.where((p) => p.stageStatuses[StageKey.grammarRole] != 'completed').map((e) => e.id).toList();
 
-    if (video.isResearchDone != true) {
+    if (video.isResearchDone != true && toTranslateIds.isNotEmpty) {
       plan.add({
         'type': 'context', 
         'method': 'ai',
@@ -478,7 +491,10 @@ class AiService {
     switch (type) {
       case 'context': return PipelineStepType.contextResearch;
       case 'translation': return PipelineStepType.translation;
-      case 'tokenize': return PipelineStepType.tokenize;
+      case 'tokenize': 
+      case 'tokenize_source':
+      case 'tokenize_translation':
+        return PipelineStepType.tokenize;
       case 'morphology': return PipelineStepType.morphemes;
       case 'grammar_role': return PipelineStepType.grammarRole;
       default: return null;

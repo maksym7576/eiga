@@ -94,8 +94,18 @@ class Phrase {
 
   @ignore
   PhraseUiStatus get uiStatus {
+    final Map<String, String> statuses = stageStatuses;
+    final bool hasTranslation = translatedPhrase != null && translatedPhrase!.isNotEmpty;
+
     for (final key in StageKey.order) {
-      final raw = stageStatuses[key] ?? 'pending';
+      String raw = statuses[key] ?? 'pending';
+      
+      // AUTO-SKIP: If we have a translation but the stage is still pending, 
+      // treat it as completed for context and translation stages.
+      if (raw == 'pending' && hasTranslation && (key == StageKey.context || key == StageKey.translation)) {
+        raw = 'completed';
+      }
+
       final state = StageState.values.asNameMap()[raw] ?? StageState.pending;
 
       if (state != StageState.completed) {

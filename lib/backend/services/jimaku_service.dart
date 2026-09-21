@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:path/path.dart' as p;
 import 'package:eiga/backend/database/dto/media_dto.dart';
 import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
@@ -105,14 +106,30 @@ class JimakuService {
       '$baseUrl/entries/$id/files',
     ).replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
+    developer.log('JimakuService: GET $uri', name: 'JimakuService');
     final response = await http.get(uri, headers: headers).timeout(AppConfig.defaultTimeout);
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
+      developer.log('JimakuService: Received ${data.length} files for entry $id', name: 'JimakuService');
       return data.map((item) => FileJimakuDTO.fromJson(item)).toList();
+    } else if (response.statusCode == 404) {
+      // It might be an AniList ID passed instead of Jimaku ID
+      developer.log('JimakuService: 404 for ID $id. Attempting AniList ID resolution...', name: 'JimakuService');
+      final jimakuEntries = await searchJumakuObjects(anilistId: id);
+      if (jimakuEntries.isNotEmpty) {
+        final realId = int.tryParse(jimakuEntries.first.sourceId);
+        if (realId != null && realId != id) {
+           developer.log('JimakuService: Resolved AniList ID $id to Jimaku ID $realId', name: 'JimakuService');
+           return getFiles(realId, episode: episode);
+        }
+      }
+      throw Exception('Jimaku entry not found (404)');
     } else if (response.statusCode == 429) {
+      developer.log('JimakuService: Rate limit exceeded (429)', name: 'JimakuService');
       throw Exception('Jimaku API rate limit exceeded. Please wait a moment and try again.');
     } else {
+      developer.log('JimakuService: Error ${response.statusCode} - ${response.body}', name: 'JimakuService');
       throw Exception(
         'Error to get files: ${response.statusCode} - ${response.body}',
       );

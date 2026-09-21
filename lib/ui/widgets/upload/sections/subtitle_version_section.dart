@@ -12,7 +12,7 @@ class SubtitleVersionSection extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(uploadProvider);
     final theme = AdditionalWindowTheme.of(context);
-    final isExpanded = useState(false);
+    final isExpanded = useState(true);
 
     if (state.analyzedVersions.isEmpty) {
       return const SizedBox.shrink();
@@ -22,7 +22,7 @@ class SubtitleVersionSection extends HookConsumerWidget {
       padding: const EdgeInsets.only(top: 16),
       child: SyncVersionSelector(
         isExpanded: isExpanded,
-        showTechDetails: true,
+        showTechDetails: state.syncConfidence > 0 || state.isCheckingSync,
       ),
     );
   }

@@ -129,6 +129,72 @@ Future<List<AiModel>> standardAiModels() async {
       supportedInputs: [InputType.text],
       supportedSteps: [TranslationPipelineStep.tokenize],
     ),
+
+    // --- Groq Llama 3.3 ---
+    _createGroqModel(
+      name: 'llama-3.3-70b-versatile',
+      quality: ModelQuality.frontier,
+      speed: ModelSpeed.ultraFast,
+      rpm: 30,
+      rpd: 1000,
+      tpm: 8000,
+      supportedSteps: allSteps,
+    ),
+
+    // --- Groq Mixtral / OSS ---
+    _createGroqModel(
+      name: 'gpt-oss-120b',
+      quality: ModelQuality.frontier,
+      speed: ModelSpeed.fast,
+      rpm: 30,
+      rpd: 1000,
+      tpm: 8000,
+      supportedSteps: allSteps,
+    ),
+    _createGroqModel(
+      name: 'gpt-oss-20b',
+      quality: ModelQuality.standard,
+      speed: ModelSpeed.ultraFast,
+      rpm: 30,
+      rpd: 1000,
+      tpm: 8000,
+      supportedSteps: allSteps,
+    ),
+
+    // --- Groq Qwen ---
+    _createGroqModel(
+      name: 'qwen3.8-27b',
+      quality: ModelQuality.high,
+      speed: ModelSpeed.ultraFast,
+      rpm: 30,
+      rpd: 1000,
+      tpm: 8000,
+      supportedSteps: allSteps,
+    ),
+
+    // --- Groq Whisper ---
+    _createGroqModel(
+      name: 'whisper-large-v3',
+      quality: ModelQuality.high,
+      speed: ModelSpeed.ultraFast,
+      rpm: 20,
+      rpd: 2000,
+      tpm: 0, 
+      isTranscription: true,
+      supportedInputs: [InputType.audio],
+      supportedSteps: [TranslationPipelineStep.transcribe],
+    ),
+    _createGroqModel(
+      name: 'whisper-large-v3-turbo',
+      quality: ModelQuality.high,
+      speed: ModelSpeed.ultraFast,
+      rpm: 20,
+      rpd: 2000,
+      tpm: 0,
+      isTranscription: true,
+      supportedInputs: [InputType.audio],
+      supportedSteps: [TranslationPipelineStep.transcribe],
+    ),
   ];
 }
 
@@ -160,5 +226,34 @@ AiModel _createModel({
     ..supportedInputs = supportedInputs
     ..supportedSteps = supportedSteps
     ..contextWindow = 1048576
+    ..maxOutputTokens = 8192;
+}
+
+AiModel _createGroqModel({
+  required String name,
+  required ModelQuality quality,
+  required ModelSpeed speed,
+  required int rpm,
+  required int rpd,
+  required int tpm,
+  bool isTranscription = false,
+  List<InputType> supportedInputs = const [InputType.text],
+  List<TranslationPipelineStep> supportedSteps = const [TranslationPipelineStep.translate],
+}) {
+  return AiModel()
+    ..provider = AiProvider.groq
+    ..name = name
+    ..url = 'https://api.groq.com/openai/v1/chat/completions'
+    ..defaultLimit = rpm
+    ..currentMaxLimit = rpm
+    ..defaultDailyMaxLimit = rpd
+    ..currentDailyMaxLimit = rpd
+    ..tpmLimit = tpm
+    ..quality = quality
+    ..speed = speed
+    ..isTranscriptionModel = isTranscription
+    ..supportedInputs = supportedInputs
+    ..supportedSteps = supportedSteps
+    ..contextWindow = 32768
     ..maxOutputTokens = 8192;
 }

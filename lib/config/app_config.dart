@@ -83,6 +83,9 @@ class AppConfig {
   static const _keyHideParenthesesContent = 'hide_parentheses_content';
   static const _keyFullscreenAutoShrink = 'fs_auto_shrink';
 
+  static const _keyIsGeminiEnabled = 'is_gemini_enabled';
+  static const _keyIsGroqEnabled = 'is_groq_enabled';
+
   static const _keyAnkiConnectUrl = 'anki_connect_url';
   static const _keyAnkiDeckName = 'anki_deck_name';
   static const _keyAnkiNoteType = 'anki_note_type';
@@ -159,6 +162,14 @@ class AppConfig {
 
   Future<void> setFullscreenAutoShrink(bool value) async {
     await _prefs.setBool(_keyFullscreenAutoShrink, value);
+  }
+
+  Future<void> setIsGeminiEnabled(bool value) async {
+    await _prefs.setBool(_keyIsGeminiEnabled, value);
+  }
+
+  Future<void> setIsGroqEnabled(bool value) async {
+    await _prefs.setBool(_keyIsGroqEnabled, value);
   }
 
   Future<void> setSubFontSize(double value) async {
@@ -281,8 +292,12 @@ class AppConfig {
 
   bool get getFullscreenAutoShrink => _prefs.getBool(_keyFullscreenAutoShrink) ?? false;
 
-  double get getSubFontSize => _prefs.getDouble(_keySubFontSize) ?? 28.0;
-  double get getSubWindowedFontSize => _prefs.getDouble(_keySubWindowedFontSize) ?? 18.0;
+  bool get getIsGeminiEnabled => _prefs.getBool(_keyIsGeminiEnabled) ?? true;
+
+  bool get getIsGroqEnabled => _prefs.getBool(_keyIsGroqEnabled) ?? true;
+
+  double get getSubFontSize => _prefs.getDouble(_keySubFontSize) ?? 12.0;
+  double get getSubWindowedFontSize => _prefs.getDouble(_keySubWindowedFontSize) ?? 12.0;
   double get getSubOutlineWidth => _prefs.getDouble(_keySubOutlineWidth) ?? 1.0;
   double get getSubBackdropOpacity => _prefs.getDouble(_keySubBackdropOpacity) ?? 0.6;
   double get getSubBackdropPadding => _prefs.getDouble(_keySubBackdropPadding) ?? 8.0;

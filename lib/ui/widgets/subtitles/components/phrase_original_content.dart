@@ -10,6 +10,7 @@ import 'package:eiga/providers/services/app_configs_provider.dart';
 import 'package:eiga/config/languages/language_hub.dart';
 import 'ruby_text.dart';
 import 'outlined_text.dart';
+import 'shimmer_text.dart';
 
 class PhraseOriginalContent extends HookConsumerWidget {
   final Phrase phrase;
@@ -29,6 +30,7 @@ class PhraseOriginalContent extends HookConsumerWidget {
   final bool isFullscreen;
   final bool isLocked;
   final Set<int> hiddenWordIds;
+  final String playerScope;
 
   const PhraseOriginalContent({
     super.key,
@@ -49,6 +51,7 @@ class PhraseOriginalContent extends HookConsumerWidget {
     required this.isFullscreen,
     required this.isLocked,
     this.hiddenWordIds = const {},
+    this.playerScope = 'main',
   });
 
   @override
@@ -81,6 +84,44 @@ class PhraseOriginalContent extends HookConsumerWidget {
       }
       
       if (trimmedFallback.isEmpty) {
+        if (phrase.uiStatus.isProcessing) {
+          final stage = phrase.uiStatus.activeStageKey;
+          String label = 'Processing...';
+
+          if (stage == StageKey.context) label = 'Researching...';
+          if (stage == StageKey.tokenizeSource) label = 'Analyzing source...';
+
+          return ShimmerText(
+            blendMode: BlendMode.srcATop,
+            shimmerColors: [
+              Colors.transparent,
+              Colors.transparent,
+              const Color(0xFF3B66F5).withValues(alpha: 0.4),
+              Colors.transparent,
+              Colors.transparent,
+            ],
+            child: Container(
+              margin: EdgeInsets.symmetric(vertical: baseFontSize * 0.1),
+              padding: EdgeInsets.symmetric(horizontal: baseFontSize * 0.4, vertical: baseFontSize * 0.1),
+              decoration: BoxDecoration(
+                color: isFullscreen ? Colors.black26 : Colors.black.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: OutlinedText(
+                text: label,
+                useOutline: isFullscreen,
+                outlineWidth: baseFontSize * 0.05,
+                outlineColor: Colors.black.withValues(alpha: 0.8),
+                style: TextStyle(
+                  fontSize: baseFontSize * 0.8,
+                  fontWeight: FontWeight.w700,
+                  color: isFullscreen ? Colors.white : textColor.withValues(alpha: 0.5),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          );
+        }
         return const SizedBox.shrink();
       }
 
@@ -95,7 +136,7 @@ class PhraseOriginalContent extends HookConsumerWidget {
           textAlign: textAlign,
           useOutline: useShadows,
           outlineWidth: computedOutlineWidth,
-          outlineColor: Colors.black,
+          outlineColor: isFullscreen ? Colors.black.withValues(alpha: 0.8) : Colors.black,
           style: TextStyle(
             fontFamily: 'Noto Serif JP',
             fontSize: baseFontSize * modeSettings.originalScale, 
@@ -147,6 +188,7 @@ class PhraseOriginalContent extends HookConsumerWidget {
           outlineWidth: computedOutlineWidth,
           selectionAnchorType: anchorType,
           selectionLayerLink: selectionLayerLink,
+          playerScope: playerScope,
           baseStyle: TextStyle(
             fontFamily: 'Noto Serif JP',
             fontSize: baseFontSize,

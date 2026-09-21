@@ -47,6 +47,7 @@ class SyncResult {
   final double pnr;
   final double uniqueness;
   final int consensusCount;
+  final int totalSegments;
 
   SyncResult({
     required this.type,
@@ -58,6 +59,7 @@ class SyncResult {
     this.pnr = 0.0,
     this.uniqueness = 0.0,
     this.consensusCount = 0,
+    this.totalSegments = 0,
   });
 }
 
@@ -296,6 +298,7 @@ class AudioSyncService {
         pnr: consolidated.pnr,
         uniqueness: consolidated.uniqueness,
         consensusCount: consolidated.consensusCount,
+        totalSegments: segments.length,
         checkpoints: checkpoints,
       );
 

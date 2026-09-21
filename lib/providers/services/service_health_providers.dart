@@ -1,8 +1,5 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:hooks_riverpod/legacy.dart';
 import 'dart:developer' as developer;
-import '../ui/metadata_state_provider.dart';
 import '../ui/search_provider.dart';
 import 'external_api_providers.dart';
 
@@ -21,11 +18,35 @@ ServiceStatus mapToServiceStatus(ProviderStatus status) {
   }
 }
 
-final providerStatusProvider = StateProvider.family<ProviderStatus, MetadataProviderType>(
-    (ref, type) => ProviderStatus.online);
+class ProviderStatusNotifier extends Notifier<ProviderStatus> {
+  final MetadataProviderType arg;
+  ProviderStatusNotifier(this.arg);
+  
+  @override
+  ProviderStatus build() => ProviderStatus.online;
+  
+  @override
+  set state(ProviderStatus value) => super.state = value;
+}
 
-final providerStatusMessageProvider = StateProvider.family<String?, MetadataProviderType>(
-    (ref, type) => null);
+final providerStatusProvider = NotifierProvider.family<ProviderStatusNotifier, ProviderStatus, MetadataProviderType>(
+  ProviderStatusNotifier.new,
+);
+
+class ProviderStatusMessageNotifier extends Notifier<String?> {
+  final MetadataProviderType arg;
+  ProviderStatusMessageNotifier(this.arg);
+  
+  @override
+  String? build() => null;
+  
+  @override
+  set state(String? value) => super.state = value;
+}
+
+final providerStatusMessageProvider = NotifierProvider.family<ProviderStatusMessageNotifier, String?, MetadataProviderType>(
+  ProviderStatusMessageNotifier.new,
+);
 
 // Unified health check provider
 final checkServiceProviderStatus = FutureProvider.family<void, MetadataProviderType>((ref, type) async {

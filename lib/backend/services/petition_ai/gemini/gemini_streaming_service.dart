@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../database/schemas/ai_model.dart';
-import '../../../database/schemas/phrase.dart';
 import '../../../../config/secure_storage.dart';
 import 'package:eiga/providers/services/ai_request_state.dart';
 import 'package:eiga/providers/services/isar_services_providers.dart';
@@ -37,67 +36,25 @@ class GeminiStreamingService {
     String? language,
     bool useSoftReset = false,
   }) async {
-    logger.i('[AiStream] Starting for ${expectedIds.length} phrases (Provider: ${model.provider.name}). Soft reset: $useSoftReset');
+    logger.i('[GeminiStream] Starting for ${expectedIds.length} phrases. Soft reset: $useSoftReset');
     _processedPhraseIds.clear();
     _failedPhraseIds.clear();
     _currentLanguage = language;
 
-    // Headers
     final Map<String, String> headers = {'Content-Type': 'application/json'};
     
-    switch (model.provider) {
-      case AiProvider.google:
-        // Key is already in URL
-        break;
-      case AiProvider.openai:
-        final token = await SecureTokenStorage.getToken(ApiTokenType.openai);
-        headers['Authorization'] = 'Bearer $token';
-        break;
-      case AiProvider.anthropic:
-        final token = await SecureTokenStorage.getToken(ApiTokenType.anthropic);
-        headers['x-api-key'] = token;
-        headers['anthropic-version'] = '2023-06-01';
-        break;
-      case AiProvider.xai:
-        final token = await SecureTokenStorage.getToken(ApiTokenType.xai);
-        headers['Authorization'] = 'Bearer $token';
-        break;
-      case AiProvider.custom:
-        break;
-    }
-
-    // Body
-    final Map<String, dynamic> requestBody;
-    if (model.provider == AiProvider.openai) {
-      requestBody = {
-        "model": model.name,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.1,
-        "stream": true,
-      };
-    } else if (model.provider == AiProvider.anthropic) {
-      requestBody = {
-        "model": model.name,
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 4096,
-        "stream": true,
-      };
-    } else {
-      // Google
-      requestBody = {
-        "contents": [
-          {
-            "parts": [{"text": prompt}],
-          },
-        ],
-      };
-    }
+    final Map<String, dynamic> requestBody = {
+      "contents": [
+        {
+          "parts": [{"text": prompt}],
+        },
+      ],
+    };
 
     final request = http.Request('POST', Uri.parse(url))
       ..headers.addAll(headers)
       ..body = jsonEncode(requestBody);
 
-    // Increment usage for each request
     await ref.read(aiModelServiceProvider).incrementUsage(model.name, 1);
 
     http.Client? client;
@@ -105,7 +62,7 @@ class GeminiStreamingService {
       client = http.Client();
       final streamedResponse = await client.send(request).timeout(
         const Duration(seconds: 160),
-        onTimeout: () => throw GeminiGeneralException("AI stream request time out"),
+        onTimeout: () => throw GeminiGeneralException("Gemini stream request time out"),
       );
 
       if (streamedResponse.statusCode != 200) {
@@ -124,40 +81,33 @@ class GeminiStreamingService {
           .transform(const LineSplitter());
 
       await for (var line in stream) {
-        String dataStr = '';
-        
-        if (model.provider == AiProvider.google) {
-          if (!line.startsWith('data: ')) continue;
-          dataStr = line.substring(6).trim();
-        } else if (model.provider == AiProvider.openai) {
-          if (!line.startsWith('data: ')) continue;
-          dataStr = line.substring(6).trim();
-          if (dataStr == '[DONE]') break;
-        } else if (model.provider == AiProvider.anthropic) {
-          if (!line.startsWith('data: ')) continue;
-          dataStr = line.substring(6).trim();
-        }
-
+        if (!line.startsWith('data: ')) continue;
+        final dataStr = line.substring(6).trim();
         if (dataStr.isEmpty) continue;
 
         try {
           final jsonData = jsonDecode(dataStr);
-          final String? newTextChunk = _extractTextChunk(jsonData, model: model);
-          if (newTextChunk != null) {
-            fullTextBuffer.write(newTextChunk);
-            await _extractAndSaveReadyObjects(fullTextBuffer);
-            onProgress?.call(_processedPhraseIds.length);
+          final candidates = jsonData['candidates'];
+          if (candidates != null && candidates.isNotEmpty) {
+            final content = candidates[0]['content'];
+            if (content != null && content['parts'] != null && content['parts'].isNotEmpty) {
+              final String? chunk = content['parts'][0]['text']?.toString();
+              if (chunk != null) {
+                fullTextBuffer.write(chunk);
+                await _extractAndSaveReadyObjects(fullTextBuffer);
+                onProgress?.call(_processedPhraseIds.length);
+              }
+            }
           }
         } catch (e) {
           _log('[PartialParseErr] ${e.toString()}');
         }
       }
 
-      // Final check for remaining buffer
       await _extractAndSaveReadyObjects(fullTextBuffer);
       onProgress?.call(_processedPhraseIds.length);
 
-      logger.i('[AiStream] Finished. Processed: ${_processedPhraseIds.length}, Failed: ${_failedPhraseIds.length}');
+      logger.i('[GeminiStream] Finished. Processed: ${_processedPhraseIds.length}, Failed: ${_failedPhraseIds.length}');
 
       final missingIds = expectedIds.where((id) => !_processedPhraseIds.contains(id)).toList();
       if (missingIds.isNotEmpty) {
@@ -186,140 +136,6 @@ class GeminiStreamingService {
       return AiRequestResult.failure(_resolveErrorType(error));
     } finally {
       client?.close();
-    }
-  }
-
-  Future<List<Phrase>> transcribeAudioStream({
-    required String url,
-    required String prompt,
-    required String base64Audio,
-    required AiModel model,
-    required Duration startTimeOffset,
-    String mimeType = 'audio/mp3',
-  }) async {
-    logger.i('[AiStream] Starting audio transcription for ${model.name}');
-    
-    final Map<String, String> headers = {'Content-Type': 'application/json'};
-    final Map<String, dynamic> requestBody = {
-      "contents": [
-        {
-          "parts": [
-            {"text": prompt},
-            {"inline_data": {"mime_type": mimeType, "data": base64Audio}}
-          ],
-        },
-      ],
-      "generationConfig": {
-        "responseMimeType": "application/json",
-      }
-    };
-
-    final request = http.Request('POST', Uri.parse(url))
-      ..headers.addAll(headers)
-      ..body = jsonEncode(requestBody);
-
-    await ref.read(aiModelServiceProvider).incrementUsage(model.name, 1);
-
-    final List<Phrase> allPhrases = [];
-    final StringBuffer fullTextBuffer = StringBuffer();
-    final baseDate = DateTime(1970, 1, 1);
-
-    http.Client? client;
-    try {
-      client = http.Client();
-      final streamedResponse = await client.send(request).timeout(const Duration(seconds: 300));
-
-      if (streamedResponse.statusCode != 200) {
-        final errorString = await streamedResponse.stream.bytesToString();
-        _handleHttpError(streamedResponse.statusCode, errorString);
-      }
-
-      final stream = streamedResponse.stream
-          .transform(utf8.decoder)
-          .transform(const LineSplitter());
-
-      await for (var line in stream) {
-        if (!line.startsWith('data: ')) continue;
-        final dataStr = line.substring(6).trim();
-        if (dataStr.isEmpty) continue;
-
-        try {
-          final jsonData = jsonDecode(dataStr);
-          final chunk = _extractTextChunk(jsonData, model: model);
-          if (chunk != null) {
-            fullTextBuffer.write(chunk);
-            
-            // Try to extract individual objects from the growing JSON array
-            final raw = fullTextBuffer.toString();
-            // This is a bit complex for a streaming array, but let's try a simple approach
-            // for objects like {"start_ms": 1200, "end_ms": 3500, "text": "..."}
-          }
-        } catch (_) {}
-      }
-      
-      // For transcription, it's often safer to parse the full accumulated JSON at the end
-      // unless we implement a very robust partial JSON parser.
-      // But Gemini's audio transcription often returns the whole thing at once or in big blocks.
-      final String finalJson = fullTextBuffer.toString();
-      final cleanedJson = finalJson.replaceAll('```json', '').replaceAll('```', '').trim();
-      
-      try {
-        final decoded = jsonDecode(cleanedJson);
-        if (decoded is List) {
-          for (var item in decoded) {
-            final startMs = item['start_ms'] as int;
-            final endMs = item['end_ms'] as int;
-            final text = item['text'] as String;
-            
-            allPhrases.add(Phrase()
-              ..originalPhrase = text
-              ..startTime = baseDate.add(startTimeOffset + Duration(milliseconds: startMs))
-              ..endTime = baseDate.add(startTimeOffset + Duration(milliseconds: endMs))
-            );
-          }
-        }
-      } catch (e) {
-        logger.e('[AiStream] Failed to parse final transcription JSON: $e');
-      }
-
-      return allPhrases;
-    } finally {
-      client?.close();
-    }
-  }
-
-  String? _extractTextChunk(dynamic jsonData, {required AiModel model}) {
-    if (jsonData is! Map) return null;
-
-    switch (model.provider) {
-      case AiProvider.google:
-        final candidates = jsonData['candidates'];
-        if (candidates == null || candidates.isEmpty) return null;
-        final content = candidates[0]['content'];
-        if (content == null || content['parts'] == null || content['parts'].isEmpty) return null;
-        return content['parts'][0]['text']?.toString();
-        
-      case AiProvider.openai:
-        final choices = jsonData['choices'];
-        if (choices == null || choices.isEmpty) return null;
-        final delta = choices[0]['delta'];
-        return delta?['content']?.toString();
-        
-      case AiProvider.anthropic:
-        final type = jsonData['type'];
-        if (type == 'content_block_delta') {
-          return jsonData['delta']?['text']?.toString();
-        }
-        return null;
-
-      case AiProvider.xai:
-        final choices = jsonData['choices'];
-        if (choices == null || choices.isEmpty) return null;
-        final delta = choices[0]['delta'];
-        return delta?['content']?.toString();
-        
-      case AiProvider.custom:
-        return null;
     }
   }
 
@@ -374,7 +190,6 @@ class GeminiStreamingService {
           }
         }
       } catch (_) {
-        // Incomplete JSON, skip and leave in buffer
         continue;
       }
       removedUntil = p.end;
@@ -389,11 +204,6 @@ class GeminiStreamingService {
     final idStr = (entry['id'] ?? entry['phraseId'])?.toString() ?? '0';
     final id = int.tryParse(idStr) ?? 0;
     
-    // Log received phrase entry in stream - Simplified
-    if (id % 10 == 0) { // Log every 10th phrase to avoid flooding
-      logger.d('[AiStream] Received phrase $id');
-    }
-
     if (id > 0) {
       if (_processedPhraseIds.contains(id)) return;
       _processedPhraseIds.add(id);
@@ -410,18 +220,18 @@ class GeminiStreamingService {
   }
 
   void _handleHttpError(int code, String body) {
-    logger.e('AI Stream Error: $code. Body: $body');
+    logger.e('Gemini Stream Error: $code. Body: $body');
     
     final retryAfter = ResponseParserUtils.parseRetryAfter(body);
 
     if (code == 403 || code == 400) {
-      throw GeminiIncorrectTokenException("Token is incorrect or request malformed");
+      throw GeminiIncorrectTokenException("Gemini Token is incorrect or request malformed");
     } else if (code == 429) {
-      throw GeminiModelExpiredException('Rate limit exceeded', retryAfter: retryAfter);
+      throw GeminiModelExpiredException('Gemini Rate limit exceeded', retryAfter: retryAfter);
     } else if (code == 500 || code == 503 || code == 504) {
-      throw GeminiServerException('Server error', retryAfter: retryAfter ?? const Duration(seconds: 4));
+      throw GeminiServerException('Gemini Server error', retryAfter: retryAfter ?? const Duration(seconds: 4));
     } else {
-      throw GeminiGeneralException('Stream request failed with status $code', retryAfter: retryAfter);
+      throw GeminiGeneralException('Gemini Stream request failed with status $code', retryAfter: retryAfter);
     }
   }
 

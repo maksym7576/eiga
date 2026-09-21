@@ -15,18 +15,19 @@ import 'package:eiga/providers/services/external_api_providers.dart';
 import '../../styles/app_colors.dart';
 
 class WordDetailsPopover extends ConsumerWidget {
-  const WordDetailsPopover({super.key});
+  final String playerScope;
+  const WordDetailsPopover({super.key, this.playerScope = 'main'});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final highlightedWordIds = ref.watch(highlightedWordIdsProvider);
-    final highlightedTranslationIds = ref.watch(highlightedTranslationIdsProvider);
+    final highlightedWordIds = ref.watch(playerProvider(playerScope).select((s) => s.highlightedWordIds));
+    final highlightedTranslationIds = ref.watch(playerProvider(playerScope).select((s) => s.highlightedTranslationIds));
 
     if (highlightedWordIds.isEmpty && highlightedTranslationIds.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    final phraseId = ref.watch(selectedPhraseIdProvider);
+    final phraseId = ref.watch(playerProvider(playerScope).select((s) => s.selectedPhraseId));
     if (phraseId == null) return const SizedBox.shrink();
 
     final phraseAsync = ref.watch(phrasesStreamProvider);
@@ -34,8 +35,8 @@ class WordDetailsPopover extends ConsumerWidget {
     if (phrase == null) return const SizedBox.shrink();
 
     final index = PhraseLinkIndex(phrase.originalTokens ?? [], phrase.translatedWords ?? [], phrase.linkGroups);
-    final clickedPosition = ref.watch(clickedWordPositionProvider);
-    final isFullscreen = ref.watch(playerProvider.select((s) => s.isFullscreen));
+    final clickedPosition = ref.watch(playerProvider(playerScope).select((s) => s.clickedWordPosition));
+    final isFullscreen = ref.watch(playerProvider(playerScope).select((s) => s.isFullscreen));
     
     final labels = ref.watch(grammarLabelsProvider);
 
@@ -57,7 +58,6 @@ class WordDetailsPopover extends ConsumerWidget {
       }
     } else {
       // Find the parent stack to calculate local coordinates
-      // In Desktop view, WordDetailsPopover is inside a root Stack.
       final RenderBox? stackBox = context.findAncestorRenderObjectOfType<RenderStack>() as RenderBox?;
       final localPosition = stackBox != null ? stackBox.globalToLocal(clickedPosition) : clickedPosition;
 
@@ -82,7 +82,7 @@ class WordDetailsPopover extends ConsumerWidget {
         color: Colors.transparent,
         child: TapRegion(
           groupId: 'word_selection_group',
-          onTapOutside: (event) => ref.read(playerProvider.notifier).clearSelection(),
+          onTapOutside: (event) => ref.read(playerProvider(playerScope).notifier).clearSelection(),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Container(
@@ -230,7 +230,6 @@ class WordDetailsPopover extends ConsumerWidget {
     final word = originalTokens.where((t) => wordIds.contains(t.wordPosition)).firstOrNull;
     if (word == null) return const SizedBox.shrink();
     
-    // Check if any selected word belongs to an idiom group
     final bool isIdiom = phrase.linkGroups?.any((lg) => lg.isIdiom && lg.sourcePositions.any((sp) => wordIds.contains(sp))) ?? false;
 
     String short = labels.getPosName(word.pos).substring(0, 1).toUpperCase();
@@ -403,16 +402,15 @@ class WordDetailsPopover extends ConsumerWidget {
     final tokens = phrase.originalTokens ?? [];
     if (tokens.isEmpty) return const SizedBox.shrink();
 
-    // Map POS to colors
     Color getPosColor(WordPos pos) {
       switch (pos) {
-        case WordPos.v: return const Color(0xFF3B82F6); // Verb - Blue
-        case WordPos.n: return const Color(0xFFF59E0B); // Noun - Amber
-        case WordPos.p: return const Color(0xFF6366F1); // Particle - Indigo
-        case WordPos.x: return const Color(0xFF14B8A6); // Auxiliary - Teal
+        case WordPos.v: return const Color(0xFF3B82F6);
+        case WordPos.n: return const Color(0xFFF59E0B);
+        case WordPos.p: return const Color(0xFF6366F1);
+        case WordPos.x: return const Color(0xFF14B8A6);
         case WordPos.i:
-        case WordPos.d: return const Color(0xFFEC4899); // Adjective/Adverb - Pink
-        default: return const Color(0xFF94A3B8); // Other - Slate
+        case WordPos.d: return const Color(0xFFEC4899);
+        default: return const Color(0xFF94A3B8);
       }
     }
 
@@ -448,7 +446,6 @@ class WordDetailsPopover extends ConsumerWidget {
               final isDimmed = !isPunctuation && !isFocus && !isHeadWord;
               
               final posColor = getPosColor(t.pos);
-              
               final kana = t.versions.where((v) => v.key == 'kana').firstOrNull?.text;
               final romaji = t.versions.where((v) => v.key == 'romaji').firstOrNull?.text;
 
@@ -686,10 +683,11 @@ class WordDetailsPopover extends ConsumerWidget {
   Future<void> _updateStatus(WidgetRef ref, WordStatus status) async {
     final statusService = ref.read(knownWordStatusServiceProvider);
     final phraseService = ref.read(phraseServiceProvider);
-    final highlightedIds = ref.read(highlightedWordIdsProvider);
     
-    final phraseId = ref.read(selectedPhraseIdProvider);
+    final phraseId = ref.read(playerProvider(playerScope)).selectedPhraseId;
     if (phraseId == null) return;
+    
+    final highlightedIds = ref.read(playerProvider(playerScope)).highlightedWordIds;
 
     final phrase = await phraseService.getPhraseById(phraseId);
     if (phrase == null || phrase.originalTokens == null) return;
@@ -711,7 +709,7 @@ class WordDetailsPopover extends ConsumerWidget {
       }
     }
     
-    ref.read(playerProvider.notifier).clearSelection();
+    ref.read(playerProvider(playerScope).notifier).clearSelection();
   }
 
   void _showDetailDialog(BuildContext context, WidgetRef ref, GrammarLabelsService labels, Phrase phrase, PhraseLinkIndex index, Set<int> wordIds, Set<int> tIds) {
@@ -763,7 +761,7 @@ class WordDetailsPopover extends ConsumerWidget {
         ),
       ),
     ).then((_) {
-      ref.read(playerProvider.notifier).resumeFromInteraction();
+      ref.read(playerProvider(playerScope).notifier).resumeFromInteraction();
     });
   }
 }

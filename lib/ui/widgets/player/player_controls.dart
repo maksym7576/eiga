@@ -8,13 +8,14 @@ import '../../styles/app_colors.dart';
 import 'subtitle_settings_side_panel.dart';
 
 class PlayerControls extends ConsumerWidget {
-  const PlayerControls({super.key});
+  final String playerScope;
+  const PlayerControls({super.key, this.playerScope = 'main'});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playerState = ref.watch(playerProvider);
+    final playerState = ref.watch(playerProvider(playerScope));
     final isLocked = playerState.isLocked;
-    final isPlaying = ref.watch(isPlayingProvider);
+    final isPlaying = ref.watch(isPlayingProvider(playerScope));
     final areVisible = playerState.areControlsVisible;
     final isFullscreen = playerState.isFullscreen;
 
@@ -30,8 +31,8 @@ class PlayerControls extends ConsumerWidget {
                 ignoring: !areVisible,
                 child: GestureDetector(
                   onTap: () {
-                    ref.read(playerProvider.notifier).togglePlaying();
-                    ref.read(playerProvider.notifier).resetHideTimer();
+                    ref.read(playerProvider(playerScope).notifier).togglePlaying();
+                    ref.read(playerProvider(playerScope).notifier).resetHideTimer();
                   },
                   behavior: HitTestBehavior.opaque,
                   child: Padding(
@@ -58,13 +59,16 @@ class PlayerControls extends ConsumerWidget {
         // 3. Bottom Controls
         AnimatedPositioned(
           duration: const Duration(milliseconds: 250),
-          bottom: areVisible && !isLocked ? 0 : -100,
+          bottom: areVisible && !isLocked ? 0 : -120,
           left: 0,
           right: 0,
-          child: AnimatedOpacity(
-            opacity: areVisible && !isLocked ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 250),
-            child: const _BottomBar(),
+          child: IgnorePointer(
+            ignoring: !areVisible || isLocked,
+            child: AnimatedOpacity(
+              opacity: areVisible && !isLocked ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 250),
+              child: _BottomBar(playerScope: playerScope),
+            ),
           ),
         ),
         
@@ -78,7 +82,7 @@ class PlayerControls extends ConsumerWidget {
             duration: const Duration(milliseconds: 250),
             child: IgnorePointer(
               ignoring: (!areVisible && !playerState.isLocking && !isLocked),
-              child: const _TopOverlay(),
+              child: _TopOverlay(playerScope: playerScope),
             ),
           ),
         ),
@@ -88,13 +92,14 @@ class PlayerControls extends ConsumerWidget {
 }
 
 class _TopOverlay extends HookConsumerWidget {
-  const _TopOverlay();
+  final String playerScope;
+  const _TopOverlay({required this.playerScope});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isLocked = ref.watch(playerProvider.select((s) => s.isLocked));
-    final isLocking = ref.watch(playerProvider.select((s) => s.isLocking));
-    final isFullscreen = ref.watch(playerProvider.select((s) => s.isFullscreen));
+    final isLocked = ref.watch(playerProvider(playerScope).select((s) => s.isLocked));
+    final isLocking = ref.watch(playerProvider(playerScope).select((s) => s.isLocking));
+    final isFullscreen = ref.watch(playerProvider(playerScope).select((s) => s.isFullscreen));
 
     final animationController = useAnimationController(
       duration: const Duration(milliseconds: 100),
@@ -125,8 +130,8 @@ class _TopOverlay extends HookConsumerWidget {
             color: Colors.transparent,
             child: InkWell(
               onTap: () {
-                ref.read(playerProvider.notifier).handleLockTap(MediaQuery.of(context).orientation);
-                ref.read(playerProvider.notifier).resetHideTimer();
+                ref.read(playerProvider(playerScope).notifier).handleLockTap(MediaQuery.of(context).orientation);
+                ref.read(playerProvider(playerScope).notifier).resetHideTimer();
               },
               customBorder: const CircleBorder(),
               child: Container(
@@ -150,7 +155,7 @@ class _TopOverlay extends HookConsumerWidget {
           GestureDetector(
             onTap: () {
               SubtitleSettingsSidePanel.show(context);
-              ref.read(playerProvider.notifier).resetHideTimer();
+              ref.read(playerProvider(playerScope).notifier).resetHideTimer();
             },
             child: Container(
               padding: const EdgeInsets.all(10),
@@ -209,13 +214,14 @@ class _FrostedPill extends StatelessWidget {
 }
 
 class _BottomBar extends ConsumerWidget {
-  const _BottomBar();
+  final String playerScope;
+  const _BottomBar({required this.playerScope});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final duration = ref.watch(playerProvider.select((s) => s.duration));
-    final position = ref.watch(playerTimeProvider);
-    final playbackRate = ref.watch(playerProvider.select((s) => s.playbackRate));
+    final duration = ref.watch(playerProvider(playerScope).select((s) => s.duration));
+    final position = ref.watch(playerTimeProvider(playerScope));
+    final playbackRate = ref.watch(playerProvider(playerScope).select((s) => s.playbackRate));
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
@@ -238,8 +244,8 @@ class _BottomBar extends ConsumerWidget {
             position: position,
             duration: duration,
             onSeek: (val) {
-              ref.read(playerProvider.notifier).seekTo(val);
-              ref.read(playerProvider.notifier).resetHideTimer();
+              ref.read(playerProvider(playerScope).notifier).seekTo(val);
+              ref.read(playerProvider(playerScope).notifier).resetHideTimer();
             },
           ),
           const SizedBox(height: 0),
@@ -266,8 +272,8 @@ class _BottomBar extends ConsumerWidget {
                       final rates = [1.0, 0.85, 0.75];
                       final currentIndex = rates.indexOf(playbackRate);
                       final nextIndex = (currentIndex + 1) % rates.length;
-                      ref.read(playerProvider.notifier).setPlaybackRate(rates[nextIndex]);
-                      ref.read(playerProvider.notifier).resetHideTimer();
+                      ref.read(playerProvider(playerScope).notifier).setPlaybackRate(rates[nextIndex]);
+                      ref.read(playerProvider(playerScope).notifier).resetHideTimer();
                     },
                     child: Text(
                       '${playbackRate.toStringAsFixed(2)}x',
@@ -282,11 +288,11 @@ class _BottomBar extends ConsumerWidget {
                   _FrostedPill(
                     padding: const EdgeInsets.all(8),
                     onTap: () {
-                      ref.read(playerProvider.notifier).toggleFullscreen();
-                      ref.read(playerProvider.notifier).resetHideTimer();
+                      ref.read(playerProvider(playerScope).notifier).toggleFullscreen();
+                      ref.read(playerProvider(playerScope).notifier).resetHideTimer();
                     },
                     child: Icon(
-                      ref.watch(playerProvider.select((s) => s.isFullscreen))
+                      ref.watch(playerProvider(playerScope).select((s) => s.isFullscreen))
                           ? Icons.fullscreen_exit
                           : Icons.fullscreen,
                       color: Colors.white,

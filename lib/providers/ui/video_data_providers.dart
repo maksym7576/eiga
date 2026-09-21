@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:hooks_riverpod/legacy.dart';
 import 'package:isar_community/isar.dart';
 import '../../backend/database/schemas/video.dart';
 import '../../backend/database/schemas/job.dart';
@@ -26,7 +25,7 @@ final wordStyleProvider = StreamProvider.family<WordStatus?, String>((ref, lemma
 });
 
 final blockStyleProvider = StreamProvider.family<WordStatus?, int>((ref, blockId) async* {
-  final phraseId = ref.watch(stickyActivePhraseIdProvider);
+  final phraseId = ref.watch(stickyActivePhraseIdProvider('main'));
   if (phraseId == null) {
     yield null;
     return;
@@ -55,16 +54,22 @@ final blockStyleProvider = StreamProvider.family<WordStatus?, int>((ref, blockId
 });
 
 // Providers for video-related data
-final playerIdProvider = StateProvider<int?>((ref) {
-  return null;
-});
+class PlayerIdNotifier extends Notifier<int?> {
+  @override
+  int? build() => null;
+  set state(int? value) => super.state = value;
+}
+
+final playerIdProvider = NotifierProvider<PlayerIdNotifier, int?>(
+  PlayerIdNotifier.new,
+);
 
 final phraseDataPrefetcherProvider = NotifierProvider<PhrasePrefetchNotifier, void>(PhrasePrefetchNotifier.new);
 
 class PhrasePrefetchNotifier extends Notifier<void> {
   @override
   void build() {
-    ref.listen<int?>(stickyActivePhraseIdProvider, (prev, nextId) {
+    ref.listen<int?>(stickyActivePhraseIdProvider('main'), (prev, nextId) {
       if (nextId != null) {
         _runPrefetch(nextId);
       }
@@ -82,24 +87,34 @@ class PhrasePrefetchNotifier extends Notifier<void> {
 
     for (final _ in nextPhrases) {
       await Future.delayed(const Duration(milliseconds: 60));
-      if (ref.read(stickyActivePhraseIdProvider) != activeId) return;
+      if (ref.read(stickyActivePhraseIdProvider('main')) != activeId) return;
     }
   }
 }
 
-final selectedBlockIdProvider = Provider<int?>((ref) => ref.watch(playerProvider.select((s) => s.selectedBlockId)));
-final clickedWordIdProvider = Provider<int?>((ref) => ref.watch(playerProvider.select((s) => s.clickedWordId)));
-final clickedTranslationWordIdProvider = Provider<int?>((ref) => ref.watch(playerProvider.select((s) => s.clickedTranslationWordId)));
-final selectionAnchorTypeProvider = Provider<SelectionAnchor?>((ref) => ref.watch(playerProvider.select((s) => s.selectionAnchorType)));
-final highlightedWordIdsProvider = Provider<Set<int>>((ref) => ref.watch(playerProvider.select((s) => s.highlightedWordIds)));
-final highlightedTranslationIdsProvider = Provider<Set<int>>((ref) => ref.watch(playerProvider.select((s) => s.highlightedTranslationIds)));
-final infoPanelTextProvider = StateProvider<String?>((ref) => null);
-final clickedWordPositionProvider = Provider<Offset?>((ref) => ref.watch(playerProvider.select((s) => s.clickedWordPosition)));
-final selectionLayerLinkProvider = Provider<LayerLink?>((ref) => ref.watch(playerProvider.select((s) => s.selectionLayerLink)));
-final selectedPhraseIdProvider = Provider<int?>((ref) => ref.watch(playerProvider.select((s) => s.selectedPhraseId)));
+final selectedBlockIdProvider = Provider.family<int?, String>((ref, scope) => ref.watch(playerProvider(scope).select((s) => s.selectedBlockId)));
+final clickedWordIdProvider = Provider.family<int?, String>((ref, scope) => ref.watch(playerProvider(scope).select((s) => s.clickedWordId)));
+final clickedTranslationWordIdProvider = Provider.family<int?, String>((ref, scope) => ref.watch(playerProvider(scope).select((s) => s.clickedTranslationWordId)));
+final selectionAnchorTypeProvider = Provider.family<SelectionAnchor?, String>((ref, scope) => ref.watch(playerProvider(scope).select((s) => s.selectionAnchorType)));
+final highlightedWordIdsProvider = Provider.family<Set<int>, String>((ref, scope) => ref.watch(playerProvider(scope).select((s) => s.highlightedWordIds)));
+final highlightedTranslationIdsProvider = Provider.family<Set<int>, String>((ref, scope) => ref.watch(playerProvider(scope).select((s) => s.highlightedTranslationIds)));
 
-final dimmedWordIdsProvider = Provider<Set<int>>((ref) {
-  final phraseId = ref.watch(selectedPhraseIdProvider);
+class InfoPanelTextNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+  set state(String? value) => super.state = value;
+}
+
+final infoPanelTextProvider = NotifierProvider<InfoPanelTextNotifier, String?>(
+  InfoPanelTextNotifier.new,
+);
+
+final clickedWordPositionProvider = Provider.family<Offset?, String>((ref, scope) => ref.watch(playerProvider(scope).select((s) => s.clickedWordPosition)));
+final selectionLayerLinkProvider = Provider.family<LayerLink?, String>((ref, scope) => ref.watch(playerProvider(scope).select((s) => s.selectionLayerLink)));
+final selectedPhraseIdProvider = Provider.family<int?, String>((ref, scope) => ref.watch(playerProvider(scope).select((s) => s.selectedPhraseId)));
+
+final dimmedWordIdsProvider = Provider.family<Set<int>, String>((ref, scope) {
+  final phraseId = ref.watch(selectedPhraseIdProvider(scope));
   if (phraseId == null) return const {};
   
   final phrases = ref.watch(phrasesStreamProvider).value;
@@ -108,8 +123,8 @@ final dimmedWordIdsProvider = Provider<Set<int>>((ref) {
   final phrase = phrases.firstWhere((p) => p.id == phraseId, orElse: () => Phrase());
   if (phrase.id == 0 || phrase.linkGroups == null || phrase.linkGroups!.isEmpty) return const {};
 
-  final clickedWordId = ref.watch(clickedWordIdProvider);
-  final clickedTranslationId = ref.watch(clickedTranslationWordIdProvider);
+  final clickedWordId = ref.watch(clickedWordIdProvider(scope));
+  final clickedTranslationId = ref.watch(clickedTranslationWordIdProvider(scope));
 
   int? activeGid;
   if (clickedWordId != null) {
@@ -134,8 +149,8 @@ final dimmedWordIdsProvider = Provider<Set<int>>((ref) {
   return result;
 });
 
-final dimmedTranslationIdsProvider = Provider<Set<int>>((ref) {
-  final phraseId = ref.watch(selectedPhraseIdProvider);
+final dimmedTranslationIdsProvider = Provider.family<Set<int>, String>((ref, scope) {
+  final phraseId = ref.watch(selectedPhraseIdProvider(scope));
   if (phraseId == null) return const {};
   
   final phrases = ref.watch(phrasesStreamProvider).value;
@@ -144,8 +159,8 @@ final dimmedTranslationIdsProvider = Provider<Set<int>>((ref) {
   final phrase = phrases.firstWhere((p) => p.id == phraseId, orElse: () => Phrase());
   if (phrase.id == 0 || phrase.linkGroups == null || phrase.linkGroups!.isEmpty) return const {};
 
-  final clickedWordId = ref.watch(clickedWordIdProvider);
-  final clickedTranslationId = ref.watch(clickedTranslationWordIdProvider);
+  final clickedWordId = ref.watch(clickedWordIdProvider(scope));
+  final clickedTranslationId = ref.watch(clickedTranslationWordIdProvider(scope));
 
   int? activeGid;
   if (clickedWordId != null) {
@@ -257,9 +272,15 @@ final lemmaToStatusMapProvider = StreamProvider<Map<String, UserWordStatus>>((re
   });
 });
 
-final seasonEpisodeProvider = StateProvider<SeasonEpisodeInfo?>((ref) {
-  return null;
-});
+class SeasonEpisodeNotifier extends Notifier<SeasonEpisodeInfo?> {
+  @override
+  SeasonEpisodeInfo? build() => null;
+  set state(SeasonEpisodeInfo? value) => super.state = value;
+}
+
+final seasonEpisodeProvider = NotifierProvider<SeasonEpisodeNotifier, SeasonEpisodeInfo?>(
+  SeasonEpisodeNotifier.new,
+);
 
 final currentVideoProvider = FutureProvider<Video?>((ref) async {
   final videoId = ref.watch(playerIdProvider);
@@ -295,9 +316,9 @@ final phrasesStreamProvider = StreamProvider<List<Phrase>>((ref) {
   return phraseService.watchPhrasesByVideoId(videoId);
 });
 
-final activePhraseIdProvider = Provider<int?>((ref) {
+final activePhraseIdProvider = Provider.family<int?, String>((ref, scope) {
   final phrases = ref.watch(phrasesStreamProvider).value ?? [];
-  final currentTime = ref.watch(playerTimeProvider);
+  final currentTime = ref.watch(playerTimeProvider(scope));
 
   if (phrases.isEmpty) return null;
 
@@ -319,13 +340,13 @@ final activePhraseIdProvider = Provider<int?>((ref) {
   return null;
 });
 
-final stickyActivePhraseIdProvider = Provider<int?>((ref) {
+final stickyActivePhraseIdProvider = Provider.family<int?, String>((ref, scope) {
   final phrases = ref.watch(phrasesStreamProvider).value ?? [];
-  final currentTime = ref.watch(playerTimeProvider);
+  final currentTime = ref.watch(playerTimeProvider(scope));
 
   if (phrases.isEmpty) return null;
 
-  final activeId = ref.watch(activePhraseIdProvider);
+  final activeId = ref.watch(activePhraseIdProvider(scope));
   if (activeId != null) return activeId;
 
   final startBase = DateTime(1970, 1, 1);
@@ -345,26 +366,26 @@ final stickyActivePhraseIdProvider = Provider<int?>((ref) {
   return null;
 });
 
-final activePhraseProvider = Provider<Phrase?>((ref) {
+final activePhraseProvider = Provider.family<Phrase?, String>((ref, scope) {
   final phrases = ref.watch(phrasesStreamProvider).value ?? [];
-  final activeId = ref.watch(activePhraseIdProvider);
+  final activeId = ref.watch(activePhraseIdProvider(scope));
   if (activeId == null || phrases.isEmpty) return null;
   for (final p in phrases) { if (p.id == activeId) return p; }
   return null;
 });
 
-final clickedWordProvider = FutureProvider<TokenEntry?>((ref) async {
-  final wordId = ref.watch(clickedWordIdProvider);
-  final phraseId = ref.watch(selectedPhraseIdProvider);
+final clickedWordProvider = FutureProvider.family<TokenEntry?, String>((ref, scope) async {
+  final wordId = ref.watch(clickedWordIdProvider(scope));
+  final phraseId = ref.watch(selectedPhraseIdProvider(scope));
   if (wordId == null || phraseId == null) return null;
   final phraseService = ref.read(phraseServiceProvider);
   final phrase = await phraseService.getPhraseById(phraseId);
   return phrase?.originalTokens?.where((t) => (t.wordPosition ?? 0) == wordId).firstOrNull;
 });
 
-final clickedTranslationWordProvider = FutureProvider<TranslationTokenEntry?>((ref) async {
-  final twId = ref.watch(clickedTranslationWordIdProvider);
-  final phraseId = ref.watch(selectedPhraseIdProvider);
+final clickedTranslationWordProvider = FutureProvider.family<TranslationTokenEntry?, String>((ref, scope) async {
+  final twId = ref.watch(clickedTranslationWordIdProvider(scope));
+  final phraseId = ref.watch(selectedPhraseIdProvider(scope));
   if (twId == null || phraseId == null) return null;
   final phraseService = ref.read(phraseServiceProvider);
   final phrase = await phraseService.getPhraseById(phraseId);

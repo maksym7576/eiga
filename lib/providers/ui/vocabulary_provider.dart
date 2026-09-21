@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:hooks_riverpod/legacy.dart';
 import 'package:isar_community/isar.dart';
 import '../../backend/database/schemas/phrase.dart';
 import '../../backend/database/schemas/word_index.dart';
@@ -97,7 +96,15 @@ final styledVocabularyProvider = StreamProvider<List<StyledVocabularyItem>>((ref
   }
 });
 
-final selectedVocabularyStatusProvider = StateProvider<WordStatus?>((ref) => null);
+class SelectedVocabularyStatusNotifier extends Notifier<WordStatus?> {
+  @override
+  WordStatus? build() => null;
+  set state(WordStatus? value) => super.state = value;
+}
+
+final selectedVocabularyStatusProvider = NotifierProvider<SelectedVocabularyStatusNotifier, WordStatus?>(
+  SelectedVocabularyStatusNotifier.new,
+);
 
 final filteredVocabularyProvider = Provider<AsyncValue<List<StyledVocabularyItem>>>((ref) {
   final allItemsAsync = ref.watch(styledVocabularyProvider);

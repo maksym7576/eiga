@@ -88,7 +88,7 @@ class CloudSubtitleFilesSheet extends ConsumerWidget {
     ref.read(isResolvingProvider(searchKey).notifier).state = true;
     try {
       final result = await source.resolve(selected, ref);
-      ref.read(uploadProvider.notifier).handleSubtitleSelected(result);
+      ref.read(uploadProvider.notifier).handleSubtitleSelected(result, source: SubtitleSource.jimaku);
       if (context.mounted) Navigator.pop(context);
     } finally {
       ref.read(isResolvingProvider(searchKey).notifier).state = false;

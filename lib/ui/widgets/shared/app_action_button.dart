@@ -84,18 +84,11 @@ class AppActionButton extends StatelessWidget {
       return Container(
         decoration: BoxDecoration(
           borderRadius: borderRadius,
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              theme.primaryAccent,
-              theme.primaryAccent.withValues(alpha: 0.85),
-            ],
-          ),
+          color: const Color(0xFF2563EB),
           boxShadow: [
             BoxShadow(
-              color: theme.primaryAccent.withValues(alpha: 0.3),
-              blurRadius: 12,
+              color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+              blurRadius: 15,
               offset: const Offset(0, 4),
             ),
           ],
@@ -104,7 +97,7 @@ class AppActionButton extends StatelessWidget {
           onPressed: isLoading ? null : onPressed,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
-            foregroundColor: theme.addButtonText,
+            foregroundColor: Colors.white,
             shadowColor: Colors.transparent,
             padding: EdgeInsets.zero,
             shape: RoundedRectangleBorder(borderRadius: borderRadius),
@@ -118,8 +111,8 @@ class AppActionButton extends StatelessWidget {
       return ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: theme.tabSwitcherBackground,
-          foregroundColor: theme.normalText,
+          backgroundColor: const Color(0xFFF1F5F9),
+          foregroundColor: const Color(0xFF475569),
           elevation: 0,
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(borderRadius: borderRadius),
@@ -131,8 +124,11 @@ class AppActionButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: isLoading ? null : onPressed,
       style: OutlinedButton.styleFrom(
-        foregroundColor: theme.normalText,
-        side: BorderSide(color: theme.dividerColor, width: 1.5),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF475569),
+        side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+        elevation: 1,
+        shadowColor: Colors.black.withValues(alpha: 0.04),
         padding: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: borderRadius),
       ),

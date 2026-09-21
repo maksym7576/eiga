@@ -1,52 +1,51 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:hooks_riverpod/legacy.dart';
 import '../services/app_configs_provider.dart';
-
-
 import 'package:eiga/backend/database/dto/media_dto.dart';
 import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
-
 import '../services/service_health_providers.dart';
-
 
 enum MetadataProviderType { anilist, shikimori, tvmaze, manual }
 enum ServiceStatus { active, down }
 
-class SelectedMetadataNotifier extends StateNotifier<MetadataProviderType> {
-  final Ref _ref;
+class SelectedMetadataNotifier extends Notifier<MetadataProviderType> {
   static const _prefKey = 'selected_metadata_provider';
 
-  SelectedMetadataNotifier(this._ref) : super(MetadataProviderType.anilist) {
-    _load();
-  }
-
-  void _load() {
-    final prefs = _ref.read(sharedPreferencesProvider);
+  @override
+  MetadataProviderType build() {
+    final prefs = ref.read(sharedPreferencesProvider);
     final saved = prefs.getString(_prefKey);
     if (saved != null) {
-      state = MetadataProviderType.values.firstWhere(
+      return MetadataProviderType.values.firstWhere(
         (e) => e.name == saved,
         orElse: () => MetadataProviderType.anilist,
       );
     }
+    return MetadataProviderType.anilist;
   }
 
   void setProvider(MetadataProviderType provider) {
     state = provider;
-    final prefs = _ref.read(sharedPreferencesProvider);
+    final prefs = ref.read(sharedPreferencesProvider);
     prefs.setString(_prefKey, provider.name);
   }
 }
 
-final selectedMetadataProvider = StateNotifierProvider<SelectedMetadataNotifier, MetadataProviderType>((ref) {
-  return SelectedMetadataNotifier(ref);
-});
+final selectedMetadataProvider = NotifierProvider<SelectedMetadataNotifier, MetadataProviderType>(
+  SelectedMetadataNotifier.new,
+);
 
-final isMetadataSelectorExpandedProvider = StateProvider<bool>((ref) => false);
-final isSubtitleSelectorExpandedProvider = StateProvider<bool>((ref) => false);
-final isVideoSourceSelectorExpandedProvider = StateProvider<bool>((ref) => false);
+class BoolStateNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+  @override
+  set state(bool value) => super.state = value;
+}
+
+final isMetadataSelectorExpandedProvider = NotifierProvider<BoolStateNotifier, bool>(BoolStateNotifier.new);
+final isSubtitleSelectorExpandedProvider = NotifierProvider<BoolStateNotifier, bool>(BoolStateNotifier.new);
+final isSubtitleMethodSelectorExpandedProvider = NotifierProvider<BoolStateNotifier, bool>(BoolStateNotifier.new);
+final isVideoSourceSelectorExpandedProvider = NotifierProvider<BoolStateNotifier, bool>(BoolStateNotifier.new);
 
 final metadataStatusProvider = Provider.family<ServiceStatus, MetadataProviderType>((ref, provider) {
   final status = ref.watch(providerStatusProvider(provider));
@@ -60,53 +59,148 @@ class SearchSourceKeys {
   static const String shikimori = 'shikimori';
 }
 
-final searchResultsProvider =
-    StateProvider.family<List<dynamic>, String>((ref, key) => []);
+class SearchResultsNotifier extends Notifier<List<dynamic>> {
+  final String arg;
+  SearchResultsNotifier(this.arg);
+  @override
+  List<dynamic> build() => [];
+  @override
+  set state(List<dynamic> value) => super.state = value;
+}
+final searchResultsProvider = NotifierProvider.family<SearchResultsNotifier, List<dynamic>, String>(SearchResultsNotifier.new);
 
-final searchErrorProvider =
-    StateProvider.family<String?, String>((ref, key) => null);
+class SearchErrorNotifier extends Notifier<String?> {
+  final String arg;
+  SearchErrorNotifier(this.arg);
+  @override
+  String? build() => null;
+  @override
+  set state(String? value) => super.state = value;
+}
+final searchErrorProvider = NotifierProvider.family<SearchErrorNotifier, String?, String>(SearchErrorNotifier.new);
 
-final selectedEntryProvider =
-    StateProvider.family<dynamic, String>((ref, key) => null);
+class SelectedEntryNotifier extends Notifier<dynamic> {
+  final String arg;
+  SelectedEntryNotifier(this.arg);
+  @override
+  dynamic build() => null;
+  @override
+  set state(dynamic value) => super.state = value;
+}
+final selectedEntryProvider = NotifierProvider.family<SelectedEntryNotifier, dynamic, String>(SelectedEntryNotifier.new);
 
-final filesProvider =
-    StateProvider.family<List<dynamic>, String>((ref, key) => []);
+class FilesNotifier extends Notifier<List<dynamic>> {
+  final String arg;
+  FilesNotifier(this.arg);
+  @override
+  List<dynamic> build() => [];
+  @override
+  set state(List<dynamic> value) => super.state = value;
+}
+final filesProvider = NotifierProvider.family<FilesNotifier, List<dynamic>, String>(FilesNotifier.new);
 
-final selectedResultProvider =
-    StateProvider.family<dynamic, String>((ref, key) => null);
+class SelectedResultNotifier extends Notifier<dynamic> {
+  final String arg;
+  SelectedResultNotifier(this.arg);
+  @override
+  dynamic build() => null;
+  @override
+  set state(dynamic value) => super.state = value;
+}
+final selectedResultProvider = NotifierProvider.family<SelectedResultNotifier, dynamic, String>(SelectedResultNotifier.new);
 
-final searchFiltersProvider =
-    StateProvider.family<Map<String, dynamic>, String>((ref, key) => {});
+class SearchFiltersNotifier extends Notifier<Map<String, dynamic>> {
+  final String arg;
+  SearchFiltersNotifier(this.arg);
+  @override
+  Map<String, dynamic> build() => {};
+  @override
+  set state(Map<String, dynamic> value) => super.state = value;
+}
+final searchFiltersProvider = NotifierProvider.family<SearchFiltersNotifier, Map<String, dynamic>, String>(SearchFiltersNotifier.new);
 
-final isSearchingProvider =
-    StateProvider.family<bool, String>((ref, key) => false);
+class IsSearchingNotifier extends Notifier<bool> {
+  final String arg;
+  IsSearchingNotifier(this.arg);
+  @override
+  bool build() => false;
+  @override
+  set state(bool value) => super.state = value;
+}
+final isSearchingProvider = NotifierProvider.family<IsSearchingNotifier, bool, String>(IsSearchingNotifier.new);
 
-final isLoadingFilesProvider =
-    StateProvider.family<bool, String>((ref, key) => false);
+class IsLoadingFilesNotifier extends Notifier<bool> {
+  final String arg;
+  IsLoadingFilesNotifier(this.arg);
+  @override
+  bool build() => false;
+  @override
+  set state(bool value) => super.state = value;
+}
+final isLoadingFilesProvider = NotifierProvider.family<IsLoadingFilesNotifier, bool, String>(IsLoadingFilesNotifier.new);
 
-final isResolvingProvider =
-    StateProvider.family<bool, String>((ref, key) => false);
+class IsResolvingNotifier extends Notifier<bool> {
+  final String arg;
+  IsResolvingNotifier(this.arg);
+  @override
+  bool build() => false;
+  @override
+  set state(bool value) => super.state = value;
+}
+final isResolvingProvider = NotifierProvider.family<IsResolvingNotifier, bool, String>(IsResolvingNotifier.new);
 
-final searchMetadataProvider =
-    StateProvider.family<Map<int, dynamic>, String>((ref, key) => {});
+class SearchMetadataNotifier extends Notifier<Map<int, dynamic>> {
+  final String arg;
+  SearchMetadataNotifier(this.arg);
+  @override
+  Map<int, dynamic> build() => {};
+  @override
+  set state(Map<int, dynamic> value) => super.state = value;
+}
+final searchMetadataProvider = NotifierProvider.family<SearchMetadataNotifier, Map<int, dynamic>, String>(SearchMetadataNotifier.new);
 
-final rawFilesProvider =
-    StateProvider.family<List<JimakuFileOrGroupDTO>, String>(
-        (ref, key) => []);
+class RawFilesNotifier extends Notifier<List<JimakuFileOrGroupDTO>> {
+  final String arg;
+  RawFilesNotifier(this.arg);
+  @override
+  List<JimakuFileOrGroupDTO> build() => [];
+  @override
+  set state(List<JimakuFileOrGroupDTO> value) => super.state = value;
+}
+final rawFilesProvider = NotifierProvider.family<RawFilesNotifier, List<JimakuFileOrGroupDTO>, String>(RawFilesNotifier.new);
 
-final jimakuRawFilesProvider =
-    StateProvider.family<List<dynamic>, String>((ref, key) => []);
+class JimakuRawFilesNotifier extends Notifier<List<dynamic>> {
+  final String arg;
+  JimakuRawFilesNotifier(this.arg);
+  @override
+  List<dynamic> build() => [];
+  @override
+  set state(List<dynamic> value) => super.state = value;
+}
+final jimakuRawFilesProvider = NotifierProvider.family<JimakuRawFilesNotifier, List<dynamic>, String>(JimakuRawFilesNotifier.new);
 
-final jimakuExpandedGroupsProvider =
-    StateProvider.family<Set<String>, String>((ref, key) => {});
+class JimakuExpandedGroupsNotifier extends Notifier<Set<String>> {
+  final String arg;
+  JimakuExpandedGroupsNotifier(this.arg);
+  @override
+  Set<String> build() => {};
+  @override
+  set state(Set<String> value) => super.state = value;
+}
+final jimakuExpandedGroupsProvider = NotifierProvider.family<JimakuExpandedGroupsNotifier, Set<String>, String>(JimakuExpandedGroupsNotifier.new);
 
-final jimakuSearchFullResultsProvider =
-    StateProvider<List<UnifiedMetadataDTO>>((ref) => []);
+class JimakuSearchFullResultsNotifier extends Notifier<List<UnifiedMetadataDTO>> {
+  @override
+  List<UnifiedMetadataDTO> build() => [];
+  @override
+  set state(List<UnifiedMetadataDTO> value) => super.state = value;
+}
+final jimakuSearchFullResultsProvider = NotifierProvider<JimakuSearchFullResultsNotifier, List<UnifiedMetadataDTO>>(JimakuSearchFullResultsNotifier.new);
 
 class JimakuSummary {
   final String? season;
   final int episodeCount;
-  final String bestFormat; // 'srt' or 'ass'
+  final String bestFormat;
   final List<int> episodes;
   final int totalFileCount;
 
@@ -119,8 +213,15 @@ class JimakuSummary {
   }) : episodes = episodes ?? List<int>.generate(episodeCount, (index) => index + 1);
 }
 
-final cloudSummaryProvider =
-    StateProvider.family<JimakuSummary?, (String, String)>((ref, id) => null);
+class CloudSummaryNotifier extends Notifier<JimakuSummary?> {
+  final (String, String) arg;
+  CloudSummaryNotifier(this.arg);
+  @override
+  JimakuSummary? build() => null;
+  @override
+  set state(JimakuSummary? value) => super.state = value;
+}
+final cloudSummaryProvider = NotifierProvider.family<CloudSummaryNotifier, JimakuSummary?, (String, String)>(CloudSummaryNotifier.new);
 
 extension JimakuProviders on WidgetRef {
   List<UnifiedMetadataDTO> watchJimakuResults() {
@@ -212,6 +313,16 @@ extension ShikimoriSearchProviders on WidgetRef {
       return entry is UnifiedMetadataDTO ? entry : null;
     } catch (e) {
       return null;
+    }
+  }
+
+  UnifiedMetadataDTO? watchSelectedMetadataEntry() {
+    final type = watch(selectedMetadataProvider);
+    switch (type) {
+      case MetadataProviderType.anilist: return watchAniListSelectedEntry();
+      case MetadataProviderType.shikimori: return watchShikimoriSelectedEntry();
+      case MetadataProviderType.tvmaze: return watchTVmazeSelectedEntry();
+      default: return null;
     }
   }
 }

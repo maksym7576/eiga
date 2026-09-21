@@ -4,8 +4,11 @@ import '../../database/schemas/ai_model.dart';
 enum AiTaskType { transcription, translation, research, tokenization }
 
 class AiModelScorer {
-  static List<AiModel> rankModels(List<AiModel> models, AiTaskType taskType) {
+  static List<AiModel> rankModels(List<AiModel> models, AiTaskType taskType, {Set<AiProvider>? enabledProviders}) {
     final candidates = models.where((m) {
+      // 0. Provider must be enabled
+      if (enabledProviders != null && !enabledProviders.contains(m.provider)) return false;
+
       // 1. Must be suitable for task
       if (!_isSuitableForTask(m, taskType)) return false;
       

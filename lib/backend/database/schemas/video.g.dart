@@ -136,61 +136,66 @@ const VideoSchema = CollectionSchema(
     ),
     r'score': PropertySchema(id: 29, name: r'score', type: IsarType.double),
     r'season': PropertySchema(id: 30, name: r'season', type: IsarType.string),
-    r'seriesName': PropertySchema(
+    r'selectedAudioTrackIndex': PropertySchema(
       id: 31,
+      name: r'selectedAudioTrackIndex',
+      type: IsarType.long,
+    ),
+    r'seriesName': PropertySchema(
+      id: 32,
       name: r'seriesName',
       type: IsarType.string,
     ),
     r'shikimoriId': PropertySchema(
-      id: 32,
+      id: 33,
       name: r'shikimoriId',
       type: IsarType.long,
     ),
-    r'status': PropertySchema(id: 33, name: r'status', type: IsarType.string),
+    r'status': PropertySchema(id: 34, name: r'status', type: IsarType.string),
     r'subtitleFileName': PropertySchema(
-      id: 34,
+      id: 35,
       name: r'subtitleFileName',
       type: IsarType.string,
     ),
     r'subtitleSource': PropertySchema(
-      id: 35,
+      id: 36,
       name: r'subtitleSource',
       type: IsarType.string,
     ),
     r'textFormat': PropertySchema(
-      id: 36,
+      id: 37,
       name: r'textFormat',
       type: IsarType.string,
     ),
     r'thetvdbId': PropertySchema(
-      id: 37,
+      id: 38,
       name: r'thetvdbId',
       type: IsarType.string,
     ),
-    r'tmdbId': PropertySchema(id: 38, name: r'tmdbId', type: IsarType.string),
+    r'tmdbId': PropertySchema(id: 39, name: r'tmdbId', type: IsarType.string),
     r'totalEpisodes': PropertySchema(
-      id: 39,
+      id: 40,
       name: r'totalEpisodes',
       type: IsarType.long,
     ),
     r'transcriptionResumeSeconds': PropertySchema(
-      id: 40,
+      id: 41,
       name: r'transcriptionResumeSeconds',
       type: IsarType.long,
     ),
     r'transcriptionStatus': PropertySchema(
-      id: 41,
+      id: 42,
       name: r'transcriptionStatus',
       type: IsarType.string,
     ),
     r'translatedLanguage': PropertySchema(
-      id: 42,
+      id: 43,
       name: r'translatedLanguage',
       type: IsarType.string,
     ),
-    r'tvmazeId': PropertySchema(id: 43, name: r'tvmazeId', type: IsarType.long),
+    r'tvmazeId': PropertySchema(id: 44, name: r'tvmazeId', type: IsarType.long),
     r'videoPath': PropertySchema(
-      id: 44,
+      id: 45,
       name: r'videoPath',
       type: IsarType.string,
     ),
@@ -413,20 +418,21 @@ void _videoSerialize(
   writer.writeString(offsets[28], object.researchInformation);
   writer.writeDouble(offsets[29], object.score);
   writer.writeString(offsets[30], object.season);
-  writer.writeString(offsets[31], object.seriesName);
-  writer.writeLong(offsets[32], object.shikimoriId);
-  writer.writeString(offsets[33], object.status);
-  writer.writeString(offsets[34], object.subtitleFileName);
-  writer.writeString(offsets[35], object.subtitleSource);
-  writer.writeString(offsets[36], object.textFormat);
-  writer.writeString(offsets[37], object.thetvdbId);
-  writer.writeString(offsets[38], object.tmdbId);
-  writer.writeLong(offsets[39], object.totalEpisodes);
-  writer.writeLong(offsets[40], object.transcriptionResumeSeconds);
-  writer.writeString(offsets[41], object.transcriptionStatus);
-  writer.writeString(offsets[42], object.translatedLanguage);
-  writer.writeLong(offsets[43], object.tvmazeId);
-  writer.writeString(offsets[44], object.videoPath);
+  writer.writeLong(offsets[31], object.selectedAudioTrackIndex);
+  writer.writeString(offsets[32], object.seriesName);
+  writer.writeLong(offsets[33], object.shikimoriId);
+  writer.writeString(offsets[34], object.status);
+  writer.writeString(offsets[35], object.subtitleFileName);
+  writer.writeString(offsets[36], object.subtitleSource);
+  writer.writeString(offsets[37], object.textFormat);
+  writer.writeString(offsets[38], object.thetvdbId);
+  writer.writeString(offsets[39], object.tmdbId);
+  writer.writeLong(offsets[40], object.totalEpisodes);
+  writer.writeLong(offsets[41], object.transcriptionResumeSeconds);
+  writer.writeString(offsets[42], object.transcriptionStatus);
+  writer.writeString(offsets[43], object.translatedLanguage);
+  writer.writeLong(offsets[44], object.tvmazeId);
+  writer.writeString(offsets[45], object.videoPath);
 }
 
 Video _videoDeserialize(
@@ -468,20 +474,21 @@ Video _videoDeserialize(
   object.researchInformation = reader.readStringOrNull(offsets[28]);
   object.score = reader.readDoubleOrNull(offsets[29]);
   object.season = reader.readStringOrNull(offsets[30]);
-  object.seriesName = reader.readStringOrNull(offsets[31]);
-  object.shikimoriId = reader.readLongOrNull(offsets[32]);
-  object.status = reader.readStringOrNull(offsets[33]);
-  object.subtitleFileName = reader.readStringOrNull(offsets[34]);
-  object.subtitleSource = reader.readStringOrNull(offsets[35]);
-  object.textFormat = reader.readStringOrNull(offsets[36]);
-  object.thetvdbId = reader.readStringOrNull(offsets[37]);
-  object.tmdbId = reader.readStringOrNull(offsets[38]);
-  object.totalEpisodes = reader.readLongOrNull(offsets[39]);
-  object.transcriptionResumeSeconds = reader.readLongOrNull(offsets[40]);
-  object.transcriptionStatus = reader.readStringOrNull(offsets[41]);
-  object.translatedLanguage = reader.readStringOrNull(offsets[42]);
-  object.tvmazeId = reader.readLongOrNull(offsets[43]);
-  object.videoPath = reader.readStringOrNull(offsets[44]);
+  object.selectedAudioTrackIndex = reader.readLongOrNull(offsets[31]);
+  object.seriesName = reader.readStringOrNull(offsets[32]);
+  object.shikimoriId = reader.readLongOrNull(offsets[33]);
+  object.status = reader.readStringOrNull(offsets[34]);
+  object.subtitleFileName = reader.readStringOrNull(offsets[35]);
+  object.subtitleSource = reader.readStringOrNull(offsets[36]);
+  object.textFormat = reader.readStringOrNull(offsets[37]);
+  object.thetvdbId = reader.readStringOrNull(offsets[38]);
+  object.tmdbId = reader.readStringOrNull(offsets[39]);
+  object.totalEpisodes = reader.readLongOrNull(offsets[40]);
+  object.transcriptionResumeSeconds = reader.readLongOrNull(offsets[41]);
+  object.transcriptionStatus = reader.readStringOrNull(offsets[42]);
+  object.translatedLanguage = reader.readStringOrNull(offsets[43]);
+  object.tvmazeId = reader.readLongOrNull(offsets[44]);
+  object.videoPath = reader.readStringOrNull(offsets[45]);
   return object;
 }
 
@@ -555,11 +562,11 @@ P _videoDeserializeProp<P>(
     case 30:
       return (reader.readStringOrNull(offset)) as P;
     case 31:
-      return (reader.readStringOrNull(offset)) as P;
-    case 32:
       return (reader.readLongOrNull(offset)) as P;
-    case 33:
+    case 32:
       return (reader.readStringOrNull(offset)) as P;
+    case 33:
+      return (reader.readLongOrNull(offset)) as P;
     case 34:
       return (reader.readStringOrNull(offset)) as P;
     case 35:
@@ -571,16 +578,18 @@ P _videoDeserializeProp<P>(
     case 38:
       return (reader.readStringOrNull(offset)) as P;
     case 39:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 40:
       return (reader.readLongOrNull(offset)) as P;
     case 41:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 42:
       return (reader.readStringOrNull(offset)) as P;
     case 43:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 44:
+      return (reader.readLongOrNull(offset)) as P;
+    case 45:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -4051,6 +4060,82 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  selectedAudioTrackIndexIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'selectedAudioTrackIndex'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  selectedAudioTrackIndexIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'selectedAudioTrackIndex'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  selectedAudioTrackIndexEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'selectedAudioTrackIndex',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  selectedAudioTrackIndexGreaterThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'selectedAudioTrackIndex',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  selectedAudioTrackIndexLessThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'selectedAudioTrackIndex',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  selectedAudioTrackIndexBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'selectedAudioTrackIndex',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterFilterCondition> seriesNameIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -6350,6 +6435,18 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> sortBySelectedAudioTrackIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'selectedAudioTrackIndex', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortBySelectedAudioTrackIndexDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'selectedAudioTrackIndex', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> sortBySeriesName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'seriesName', Sort.asc);
@@ -6893,6 +6990,18 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> thenBySelectedAudioTrackIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'selectedAudioTrackIndex', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenBySelectedAudioTrackIndexDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'selectedAudioTrackIndex', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> thenBySeriesName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'seriesName', Sort.asc);
@@ -7290,6 +7399,12 @@ extension VideoQueryWhereDistinct on QueryBuilder<Video, Video, QDistinct> {
     });
   }
 
+  QueryBuilder<Video, Video, QDistinct> distinctBySelectedAudioTrackIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'selectedAudioTrackIndex');
+    });
+  }
+
   QueryBuilder<Video, Video, QDistinct> distinctBySeriesName({
     bool caseSensitive = true,
   }) {
@@ -7598,6 +7713,13 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
   QueryBuilder<Video, String?, QQueryOperations> seasonProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'season');
+    });
+  }
+
+  QueryBuilder<Video, int?, QQueryOperations>
+  selectedAudioTrackIndexProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'selectedAudioTrackIndex');
     });
   }
 

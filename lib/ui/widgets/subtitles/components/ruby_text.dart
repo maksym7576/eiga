@@ -28,6 +28,7 @@ class RubyText extends HookConsumerWidget {
   final double outlineWidth;
   final SelectionAnchor? selectionAnchorType;
   final LayerLink? selectionLayerLink;
+  final String playerScope;
 
   const RubyText({
     super.key,
@@ -51,6 +52,7 @@ class RubyText extends HookConsumerWidget {
     this.outlineWidth = 0.0,
     this.selectionAnchorType,
     this.selectionLayerLink,
+    this.playerScope = 'main',
   });
 
   @override
@@ -124,7 +126,7 @@ class RubyText extends HookConsumerWidget {
         style: effectiveBaseStyle,
         useOutline: useShadows,
         outlineWidth: outlineWidth,
-        outlineColor: Colors.black,
+        outlineColor: isFullscreen ? Colors.black.withValues(alpha: 0.8) : Colors.black,
       ),
     );
 
@@ -147,7 +149,7 @@ class RubyText extends HookConsumerWidget {
                   overflow: TextOverflow.clip,
                   useOutline: useShadows,
                   outlineWidth: outlineWidth * 0.6,
-                  outlineColor: Colors.black,
+                  outlineColor: isFullscreen ? Colors.black.withValues(alpha: 0.8) : Colors.black,
                 ),
               ),
               baseTextWidget,
@@ -165,7 +167,7 @@ class RubyText extends HookConsumerWidget {
       gestureContent = GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          final playerNotifier = ref.read(playerProvider.notifier);
+          final playerNotifier = ref.read(playerProvider(playerScope).notifier);
           
           if (isAnchor) {
             playerNotifier.clearSelection();

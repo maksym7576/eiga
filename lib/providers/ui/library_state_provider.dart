@@ -1,14 +1,39 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:hooks_riverpod/legacy.dart';
 import '../../backend/database/schemas/video.dart';
 import '../../backend/database/schemas/job.dart';
 import '../services/isar_services_providers.dart';
 
 enum LibrarySortOrder { title, recent, language }
 
-final librarySortOrderProvider = StateProvider<LibrarySortOrder>((ref) => LibrarySortOrder.recent);
-final libraryOriginalLangFilterProvider = StateProvider<String?>((ref) => null);
-final libraryTranslatedLangFilterProvider = StateProvider<String?>((ref) => null);
+class LibrarySortOrderNotifier extends Notifier<LibrarySortOrder> {
+  @override
+  LibrarySortOrder build() => LibrarySortOrder.recent;
+  set state(LibrarySortOrder value) => super.state = value;
+}
+
+final librarySortOrderProvider = NotifierProvider<LibrarySortOrderNotifier, LibrarySortOrder>(
+  LibrarySortOrderNotifier.new,
+);
+
+class LibraryOriginalLangFilterNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+  set state(String? value) => super.state = value;
+}
+
+final libraryOriginalLangFilterProvider = NotifierProvider<LibraryOriginalLangFilterNotifier, String?>(
+  LibraryOriginalLangFilterNotifier.new,
+);
+
+class LibraryTranslatedLangFilterNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+  set state(String? value) => super.state = value;
+}
+
+final libraryTranslatedLangFilterProvider = NotifierProvider<LibraryTranslatedLangFilterNotifier, String?>(
+  LibraryTranslatedLangFilterNotifier.new,
+);
 
 final allVideosProvider = StreamProvider<List<Video>>((ref) {
   final service = ref.watch(videoServiceProvider);

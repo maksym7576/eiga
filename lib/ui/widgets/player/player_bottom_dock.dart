@@ -11,15 +11,16 @@ import '../sheets/translation_progress_sheet.dart';
 import '../sheets/video_settings_sheet.dart';
 
 class PlayerBottomDock extends HookConsumerWidget {
-  const PlayerBottomDock({super.key});
+  final String playerScope;
+  const PlayerBottomDock({super.key, this.playerScope = 'main'});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isFullscreen = ref.watch(playerProvider.select((s) => s.isFullscreen));
+    final isFullscreen = ref.watch(playerProvider(playerScope).select((s) => s.isFullscreen));
     if (isFullscreen) return const SizedBox.shrink();
 
     final phrasesAsync = ref.watch(phrasesStreamProvider);
-    final isAutoScrollEnabled = ref.watch(isAutoScrollEnabledProvider);
+    final isAutoScrollEnabled = ref.watch(isAutoScrollEnabledProvider(playerScope));
     
     final videoId = ref.watch(playerIdProvider);
     final activeJobsAsync = videoId != null 
@@ -81,7 +82,7 @@ class PlayerBottomDock extends HookConsumerWidget {
                     // Tracking / Follow Button
                     GestureDetector(
                       onTap: () {
-                        ref.read(playerProvider.notifier).setAutoScroll(!isAutoScrollEnabled);
+                        ref.read(playerProvider(playerScope).notifier).setAutoScroll(!isAutoScrollEnabled);
                       },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),

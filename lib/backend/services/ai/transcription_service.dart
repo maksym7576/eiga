@@ -13,8 +13,6 @@ import 'package:eiga/providers/services/ai_request_state.dart';
 import 'package:eiga/backend/services/ai/ai_model_scorer.dart';
 import 'package:eiga/backend/services/ai/audio_ai_service.dart';
 import 'package:eiga/backend/services/audio/ffmpeg_service.dart';
-import 'package:eiga/backend/services/petition_ai/gemini/gemini_service.dart';
-import 'package:eiga/backend/services/petition_ai/gemini/gemini_streaming_service.dart';
 import 'package:eiga/backend/services/database/ai_model_service.dart';
 import 'package:eiga/backend/services/database/phrase_service.dart';
 import 'package:eiga/backend/services/database/video_service.dart';
@@ -28,13 +26,11 @@ import 'package:eiga/config/prompts/prompt_manager.dart';
 class TranscriptionService {
   final Ref ref;
   final AudioAiService audioAiService;
-  final GeminiStreamingService geminiStreamingService;
   final FFmpegService ffmpegService;
 
   TranscriptionService({
     required this.ref, 
     required this.audioAiService,
-    required this.geminiStreamingService,
     required this.ffmpegService,
   });
 
@@ -46,9 +42,11 @@ class TranscriptionService {
 
     logger.i('[Transcription] Starting for video ${video.id}, lang: $spokenLanguage');
 
+    final config = ref.read(appConfigsServiceProvider);
+
     // Ensure state is reset at start safely - ONLY if not resuming
-    final startOffset = video.transcriptionResumeSeconds ?? 0;
-    if (startOffset == 0) {
+    final initialStartOffset = video.transcriptionResumeSeconds ?? 0;
+    if (initialStartOffset == 0) {
       await _updateVideoMetadata(video.id, (v) {
         v.isSubtitleReady = false;
         v.audioStatus = 'processing';
@@ -59,19 +57,26 @@ class TranscriptionService {
       await _updateVideoMetadata(video.id, (v) {
         v.audioStatus = 'processing';
         v.transcriptionStatus = 'pending';
-        // Keep existing processingProgress
       });
     }
 
 
     // 1. Initial Ranking of models
-
     final modelService = ref.read(aiModelServiceProvider);
     final phraseService = ref.read(phraseServiceProvider);
     final videoService = ref.read(videoServiceProvider);
     
     final allModels = await modelService.getAllModels();
-    List<AiModel> candidates = AiModelScorer.rankModels(allModels, AiTaskType.transcription);
+    final enabledProviders = <AiProvider>{
+      if (config.getIsGeminiEnabled) AiProvider.google,
+      if (config.getIsGroqEnabled) AiProvider.groq,
+    };
+
+    List<AiModel> candidates = AiModelScorer.rankModels(
+      allModels, 
+      AiTaskType.transcription,
+      enabledProviders: enabledProviders,
+    );
 
     if (candidates.isEmpty) {
       logger.e('[Transcription] No suitable AI model found for transcription.');
@@ -92,9 +97,6 @@ class TranscriptionService {
 
 
     // 2. Extract Audio & Chunk
-    final config = ref.read(appConfigsServiceProvider);
-    
-    // Calculate adaptive chunk size based on model TPM
     int chunkMin = config.getAudioChunkDurationMinutes;
     
     if (config.getIsAdaptiveChunkSizeEnabled) {
@@ -106,11 +108,9 @@ class TranscriptionService {
       }
     }
     
-    // Safety floor: don't go below 1 minute if possible
     chunkMin = max(chunkMin, 1);
 
-
-    final overlapSec = config.getTranscriptionOverlapSeconds;
+    final int overlapSec = config.getTranscriptionOverlapSeconds;
     
     final tempDir = await getTemporaryDirectory();
     final audioDir = Directory('${tempDir.path}/transcription_${video.id}');
@@ -121,15 +121,13 @@ class TranscriptionService {
     if (videoPath == null) return AiRequestResult.failure(AiErrorType.unknown, message: 'Video path missing');
 
     try {
-      // Get total duration
-      final totalSeconds = await ffmpegService.getDuration(videoPath) ?? 1800;
+      final int totalSeconds = (await ffmpegService.getDuration(videoPath) ?? 1800).toInt();
 
       final int chunkSeconds = chunkMin * 60;
       final int totalChunks = (totalSeconds / (chunkSeconds - overlapSec)).ceil();
       final Set<String> seenPhrases = {};
       int globalPhraseOrder = 1;
 
-      // Handle Resuming: ALWAYS load existing phrases to prevent duplicates
       final existing = await phraseService.getPhrasesByVideoId(video.id);
       for (var p in existing) {
         final key = '${p.startTime?.millisecondsSinceEpoch}_${p.originalPhrase?.trim()}';
@@ -140,25 +138,24 @@ class TranscriptionService {
           ? (existing.map((e) => e.phraseOrder ?? 0).reduce(max) + 1) 
           : 1;
 
-      int startOffset = video.transcriptionResumeSeconds ?? 0;
+      int resumeOffset = video.transcriptionResumeSeconds ?? 0;
       
-      // Smart recovery of startOffset if it was not saved correctly
-      if (startOffset == 0 && existing.isNotEmpty) {
+      if (resumeOffset == 0 && existing.isNotEmpty) {
         final lastPhrase = existing.reduce((a, b) => 
           (a.endTime?.millisecondsSinceEpoch ?? 0) > (b.endTime?.millisecondsSinceEpoch ?? 0) ? a : b);
         if (lastPhrase.endTime != null) {
           final baseDate = DateTime(1970, 1, 1);
-          startOffset = lastPhrase.endTime!.difference(baseDate).inSeconds;
-          logger.i('[Transcription] Recovered startOffset from phrases: ${startOffset}s');
+          resumeOffset = lastPhrase.endTime!.difference(baseDate).inSeconds;
+          logger.i('[Transcription] Recovered resumeOffset from phrases: ${resumeOffset}s');
         }
       }
 
-      if (startOffset > 0) {
-        logger.i('[Transcription] Resuming for video ${video.id} from ${startOffset}s. Found $totalPhrasesFound existing phrases.');
+      if (resumeOffset > 0) {
+        logger.i('[Transcription] Resuming for video ${video.id} from ${resumeOffset}s. Found $totalPhrasesFound existing phrases.');
       }
       
-      int chunkIndex = (startOffset / (chunkSeconds - overlapSec)).floor() + 1;
-      for (int start = startOffset; start < totalSeconds; start += (chunkSeconds - overlapSec)) {
+      int chunkIndex = (resumeOffset ~/ (chunkSeconds - overlapSec)) + 1;
+      for (int start = resumeOffset; start < totalSeconds; start += (chunkSeconds - overlapSec).toInt()) {
         final end = min(start + chunkSeconds, totalSeconds);
         final actualDuration = end - start;
         if (actualDuration <= 0) break;
@@ -168,10 +165,8 @@ class TranscriptionService {
         
         await onProgress?.call('$progressPrefix Extracting audio... ($totalPhrasesFound subtitles)', progressValue);
 
-        // Update essential status without overwriting everything
         await _updateVideoMetadata(video.id, (v) {
           v.audioStatus = 'processing';
-          // progress is handled by onProgress call above
         });
 
         final chunkPath = '${audioDir.path}/chunk_$start.mp3';
@@ -203,9 +198,7 @@ class TranscriptionService {
         List<Phrase> chunkPhrases = [];
         while (!chunkSuccess) {
           try {
-            // Respect Free Tier limits: Add a safe delay between chunks
             if (chunkIndex > 1) {
-               // More aggressive delay for low-TPM models like Transcribe (10K)
                final isLowTpm = currentModel.tpmLimit < 50000;
                final delaySec = isLowTpm ? 30 : 15;
                logger.d('[Transcription] Free Tier safety delay (${delaySec}s) for ${currentModel.name}...');
@@ -216,21 +209,15 @@ class TranscriptionService {
             final bytes = await File(chunkPath).readAsBytes();
             final base64Audio = base64Encode(bytes);
             
-            final contextInfo = video.researchInformation != null && video.researchInformation!.isNotEmpty
-                ? '\n\nCONTEXT (Use for proper nouns and terms):\n${video.researchInformation}'
-                : '';
-
             final prompt = PromptManager.getPrompt(
               type: PromptType.transcription,
               sourceLanguage: spokenLanguage,
-              targetLanguage: '', // Not needed for transcription
+              targetLanguage: '', 
               contextBlock: video.researchInformation != null && video.researchInformation!.isNotEmpty
                   ? '\n\nCONTEXT (Use for proper nouns and terms):\n${video.researchInformation}'
                   : '',
             );
 
-            // Use robust Unary call for audio transcription instead of streaming
-            // Free Tier streaming with audio+JSON is currently unstable
             chunkPhrases = await _transcribeChunk(
               base64Audio: base64Audio,
               prompt: prompt,
@@ -244,7 +231,6 @@ class TranscriptionService {
             
             logger.i('[Transcription] [$chunkIndex/$totalChunks] Success! Received ${chunkPhrases.length} phrases from ${currentModel.name}');
             
-            // Log Success Event via Handler
             await ref.read(aiErrorHandlerProvider).recordResult(
               modelName: currentModel.name,
               result: AiRequestPhase.success,
@@ -255,15 +241,12 @@ class TranscriptionService {
           } catch (e) {
             logger.e('[Transcription] AI Chunk error with ${currentModel.name}: $e');
 
-            // Log Error Event via Handler
             await ref.read(aiErrorHandlerProvider).recordException(
               e, 
               modelName: currentModel.name, 
               step: 'transcription'
             );
             
-            // If it's a server error, rate limit, not found (404), Internal Error (500) or Empty, switch!
-
             final bool isRecoverable = e is GeminiServerException || 
                                        e is GeminiModelExpiredException ||
                                        e.toString().contains('503') || 
@@ -275,7 +258,6 @@ class TranscriptionService {
                                        e.toString().contains('limit');
             
             if (isRecoverable) {
-              // Penalty with specific error message
               await modelService.incrementErrorCount(currentModel.name, errorMessage: e.toString());
 
 
@@ -284,42 +266,46 @@ class TranscriptionService {
                 await modelService.markModelAsExhausted(currentModel.name);
               }
               
-              // Smart delay based on server feedback (429 retry-after)
               int delaySec = 10;
               if (e is GeminiException && e.retryAfter != null) {
                 delaySec = e.retryAfter!.inSeconds + 1;
                 logger.i('[Transcription] API requested specific wait time: ${delaySec}s');
               } else if (e.toString().contains('429')) {
-                delaySec = 30; // Default for rate limit
+                delaySec = 30; 
               }
               
-              // Re-rank candidates before next try to see if someone else is better now
               final updatedModels = await modelService.getAllModels();
-              candidates = AiModelScorer.rankModels(updatedModels, AiTaskType.transcription);
+              final currentEnabledProviders = <AiProvider>{
+                if (config.getIsGeminiEnabled) AiProvider.google,
+                if (config.getIsGroqEnabled) AiProvider.groq,
+              };
+              candidates = AiModelScorer.rankModels(
+                updatedModels, 
+                AiTaskType.transcription,
+                enabledProviders: currentEnabledProviders,
+              );
               
               if (modelIndex < candidates.length - 1) {
                 modelIndex++;
                 currentModel = candidates[modelIndex];
                 logger.i('[Transcription] Switching model to ${currentModel.name} and retrying chunk...');
                 await onProgress?.call('$progressPrefix Switching to ${currentModel.name}... ($totalPhrasesFound subtitles)', (chunkIndex - 0.5) / totalChunks);
-                await Future.delayed(Duration(seconds: min(delaySec, 5))); // Wait a bit before switching
+                await Future.delayed(Duration(seconds: min(delaySec, 5))); 
               } else {
                 logger.w('[Transcription] All models exhausted for this chunk. Waiting ${delaySec}s before full retry...');
                 await onProgress?.call('$progressPrefix Quota limit. Waiting ${delaySec}s...', (chunkIndex - 0.5) / totalChunks);
                 await Future.delayed(Duration(seconds: delaySec));
-                modelIndex = 0; // Start over with best model after waiting
+                modelIndex = 0; 
                 currentModel = candidates.first;
               }
               continue; 
             } else {
-              // Unrecoverable error
               await modelService.incrementErrorCount(currentModel.name);
               rethrow;
             }
           }
         }
 
-        // 4. Save Phrases Immediately (with deduplication for overlaps)
         final List<Phrase> phrasesToSave = [];
         for (var p in chunkPhrases) {
           final key = '${p.startTime?.millisecondsSinceEpoch}_${p.originalPhrase?.trim()}';
@@ -336,23 +322,19 @@ class TranscriptionService {
           await phraseService.putPhrases(processedPhrases);
           totalPhrasesFound += processedPhrases.length;
           
-          // Update Resume position and metadata safely
           await _updateVideoMetadata(video.id, (v) {
             v.transcriptionResumeSeconds = end;
           });
 
-          // Reward the model for success
           await modelService.incrementUsage(currentModel.name, 1);
           
           logger.d('[Transcription] Saved ${processedPhrases.length} phrases from chunk $chunkIndex. Total: $totalPhrasesFound');
           await onProgress?.call('$progressPrefix Saved $totalPhrasesFound subtitles', (chunkIndex) / totalChunks);
         }
 
-        
         chunkIndex++;
       }
 
-      // 5. Finalize safely
       if (totalPhrasesFound == 0) {
         return AiRequestResult.failure(AiErrorType.unknown, message: 'Transcription yielded no results');
       }
@@ -366,7 +348,6 @@ class TranscriptionService {
       });
 
 
-      // Auto-translate first batch if enabled
       if (config.getAutoTranslateOnImport) {
         final savedPhrases = await phraseService.getPhrasesByVideoId(video.id);
         if (savedPhrases.isNotEmpty) {
@@ -403,10 +384,12 @@ class TranscriptionService {
     required AiModel model,
     required Duration startTimeOffset,
   }) async {
-    final url = await _buildUrl(model);
+    final baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/${model.name}';
+    final token = await SecureTokenStorage.getToken(ApiTokenType.gemini);
+    final url = '$baseUrl:generateContent?key=$token';
     
     String response = '';
-    int retries = 2; // Reduced retries to switch models faster if needed
+    int retries = 2; 
     while (retries >= 0) {
       try {
         logger.v('[Transcription] Sending request to ${model.name}. Retries left: $retries');
@@ -417,7 +400,6 @@ class TranscriptionService {
         if (retries == 0) rethrow;
         retries--;
         
-        // Better error detection: 503 (Server Busy) or 429 (Rate Limit)
         final bool isRateLimit = e is GeminiModelExpiredException;
         final bool isServerBusy = e is GeminiServerException || e.toString().contains('503') || e.toString().contains('demand');
         
@@ -453,16 +435,8 @@ class TranscriptionService {
       return phrases;
     } catch (e) {
       logger.e('[Transcription] Failed to transcribe or parse chunk: $e');
-      rethrow; // Rethrow to handle in the main loop
+      rethrow; 
     }
-  }
-
-  Future<String> _buildUrl(AiModel model) async {
-    final token = await SecureTokenStorage.getToken(ApiTokenType.gemini);
-    // Smart version selection: 1.x models use v1, others use v1beta
-    // Force v1beta for ALL models as v1 returns 404 for this user
-    final baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/${model.name}';
-    return '$baseUrl:generateContent?key=$token';
   }
 
   List<Phrase> _postProcessPhrases(List<Phrase> phrases) {
@@ -474,10 +448,8 @@ class TranscriptionService {
       String text = p.originalPhrase?.trim() ?? '';
       if (text.isEmpty) continue;
 
-      // 1. Basic Cleaning
-      text = text.replaceAll(RegExp(r'\s+'), ' '); // Remove double spaces
+      text = text.replaceAll(RegExp(r'\s+'), ' '); 
       
-      // 2. Remove trailing/leading punctuation that AI sometimes adds wrongly
       text = text.replaceAll(RegExp(r'^[、,，。．. ]+'), '');
       text = text.replaceAll(RegExp(r'[ 、,，。．. ]+$'), '');
 
@@ -486,7 +458,6 @@ class TranscriptionService {
       results.add(p);
     }
 
-    // 3. Intelligent Merging: if phrases are very close and short, join them
     if (results.length > 1) {
       final List<Phrase> merged = [];
       for (int i = 0; i < results.length; i++) {
@@ -498,7 +469,6 @@ class TranscriptionService {
         final prev = merged.last;
         final curr = results[i];
         
-        // If gap is < 300ms and both are short, merge them
         final gapMs = curr.startTime!.difference(prev.endTime!).inMilliseconds;
         if (gapMs < 300 && (prev.originalPhrase!.length + curr.originalPhrase!.length < 25)) {
            prev.originalPhrase = '${prev.originalPhrase} ${curr.originalPhrase}';
@@ -522,4 +492,3 @@ class TranscriptionService {
     }
   }
 }
-

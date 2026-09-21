@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../backend/database/schemas/phrase.dart';
-import 'package:eiga/providers/ui/video_data_providers.dart';
+import '../../../backend/database/schemas/user_word_status.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
-import 'package:eiga/providers/services/app_configs_provider.dart';
+import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'components/phrase_original_content.dart';
 import 'components/translation_styled_content.dart';
 
-// Component for rendering subtitle text with support for interactive blocks
 class SubtitleTextContent extends HookConsumerWidget {
   final Phrase phrase;
   final String mainOption;
@@ -19,6 +17,7 @@ class SubtitleTextContent extends HookConsumerWidget {
   final Color textColor;
   final bool useShadows;
   final bool isFullscreen;
+  final String playerScope;
 
   const SubtitleTextContent({
     super.key,
@@ -31,84 +30,34 @@ class SubtitleTextContent extends HookConsumerWidget {
     this.textColor = const Color(0xFF0F172A),
     this.useShadows = false,
     this.isFullscreen = false,
+    this.playerScope = 'main',
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final double spacing = baseFontSize * 0.1;
+    final selectedPhraseId = ref.watch(selectedPhraseIdProvider(playerScope));
+    final bool isThisPhraseSelected = selectedPhraseId == phrase.id;
+
+    final highlightedWordIds = isThisPhraseSelected ? ref.watch(highlightedWordIdsProvider(playerScope)) : const <int>{};
+    final highlightedTranslationIds = isThisPhraseSelected ? ref.watch(highlightedTranslationIdsProvider(playerScope)) : const <int>{};
     
-    // Create the link index once for this phrase
-    final index = useMemoized(
-      () => PhraseLinkIndex(phrase.originalTokens ?? [], phrase.translatedWords ?? []),
-      [phrase.originalTokens, phrase.translatedWords],
-    );
+    final anchorType = isThisPhraseSelected ? ref.watch(selectionAnchorTypeProvider(playerScope)) : null;
+    final clickedWordId = isThisPhraseSelected ? ref.watch(clickedWordIdProvider(playerScope)) : null;
+    final clickedTranslationId = isThisPhraseSelected ? ref.watch(clickedTranslationWordIdProvider(playerScope)) : null;
+    final isLocked = ref.watch(playerProvider(playerScope).select((s) => s.isLocked));
+    final selectionLayerLink = isThisPhraseSelected ? ref.watch(selectionLayerLinkProvider(playerScope)) : null;
 
-    final appConfig = ref.watch(appConfigsServiceProvider);
-    final bool hideBrackets = appConfig.getHideParenthesesContent;
-
-    // Calculate which IDs should be hidden based on brackets and links
-    final hiddenIds = useMemoized(() {
-      if (!hideBrackets) return {'words': <int>{}, 'translations': <int>{}};
-
-      final originalTokens = phrase.originalTokens ?? [];
-      final translatedTokens = phrase.translatedWords ?? [];
-      
-      final openBrackets = {'(', '[', '{', '（', '［', '｛'};
-      final closeBrackets = {')', ']', '}', '）', '］', '｝'};
-      final bracketRegExp = RegExp(r'[([{（［｛].*?[)]}）］｝]');
-
-      Set<int> noiseWords = {};
-      bool inside = false;
-      for (final t in originalTokens) {
-        final txt = t.surface?.trim() ?? t.mainText.trim();
-        if (txt.isEmpty) continue;
-        if (openBrackets.contains(txt)) { inside = true; noiseWords.add(t.wordPosition ?? -1); continue; }
-        if (closeBrackets.contains(txt)) { inside = false; noiseWords.add(t.wordPosition ?? -1); continue; }
-        if (inside || bracketRegExp.hasMatch(txt)) noiseWords.add(t.wordPosition ?? -1);
-      }
-
-      Set<int> noiseTranslations = {};
-      inside = false;
-      for (final t in translatedTokens) {
-        final txt = t.text?.trim() ?? '';
-        if (txt.isEmpty) continue;
-        if (openBrackets.contains(txt)) { inside = true; noiseTranslations.add(t.translatedWordPosition ?? -1); continue; }
-        if (closeBrackets.contains(txt)) { inside = false; noiseTranslations.add(t.translatedWordPosition ?? -1); continue; }
-        if (inside || bracketRegExp.hasMatch(txt)) noiseTranslations.add(t.translatedWordPosition ?? -1);
-      }
-
-      // Propagate noise via links for synchronization
-      Set<int> finalHiddenWords = Set.from(noiseWords);
-      Set<int> finalHiddenTranslations = Set.from(noiseTranslations);
-
-      // If a word is noise, hide its linked translations
-      for (final wId in noiseWords) {
-        final linked = index.getLinkedIdsForWord(wId);
-        finalHiddenTranslations.addAll(linked['translations']!);
-      }
-      // If a translation is noise, hide its linked words
-      for (final tId in noiseTranslations) {
-        final linked = index.getLinkedIdsForTranslation(tId);
-        finalHiddenWords.addAll(linked['words']!);
-      }
-
-      return {'words': finalHiddenWords, 'translations': finalHiddenTranslations};
-    }, [phrase.originalTokens, phrase.translatedWords, hideBrackets, index]);
-
-    // Watch interactive states at the phrase level (Performance peak)
-    final selectedPhraseId = ref.watch(selectedPhraseIdProvider);
-    final isThisPhraseSelected = selectedPhraseId == phrase.id;
-
-    final highlightedWordIds = isThisPhraseSelected ? ref.watch(highlightedWordIdsProvider) : const <int>{};
-    final highlightedTranslationIds = isThisPhraseSelected ? ref.watch(highlightedTranslationIdsProvider) : const <int>{};
-    final anchorType = isThisPhraseSelected ? ref.watch(selectionAnchorTypeProvider) : null;
-    final clickedWordId = isThisPhraseSelected ? ref.watch(clickedWordIdProvider) : null;
-    final clickedTranslationId = isThisPhraseSelected ? ref.watch(clickedTranslationWordIdProvider) : null;
-    final isLocked = ref.watch(playerProvider.select((s) => s.isLocked));
-    final selectionLayerLink = isThisPhraseSelected ? ref.watch(selectionLayerLinkProvider) : null;
-
-    // Watch status map at the top level ONLY
     final statusMap = ref.watch(lemmaToStatusMapProvider).value ?? {};
+    final index = PhraseLinkIndex(phrase.originalTokens ?? [], phrase.translatedWords ?? [], phrase.linkGroups);
+
+    final hiddenIds = ref.watch(dimmedWordIdsProvider(playerScope)).isEmpty 
+        ? {'words': <int>{}, 'translations': <int>{}} 
+        : {
+            'words': ref.watch(dimmedWordIdsProvider(playerScope)),
+            'translations': ref.watch(dimmedTranslationIdsProvider(playerScope)),
+          };
+
+    const double spacing = 6.0;
 
     return RepaintBoundary(
       child: Column(
@@ -135,6 +84,7 @@ class SubtitleTextContent extends HookConsumerWidget {
             isFullscreen: isFullscreen,
             isLocked: isLocked,
             hiddenWordIds: hiddenIds['words']!,
+            playerScope: playerScope,
           ),
           if (showTranslation) ...[
             SizedBox(height: spacing),
@@ -153,6 +103,7 @@ class SubtitleTextContent extends HookConsumerWidget {
               isFullscreen: isFullscreen,
               isLocked: isLocked,
               hiddenTranslationIds: hiddenIds['translations']!,
+              playerScope: playerScope,
             ),
           ],
         ],

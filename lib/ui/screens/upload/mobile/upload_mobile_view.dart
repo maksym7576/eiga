@@ -6,63 +6,7 @@ import 'package:eiga/providers/ui/upload_provider.dart';
 import 'package:eiga/providers/ui/language_provider.dart';
 import 'package:eiga/ui/styles/app_colors.dart';
 import 'package:eiga/ui/widgets/shared/app_action_button.dart';
-import 'package:eiga/ui/widgets/upload/selectors/video_source_selector.dart';
-import 'package:eiga/ui/widgets/upload/sections/video_input_section.dart';
-
-import '../../../widgets/upload/sections/episode_selection_section.dart';
-import '../../../widgets/upload/sections/language_selection_section.dart';
-import '../../../widgets/upload/sections/media_search_section.dart';
-import '../../../widgets/upload/sections/phrases_preview_section.dart';
-import '../../../widgets/upload/sections/subtitle_input_section.dart';
-import '../../../widgets/upload/sections/subtitle_version_section.dart';
-
-/// Статичний список усіх можливих кроків конфігурації.
-enum UploadScreenSection {
-  videoSource(title: 'Subtitles & Sync', shortLabel: 'Source'),
-  mediaMatch(title: 'Subtitles & Sync', shortLabel: 'Match'),
-  syncSubtitles(title: 'Subtitles & Sync', shortLabel: 'Subtitles'),
-  languageTranslation(title: 'Subtitles & Sync', shortLabel: 'Finish');
-
-  final String title;
-  final String shortLabel;
-  const UploadScreenSection({required this.title, required this.shortLabel});
-
-  /// Динамічна логіка: якщо вибрано AI як джерело субтитрів, крок "Subtitles" взагалі викидається з таймлайну.
-  bool shouldInclude(UploadState state) {
-    if (this == UploadScreenSection.syncSubtitles) {
-      return state.subtitleSource != SubtitleSource.ai;
-    }
-    return true;
-  }
-
-  Widget buildContent(UploadState state) {
-    switch (this) {
-      case UploadScreenSection.videoSource:
-        return const Column(
-          children: [
-            VideoSourceSelector(),
-            SizedBox(height: 16),
-            VideoInputSection(),
-          ],
-        );
-      case UploadScreenSection.mediaMatch:
-        return const MediaSearchSection();
-      case UploadScreenSection.syncSubtitles:
-        return const Column(
-          children: [
-            EpisodeSelectionSection(),
-            SubtitleVersionSection(),
-            SizedBox(height: 10),
-            SubtitleInputSection(),
-            SizedBox(height: 16),
-            PhrasesPreviewSection(),
-          ],
-        );
-      case UploadScreenSection.languageTranslation:
-        return const LanguageSelectionSection();
-    }
-  }
-}
+import '../upload_sections.dart';
 
 /// Скелет Екрана завантаження у вигляді горизонтального прогрес-бару кроків.
 /// Кількість етапів динамічно зменшується до 3, якщо користувач вибрав AI субтитри.
@@ -76,8 +20,6 @@ class UploadMobileView extends StatefulWidget {
 }
 
 class _UploadMobileViewState extends State<UploadMobileView> {
-  int _currentStepIndex = 0;
-
   @override
   Widget build(BuildContext context) {
     return Consumer(
@@ -86,16 +28,17 @@ class _UploadMobileViewState extends State<UploadMobileView> {
         final notifier = ref.read(uploadProvider.notifier);
         final languages = ref.watch(languageProvider);
 
-        // Фільтруємо список кроків відповідно до вибору джерела субтитрів (AI зменшує кількість етапів)
+        // Фільтруємо список кроків відповідно до вибору джерела субтитрів
         final visibleSections = UploadScreenSection.values.where((s) => s.shouldInclude(state)).toList();
         
         // Коригуємо поточний індекс, якщо кількість кроків раптово зменшилась
-        if (_currentStepIndex >= visibleSections.length) {
-          _currentStepIndex = visibleSections.isEmpty ? 0 : visibleSections.length - 1;
+        int currentIndex = state.currentStepIndex;
+        if (currentIndex >= visibleSections.length) {
+          currentIndex = visibleSections.isEmpty ? 0 : visibleSections.length - 1;
         }
 
         // Визначаємо поточний активний крок бізнес-процесу
-        final activeSection = visibleSections.isNotEmpty ? visibleSections[_currentStepIndex] : UploadScreenSection.videoSource;
+        final activeSection = visibleSections.isNotEmpty ? visibleSections[currentIndex] : UploadScreenSection.videoSource;
 
         // Перевірка фінальної валідації для збереження відео
         final bool canAddVideo = state.videoPath != null && 
@@ -116,21 +59,20 @@ class _UploadMobileViewState extends State<UploadMobileView> {
               IconButton(
                 icon: const Icon(Icons.help_outline, size: 20, color: AppColors.slate600),
                 onPressed: () {},
+              ),
+            ],
           ),
-        ],
-      ),
           body: Column(
             children: [
-              // 1. Верхній індикатор кроків (Step Indicator) - ДИНАМІЧНИЙ (3 або 4 кроки)
+              // 1. Верхній індикатор кроків
               if (visibleSections.isNotEmpty) ...[
                 Container(
                   color: Colors.white,
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                   child: Column(
                     children: [
-                      // Текст: Step X of Y: Назва кроку
                       Text(
-                        'Step ${_currentStepIndex + 1} of ${visibleSections.length}: ${activeSection.shortLabel}',
+                        'Step ${currentIndex + 1} of ${visibleSections.length}: ${activeSection.shortLabel}',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -138,15 +80,14 @@ class _UploadMobileViewState extends State<UploadMobileView> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      // Горизонтальні лінії кроків (Линейки прогресса)
                       Row(
                         children: List.generate(visibleSections.length, (index) {
-                          final isCompleted = index < _currentStepIndex;
-                          final isActive = index == _currentStepIndex;
+                          final isCompleted = index < currentIndex;
+                          final isActive = index == currentIndex;
                           
-                          Color barColor = const Color(0xFFE2E8F0); // Неактивний сірий
-                          if (isCompleted) barColor = const Color(0xFF10B981); // Завершений зелений
-                          if (isActive) barColor = widget.theme.primaryAccent; // Поточний синій
+                          Color barColor = const Color(0xFFE2E8F0);
+                          if (isCompleted) barColor = const Color(0xFF10B981);
+                          if (isActive) barColor = widget.theme.primaryAccent;
 
                           return Expanded(
                             child: AnimatedContainer(
@@ -164,15 +105,14 @@ class _UploadMobileViewState extends State<UploadMobileView> {
                         }),
                       ),
                       const SizedBox(height: 8),
-                      // Текстові підписи під лініями (Source, Match, Subtitles, Finish)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: List.generate(visibleSections.length, (index) {
                           final section = visibleSections[index];
-                          final isCompleted = index < _currentStepIndex;
-                          final isActive = index == _currentStepIndex;
+                          final isCompleted = index < currentIndex;
+                          final isActive = index == currentIndex;
 
-                          Color textColor = const Color(0xFF94A3B8); // Дефолтний сірий текст
+                          Color textColor = const Color(0xFF94A3B8);
                           if (isCompleted) textColor = const Color(0xFF10B981);
                           if (isActive) textColor = widget.theme.primaryAccent;
 
@@ -210,7 +150,7 @@ class _UploadMobileViewState extends State<UploadMobileView> {
                 Container(height: 1, color: const Color(0xFFF1F5F9)),
               ],
 
-              // 2. Основна область вмісту поточного кроку
+              // 2. Основна область вмісту
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
@@ -218,7 +158,7 @@ class _UploadMobileViewState extends State<UploadMobileView> {
                 ),
               ),
 
-              // 3. Нижні навігаційні кнопки: PREVIOUS та NEXT / FINISH
+              // 3. Нижні навігаційні кнопки
               Container(
                 padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
                 decoration: BoxDecoration(
@@ -227,15 +167,10 @@ class _UploadMobileViewState extends State<UploadMobileView> {
                 ),
                 child: Row(
                   children: [
-                    // Кнопка PREVIOUS (Назад)
                     Expanded(
-                      child: _currentStepIndex > 0
+                      child: currentIndex > 0
                           ? AppActionButton(
-                              onPressed: () {
-                                setState(() {
-                                  _currentStepIndex--;
-                                });
-                              },
+                              onPressed: () => notifier.setStepIndex(currentIndex - 1),
                               text: 'Previous',
                               type: AppActionButtonType.outlined,
                             )
@@ -249,15 +184,26 @@ class _UploadMobileViewState extends State<UploadMobileView> {
                             ),
                     ),
                     const SizedBox(width: 12),
-                    // Кнопка NEXT або ADD VIDEO
                     Expanded(
                       flex: 2,
-                      child: _currentStepIndex < visibleSections.length - 1
+                      child: currentIndex < visibleSections.length - 1
                           ? AppActionButton(
-                              onPressed: () {
-                                setState(() {
-                                  _currentStepIndex++;
-                                });
+                              onPressed: () async {
+                                if (currentIndex == 2 && state.subtitleSource == SubtitleSource.ai && state.activeSelection == null) {
+                                  final proceed = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Proceed without subtitles?'),
+                                      content: const Text('AI transcription is still processing. For a better experience, we recommend waiting until it finishes. Do you want to proceed to the final step anyway?'),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Wait')),
+                                        TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Proceed')),
+                                      ],
+                                    ),
+                                  );
+                                  if (proceed != true) return;
+                                }
+                                notifier.setStepIndex(currentIndex + 1);
                               },
                               text: 'Next Step',
                               icon: const Icon(Icons.arrow_forward_rounded, size: 16),

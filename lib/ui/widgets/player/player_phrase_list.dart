@@ -19,36 +19,43 @@ class _MouseDraggableScrollBehavior extends MaterialScrollBehavior {
 }
 
 class PlayerPhraseList extends HookConsumerWidget {
-  const PlayerPhraseList({super.key});
+  final String playerScope;
+  const PlayerPhraseList({super.key, this.playerScope = 'main'});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final phrasesAsync = ref.watch(phrasesStreamProvider);
-    final activePhraseId = ref.watch(stickyActivePhraseIdProvider);
-    final isAutoScrollEnabled = ref.watch(isAutoScrollEnabledProvider);
+    final activePhraseId = ref.watch(stickyActivePhraseIdProvider(playerScope));
+    final isAutoScrollEnabled = ref.watch(isAutoScrollEnabledProvider(playerScope));
     
     final itemScrollController = useMemoized(() => ItemScrollController());
     final itemPositionsListener = useMemoized(() => ItemPositionsListener.create());
 
     // Auto-scroll logic: triggers ONLY when activePhraseId changes
+    final lastScrolledIdRef = useRef<int?>(null);
+
     useEffect(() {
       if (!isAutoScrollEnabled) return;
       
       final phrases = phrasesAsync.value ?? [];
       if (phrases.isEmpty || activePhraseId == null) return;
       
+      // Prevent redundant jerky scrolling if we are already at this phrase ID
+      if (lastScrolledIdRef.value == activePhraseId) return;
+
       final index = phrases.indexWhere((p) => p.id == activePhraseId);
       if (index != -1 && itemScrollController.isAttached) {
-        // Use a slightly longer duration for smoothness
+        lastScrolledIdRef.value = activePhraseId;
+        // Use a much gentler or standard scroll for smoothness
         itemScrollController.scrollTo(
           index: index,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOutCubic,
-          alignment: 0.3,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.linear, // Changed to linear or simple curve to avoid elastic bouncing artifacts
+          alignment: 0.2, // Align slightly lower to give context above
         );
       }
       return null;
-    }, [activePhraseId, isAutoScrollEnabled]); // Only depend on these two
+    }, [activePhraseId, isAutoScrollEnabled]); // Removed phrasesAsync.value dependency to avoid re-triggering during content updates
 
     return phrasesAsync.when(
       data: (phrases) {
@@ -72,19 +79,19 @@ class PlayerPhraseList extends HookConsumerWidget {
               if (notification is UserScrollNotification) {
                 if (notification.direction != ScrollDirection.idle) {
                   // User started scrolling
-                  if (ref.read(isAutoScrollEnabledProvider)) {
+                  if (ref.read(isAutoScrollEnabledProvider(playerScope))) {
                     Future.microtask(() {
-                      ref.read(playerProvider.notifier).setAutoScroll(false);
+                      ref.read(playerProvider(playerScope).notifier).setAutoScroll(false);
                     });
                   }
                   
                   // Hide popover and clear highlights on scroll
-                  final playerState = ref.read(playerProvider);
+                  final playerState = ref.read(playerProvider(playerScope));
                   if (playerState.clickedWordId != null || 
                       playerState.clickedTranslationWordId != null ||
                       playerState.highlightedWordIds.isNotEmpty) {
                     Future.microtask(() {
-                      ref.read(playerProvider.notifier).clearSelection();
+                      ref.read(playerProvider(playerScope).notifier).clearSelection();
                     });
                   }
                 }
@@ -113,6 +120,7 @@ class PlayerPhraseList extends HookConsumerWidget {
                     isActive: isActive,
                     isPast: isPast,
                     isFuture: isFuture,
+                    playerScope: playerScope,
                   );
                 },
               ),

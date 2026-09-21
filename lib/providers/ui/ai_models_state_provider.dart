@@ -3,7 +3,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/backend/database/schemas/ai_model.dart';
 import 'package:eiga/backend/database/schemas/ai_model_event.dart';
 import 'package:eiga/config/pipelines/pipeline_steps.dart';
-import 'package:eiga/providers/database/isar_providers.dart';
 import 'package:eiga/providers/services/app_configs_provider.dart';
 
 import '../services/isar_services_providers.dart';
@@ -15,21 +14,19 @@ class AiModelsNotifier extends Notifier<Map<TranslationPipelineStep, String>> {
     final configs = ref.watch(appConfigsServiceProvider);
     
     final Map<TranslationPipelineStep, String> stateMap = {};
-    bool needsAutoSelect = false;
 
     for (final step in TranslationPipelineStep.values) {
       final String? activeModel = configs.getActiveModelForStepRaw(step);
+      
       if (activeModel == null) {
-        needsAutoSelect = true;
-        stateMap[step] = configs.getActiveModelForStep(step); // Fallback to default
+        stateMap[step] = configs.getActiveModelForStep(step);
       } else {
         stateMap[step] = activeModel;
       }
     }
     
-    if (needsAutoSelect) {
-      Future.microtask(() => _autoSelectBestModels());
-    }
+    // We verify model validity in a microtask since it requires async DB lookups
+    Future.microtask(() => _verifyAndAutoSelectModels());
     
     // Initial reset check
     _checkAndResetDailyLimits();
@@ -37,15 +34,32 @@ class AiModelsNotifier extends Notifier<Map<TranslationPipelineStep, String>> {
     return stateMap;
   }
 
-  Future<void> _autoSelectBestModels() async {
+  Future<void> _verifyAndAutoSelectModels() async {
     final aiModelService = ref.read(aiModelServiceProvider);
     final configs = ref.read(appConfigsServiceProvider);
     
+    final enabledProviders = {
+      if (configs.getIsGeminiEnabled) AiProvider.google,
+      if (configs.getIsGroqEnabled) AiProvider.groq,
+    };
+
     final Map<TranslationPipelineStep, String> updates = {};
     
     for (final step in TranslationPipelineStep.values) {
-      if (configs.getActiveModelForStepRaw(step) == null) {
-        final best = await aiModelService.getBestFallbackModel(step, '');
+      final currentModelName = state[step];
+      bool needsSwitch = false;
+
+      if (currentModelName == null) {
+        needsSwitch = true;
+      } else {
+        final model = await aiModelService.getModelByName(currentModelName);
+        if (model == null || !enabledProviders.contains(model.provider)) {
+          needsSwitch = true;
+        }
+      }
+
+      if (needsSwitch) {
+        final best = await aiModelService.getBestFallbackModel(step, '', enabledProviders: enabledProviders);
         if (best != null) {
           updates[step] = best.name;
           await configs.setActiveModelForStep(step, best.name);
@@ -97,20 +111,28 @@ final allModelsProvider = StreamProvider<List<AiModel>>((ref) {
 /// Synchronously filters models for a specific step.
 final modelsForStepProvider = Provider.family<List<AiModel>, TranslationPipelineStep>((ref, step) {
   final allModelsAsync = ref.watch(allModelsProvider);
+  final config = ref.watch(appConfigsServiceProvider);
   
   return allModelsAsync.maybeWhen(
     data: (models) {
-      final filtered = models.where((m) => 
-        m.supportedSteps.contains(step) || 
-        m.supportedSteps.contains(TranslationPipelineStep.research) ||
-        m.supportedSteps.contains(TranslationPipelineStep.translate) ||
-        m.supportedSteps.contains(TranslationPipelineStep.tokenize) ||
-        m.supportedSteps.contains(TranslationPipelineStep.morphemes)
-      ).toList();
+      final enabledProviders = {
+        if (config.getIsGeminiEnabled) AiProvider.google,
+        if (config.getIsGroqEnabled) AiProvider.groq,
+      };
+
+      final filtered = models.where((m) {
+        if (!enabledProviders.contains(m.provider)) return false;
+        
+        return m.supportedSteps.contains(step) || 
+          m.supportedSteps.contains(TranslationPipelineStep.research) ||
+          m.supportedSteps.contains(TranslationPipelineStep.translate) ||
+          m.supportedSteps.contains(TranslationPipelineStep.tokenize) ||
+          m.supportedSteps.contains(TranslationPipelineStep.morphemes);
+      }).toList();
       
-      // Fallback: if no models specifically support advanced steps, show all
+      // Fallback: if no models specifically support advanced steps, show all (respecting provider)
       if (filtered.isEmpty) {
-        return models;
+        return models.where((m) => enabledProviders.contains(m.provider)).toList();
       }
       return filtered;
     },

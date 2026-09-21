@@ -6,9 +6,10 @@ import 'package:eiga/providers/ui/player_provider.dart';
 import '../../styles/app_colors.dart';
 
 class SubtitleSettingsSidePanel extends HookConsumerWidget {
-  const SubtitleSettingsSidePanel({super.key});
+  final String playerScope;
+  const SubtitleSettingsSidePanel({super.key, this.playerScope = 'main'});
 
-  static Future<void> show(BuildContext context) {
+  static Future<void> show(BuildContext context, {String playerScope = 'main'}) {
     return showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -16,9 +17,9 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
       barrierColor: Colors.transparent, // Transparent barrier to see the video
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, anim1, anim2) {
-        return const Align(
+        return Align(
           alignment: Alignment.centerRight,
-          child: SubtitleSettingsSidePanel(),
+          child: SubtitleSettingsSidePanel(playerScope: playerScope),
         );
       },
       transitionBuilder: (context, anim1, anim2, child) {
@@ -36,9 +37,9 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     useEffect(() {
-      Future.microtask(() => ref.read(playerProvider.notifier).setSettingsOpen(true));
-      return () => Future.microtask(() => ref.read(playerProvider.notifier).setSettingsOpen(false));
-    }, []);
+      Future.microtask(() => ref.read(playerProvider(playerScope).notifier).setSettingsOpen(true));
+      return () => Future.microtask(() => ref.read(playerProvider(playerScope).notifier).setSettingsOpen(false));
+    }, [playerScope]);
 
     final settings = ref.watch(subtitleSettingsProvider);
     final safePadding = MediaQuery.of(context).padding;

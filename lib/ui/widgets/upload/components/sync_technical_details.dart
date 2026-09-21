@@ -5,147 +5,159 @@ import '../../../../backend/services/audio/audio_sync_service.dart';
 import '../../../styles/additional_window_theme.dart';
 import '../../../styles/app_colors.dart';
 
-Widget buildTechDetails(
+import 'sync_fix_button.dart';
+
+List<Widget> buildTechDetails(
+    BuildContext context,
     UploadState state,
     AdditionalWindowTheme theme,
     UploadNotifier notifier,
     ValueNotifier<bool> isExpanded, {
       Duration? currentOffset,
+      bool showHeader = false,
     }) {
-  return Column(
-    children: [
+  final confidence = state.syncConfidence > 0 ? state.syncConfidence : (state.activeSelection?.confidence ?? 0.0);
+  
+  if (confidence == 0 && !state.isCheckingSync) {
+    return [
       const SizedBox(height: 12),
       Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: theme.cardBorder, width: 1.5),
+          color: const Color(0xFFF1F5F9).withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            _buildStatusHeader(state, theme),
-            const SizedBox(height: 16),
-            metricRow(
-              'Audio Recognition Quality (AI Score)',
-              'Accuracy of the AI model on audio',
-              state.syncPnr,
-              15.0,
-              '${state.syncPnr.toStringAsFixed(1)} / 15.0 PNR',
-              theme,
-            ),
-            const SizedBox(height: 14),
-            metricRow(
-              'Subtitle Match Precision',
-              'Similarity of timings and phonetic sequences',
-              state.syncUniqueness,
-              0.8,
-              '${state.syncUniqueness.toStringAsFixed(1)} / 0.8',
-              theme,
-            ),
-            const SizedBox(height: 14),
-            metricRow(
-              'Alignment Checkpoints',
-              'Video points selected for evaluation',
-              state.syncConsensus.toDouble(),
-              max(3.0, state.syncTotalSegments.toDouble()),
-              '${state.syncConsensus} / ${max(3, state.syncTotalSegments)} segments',
-              theme,
-            ),
-            const SizedBox(height: 16),
-
-            Container(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => isExpanded.value = !isExpanded.value,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            AnimatedRotation(
-                              duration: const Duration(milliseconds: 200),
-                              turns: isExpanded.value ? 0.25 : 0,
-                              child: Icon(Icons.keyboard_arrow_right_rounded, size: 16, color: theme.primaryAccent),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Alignment Checkpoints',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.primaryAccent),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (isExpanded.value) ...[
-                    const SizedBox(height: 12),
-                    const Divider(height: 1),
-                    const SizedBox(height: 10),
-                    if (state.syncCheckpoints.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: Center(
-                          child: Text(
-                            state.isCheckingSync ? 'Analyzing segments...' : 'No checkpoints generated yet',
-                            style: TextStyle(fontSize: 12, color: theme.mutedText),
-                          ),
-                        ),
-                      )
-                    else
-                      ...List.generate(state.syncCheckpoints.length, (i) {
-                        final isLast = i == state.syncCheckpoints.length - 1;
-                        return Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              child: buildCheckpointItem(state.syncCheckpoints[i], theme),
-                            ),
-                            if (!isLast) Divider(height: 1, color: theme.cardBorder),
-                          ],
-                        );
-                      }),
-                  ],
-                ],
+            const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF64748B)),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Subtitles selected. Run "Check Sync" to analyze timing accuracy and match quality.',
+                style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
               ),
             ),
-            if (currentOffset != null && currentOffset.inMilliseconds != 0) ...[
-              const SizedBox(height: 14),
-
-              SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: ElevatedButton(
-                  onPressed: () => notifier.applySyncFix(manualOffset: currentOffset),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.primaryAccent,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: Text(
-                    'Apply Suggested Shift (${(currentOffset.inMilliseconds / 1000.0) > 0 ? '+' : ''}${(currentOffset.inMilliseconds / 1000.0).toStringAsFixed(1)}s)',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
       ),
+    ];
+  }
+
+  return [
+    if (showHeader) ...[
+      _buildStatusHeader(state, theme, confidence),
+      const SizedBox(height: 24),
     ],
-  );
+    metricRow(
+      'Audio Recognition',
+      'AI voice activity confidence',
+      state.syncPnr,
+      15.0,
+      '${state.syncPnr.toStringAsFixed(1)} PNR',
+      theme,
+      Icons.settings_voice_rounded,
+    ),
+    const SizedBox(height: 18),
+    metricRow(
+      'Match Precision',
+      'Phonetic alignment accuracy',
+      state.syncUniqueness,
+      0.8,
+      '${(state.syncUniqueness * 100).toInt()}% score',
+      theme,
+      Icons.biotech_rounded,
+    ),
+    const SizedBox(height: 18),
+    metricRow(
+      'Verified Segments',
+      'Confirmed timing points',
+      state.syncConsensus.toDouble(),
+      max(3.0, state.syncTotalSegments.toDouble()),
+      '${state.syncConsensus} / ${max(3, state.syncTotalSegments)} pts',
+      theme,
+      Icons.rule_rounded,
+    ),
+    
+    AnimatedSwitcher(
+      duration: const Duration(milliseconds: 400),
+      child: (currentOffset != null && currentOffset != Duration.zero)
+          ? Padding(
+              key: ValueKey(currentOffset.inMilliseconds),
+              padding: const EdgeInsets.only(top: 24),
+              child: SyncFixButton(offset: currentOffset),
+            )
+          : const SizedBox.shrink(),
+    ),
+
+    const SizedBox(height: 12),
+    Material(
+      color: Colors.transparent,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          visualDensity: VisualDensity.compact,
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.05),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.analytics_outlined, size: 16, color: Color(0xFF2563EB)),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Detailed Checkpoints',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+              ),
+            ],
+          ),
+          trailing: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Color(0xFF94A3B8)),
+          children: [
+            if (state.syncCheckpoints.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text(
+                    state.isCheckingSync ? 'Analyzing segments...' : 'No checkpoints generated yet',
+                    style: TextStyle(fontSize: 11, color: theme.mutedText, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              )
+            else
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFF1F5F9)),
+                ),
+                child: Column(
+                  children: state.syncCheckpoints.map((cp) => Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: buildCheckpointItem(cp, theme),
+                  )).toList(),
+                ),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    ),
+  ];
 }
 
-Widget _buildStatusHeader(UploadState state, AdditionalWindowTheme theme) {
+
+Widget _buildStatusHeader(UploadState state, AdditionalWindowTheme theme, double confidence) {
   IconData icon;
   Color color;
   String message;
+  String? subMessage;
+
+  final bool isPerfect = state.syncConsensus >= 3 && state.syncTotalSegments > 0 && state.syncConsensus == state.syncTotalSegments;
 
   switch (state.syncStatus) {
     case SyncMatchStatus.idle:
@@ -159,73 +171,82 @@ Widget _buildStatusHeader(UploadState state, AdditionalWindowTheme theme) {
       message = 'Analyzing audio waveform...';
       break;
     case SyncMatchStatus.perfect:
-      icon = Icons.check_circle_rounded;
-      color = theme.primaryAccent;
-      message = 'Synchronization optimal (${(state.syncConfidence * 100).toInt()}%)';
-      break;
     case SyncMatchStatus.offset:
-      icon = Icons.warning_amber_rounded;
+      final isOffset = state.syncStatus == SyncMatchStatus.offset;
+      icon = isOffset ? Icons.warning_amber_rounded : Icons.check_circle_rounded;
       color = theme.primaryAccent;
-      final offsetSecs = state.suggestedOffset != null
-          ? (state.suggestedOffset!.inMilliseconds / 1000.0).toStringAsFixed(1)
-          : '0.0';
-      message = 'Offset detected: ${offsetSecs}s';
+      message = isOffset 
+          ? 'Offset detected (${(confidence * 100).toInt()}%)' 
+          : 'Synchronization optimal (${(confidence * 100).toInt()}%)';
+      subMessage = isPerfect 
+          ? 'Perfect consensus: all video segments agree on this timing.'
+          : 'High confidence match found based on multiple points.';
       break;
     case SyncMatchStatus.mismatch:
       icon = Icons.error_outline_rounded;
       color = AppColors.warningText;
-      message = 'No clear match found among available versions';
+      message = 'No clear match found';
+      subMessage = 'The audio does not seem to match these subtitles.';
       break;
     case SyncMatchStatus.error:
       icon = Icons.error_outline_rounded;
       color = AppColors.warningText;
-      message = 'Analysis failed. Check file formats.';
+      message = 'Analysis failed';
+      subMessage = 'Please check if the video file has a valid audio track.';
       break;
   }
 
   final explanation = state.syncExplanation;
-  final showExplanation = explanation != null && state.syncStatus != SyncMatchStatus.idle;
 
-  return Container(
-    padding: const EdgeInsets.only(bottom: 12),
-    decoration: BoxDecoration(
-      border: Border(bottom: BorderSide(color: theme.cardBorder, width: 1)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Icon(icon, size: 12, color: color),
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                message,
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: color),
-              ),
-            ),
-          ],
-        ),
-        if (showExplanation) ...[
-          const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.only(left: 28),
-            child: Text(
-              explanation,
-              style: const TextStyle(fontSize: 11, color: AppColors.slate500, height: 1.4, fontWeight: FontWeight.w500),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: color, letterSpacing: -0.3),
+                ),
+                if (subMessage != null)
+                  Text(
+                    subMessage,
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: theme.mutedText, height: 1.3),
+                  ),
+              ],
             ),
           ),
         ],
+      ),
+      if (explanation != null && state.syncStatus != SyncMatchStatus.idle) ...[
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColors.slate50,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            explanation,
+            style: const TextStyle(fontSize: 11, color: AppColors.slate600, height: 1.4, fontWeight: FontWeight.w500),
+          ),
+        ),
       ],
-    ),
+    ],
   );
 }
 
@@ -267,6 +288,7 @@ Widget metricRow(
     double target,
     String valueText,
     AdditionalWindowTheme theme,
+    IconData icon,
     ) {
   final progress = (current / target).clamp(0.0, 1.0);
   final badgeText = '${(progress * 100).toInt()}%';
@@ -275,20 +297,37 @@ Widget metricRow(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: TextStyle(fontSize: 12, color: theme.normalText, fontWeight: FontWeight.bold, height: 1.2),
+                Container(
+                  margin: const EdgeInsets.only(top: 2),
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, size: 14, color: const Color(0xFF64748B)),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 10, color: AppColors.slate500, fontWeight: FontWeight.w500),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: const TextStyle(fontSize: 13, color: Color(0xFF1E293B), fontWeight: FontWeight.w800, letterSpacing: -0.1),
+                      ),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -297,34 +336,38 @@ Widget metricRow(
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: theme.primaryAccent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  badgeText,
-                  style: TextStyle(fontSize: 10, color: theme.primaryAccent, fontWeight: FontWeight.bold),
-                ),
+              Text(
+                badgeText,
+                style: const TextStyle(fontSize: 15, color: Color(0xFF2563EB), fontWeight: FontWeight.w900, height: 1.0),
               ),
               const SizedBox(height: 2),
               Text(
                 valueText,
-                style: const TextStyle(fontSize: 10, color: AppColors.slate500, fontWeight: FontWeight.w500),
+                style: const TextStyle(fontSize: 9, color: Color(0xFF94A3B8), fontWeight: FontWeight.w700, fontFamily: 'monospace'),
               ),
             ],
           ),
         ],
       ),
-      const SizedBox(height: 6),
-      ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: LinearProgressIndicator(
-          value: progress,
-          backgroundColor: AppColors.slate200.withValues(alpha: 0.7),
-          valueColor: AlwaysStoppedAnimation<Color>(theme.primaryAccent),
-          minHeight: 5,
+      const SizedBox(height: 10),
+      Container(
+        height: 6,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: FractionallySizedBox(
+          alignment: Alignment.centerLeft,
+          widthFactor: progress,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF2563EB), Color(0xFF60A5FA)],
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
         ),
       ),
     ],

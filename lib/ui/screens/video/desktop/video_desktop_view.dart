@@ -17,105 +17,107 @@ class VideoDesktopView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playerState = ref.watch(playerProvider);
+    const String scope = 'main';
+    final playerState = ref.watch(playerProvider(scope));
     final isFullscreen = playerState.isFullscreen;
     final areControlsVisible = playerState.areControlsVisible;
 
     final video = ref.watch(currentVideoProvider).value;
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (isFullscreen)
-          MouseRegion(
-            onHover: (_) {
-              ref.read(playerProvider.notifier).showControls(fromHover: true);
-            },
-            child: Container(
-              color: Colors.black,
-              width: double.infinity,
-              height: double.infinity,
-              child: const Stack(
-                children: [
-                  PlayerView(),
-                  Positioned.fill(child: _VideoPlayerBackgroundLayer()),
-                  Positioned.fill(child: PlayerControls()),
-                  FullscreenSubtitle(),
-                ],
+    // --- Unified Player Layer ---
+    // Keeping this component at a stable depth prevents MouseTracker assertions
+    // and keeps the video texture GlobalKey from re-mounting.
+    final playerContent = MouseRegion(
+      key: const ValueKey('player_content_region'),
+      onHover: (_) {
+        ref.read(playerProvider(scope).notifier).showControls(fromHover: true);
+      },
+      child: Container(
+        color: Colors.black,
+        child: const Stack(
+          children: [
+            PlayerView(playerScope: scope),
+            Positioned.fill(child: _VideoPlayerBackgroundLayer(playerScope: scope)),
+            Positioned.fill(child: PlayerControls(playerScope: scope)),
+            FullscreenSubtitle(playerScope: scope),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: SizedBox(
+                  width: 400,
+                  child: PlayerBottomDock(playerScope: scope),
+                ),
               ),
             ),
-          )
-        else
+          ],
+        ),
+      ),
+    );
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 1. Main Layout (Video + Optional Sidebar)
           Column(
             children: [
-              AppBlurHeader(
-                title: video?.seriesName ?? video?.fileName ?? '...',
-                subtitle: video?.episode != null ? 'Episode ${video!.episode}' : null,
-                onBack: () {
-                  context.pop();
-                },
+              // Header (Hidden in fullscreen)
+              Visibility(
+                visible: !isFullscreen,
+                maintainState: true,
+                child: AppBlurHeader(
+                  title: video?.seriesName ?? video?.fileName ?? '...',
+                  subtitle: video?.episode != null ? 'Episode ${video!.episode}' : null,
+                  onBack: () => context.pop(),
+                ),
               ),
+              
               Expanded(
                 child: ResizableSidebarContainer(
-                  mainChild: MouseRegion(
-                    onHover: (_) {
-                      ref.read(playerProvider.notifier).showControls(fromHover: true);
-                    },
-                    child: Container(
-                      color: Colors.black,
-                      child: const Stack(
-                        children: [
-                          PlayerView(),
-                          Positioned.fill(child: _VideoPlayerBackgroundLayer()),
-                          Positioned.fill(child: PlayerControls()),
-                          FullscreenSubtitle(),
-                        ],
-                      ),
-                    ),
-                  ),
+                  isSidebarHidden: isFullscreen,
+                  mainChild: playerContent,
                   sidebarChild: Container(
                     decoration: const BoxDecoration(
                       border: Border(left: BorderSide(color: Color(0xFFE2E8F0))),
                       color: Colors.white,
                     ),
-                    child: const PlayerPhraseList(),
+                    child: PlayerPhraseList(playerScope: scope),
                   ),
                 ),
               ),
             ],
           ),
-        if (!isFullscreen)
-          const Positioned(
-            right: 0,
-            bottom: 0,
-            child: SizedBox(
-              width: 450,
-              child: PlayerBottomDock(),
-            ),
-          ),
-        // Popover only shown when controls are visible in fullscreen, or always in windowed
-        if (!isFullscreen || areControlsVisible)
-          const WordDetailsPopover(),
-      ],
+
+          // 2. Overlays
+          
+          // Popover
+          if (!isFullscreen || areControlsVisible)
+            const WordDetailsPopover(playerScope: scope),
+        ],
+      ),
     );
   }
 }
 
 class _VideoPlayerBackgroundLayer extends ConsumerWidget {
-  const _VideoPlayerBackgroundLayer();
+  final String playerScope;
+  const _VideoPlayerBackgroundLayer({required this.playerScope});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       onTap: () {
-        final playerState = ref.read(playerProvider);
+        final playerState = ref.read(playerProvider(playerScope));
         if (playerState.isLocked) return;
         if (!playerState.areControlsVisible) {
-          ref.read(playerProvider.notifier).showControls();
+          ref.read(playerProvider(playerScope).notifier).showControls();
         } else {
-          ref.read(playerProvider.notifier).togglePlaying();
-          ref.read(playerProvider.notifier).clearSelection();
-          ref.read(playerProvider.notifier).resetHideTimer();
+          ref.read(playerProvider(playerScope).notifier).togglePlaying();
+          ref.read(playerProvider(playerScope).notifier).clearSelection();
+          ref.read(playerProvider(playerScope).notifier).resetHideTimer();
         }
       },
       behavior: HitTestBehavior.opaque,

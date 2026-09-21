@@ -28,7 +28,7 @@ class TranslationNotifier extends Notifier<void> {
     
     // Immediate check on screen entry
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final currentTime = ref.read(playerTimeProvider);
+      final currentTime = ref.read(playerTimeProvider('main'));
       _checkAndTranslateRealtime(currentTime);
     });
   }
@@ -51,7 +51,7 @@ class TranslationNotifier extends Notifier<void> {
       }
     });
 
-    ref.listen<Duration>(playerTimeProvider, (prevTime, currentTime) {
+    ref.listen<Duration>(playerTimeProvider('main'), (prevTime, currentTime) {
       if (_currentVideoId != null) {
         _handleTimeUpdate(prevTime, currentTime);
       }
@@ -99,7 +99,7 @@ class TranslationNotifier extends Notifier<void> {
     if (phrases.isEmpty) return;
 
     // OPTIMIZATION: Instead of scanning all phrases, start from the active one.
-    final activeId = ref.read(stickyActivePhraseIdProvider);
+    final activeId = ref.read(stickyActivePhraseIdProvider('main'));
     // Use fallback to find index if sticky isn't set yet (for manual taps)
     int activeIndex = activeId != null ? phrases.indexWhere((p) => p.id == activeId) : -1;
     

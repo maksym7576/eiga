@@ -1,17 +1,18 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:hooks_riverpod/legacy.dart';
 import 'package:eiga/providers/services/app_configs_provider.dart';
 import 'package:eiga/providers/services/ai_services_providers.dart';
 import 'package:eiga/providers/services/ai_request_state.dart';
 import 'package:eiga/providers/services/isar_services_providers.dart';
 import 'package:eiga/providers/ui/ai_models_state_provider.dart';
 import 'package:eiga/backend/database/schemas/phrase.dart';
+import 'package:eiga/backend/database/schemas/ai_model.dart';
 import 'package:eiga/config/pipelines/pipeline_steps.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/ui/ai_error_state_provider.dart';
 import 'package:eiga/backend/services/utils/ai_exceptions.dart';
+import 'package:eiga/config/secure_storage.dart';
 import 'package:eiga/utils/logger.dart';
 
 enum TaskPriority { high, normal }
@@ -48,8 +49,27 @@ class TranslationTask {
   int get hashCode => videoId.hashCode ^ phraseIds.hashCode ^ isTranscription.hashCode;
 }
 
-final translationQueueProvider = StateProvider<List<TranslationTask>>((ref) => []);
-final activeTranslationTasksProvider = StateProvider<List<TranslationTask>>((ref) => []);
+class TranslationQueueNotifier extends Notifier<List<TranslationTask>> {
+  @override
+  List<TranslationTask> build() => [];
+  @override
+  set state(List<TranslationTask> value) => super.state = value;
+}
+
+final translationQueueProvider = NotifierProvider<TranslationQueueNotifier, List<TranslationTask>>(
+  TranslationQueueNotifier.new,
+);
+
+class ActiveTranslationTasksNotifier extends Notifier<List<TranslationTask>> {
+  @override
+  List<TranslationTask> build() => [];
+  @override
+  set state(List<TranslationTask> value) => super.state = value;
+}
+
+final activeTranslationTasksProvider = NotifierProvider<ActiveTranslationTasksNotifier, List<TranslationTask>>(
+  ActiveTranslationTasksNotifier.new,
+);
 
 final translationBackgroundManagerProvider = Provider<TranslationBackgroundManager>((ref) {
   return TranslationBackgroundManager(ref);
@@ -153,7 +173,23 @@ class TranslationBackgroundManager {
       final video = await videoService.getVideoById(task.videoId);
       if (video == null) return;
 
+      // PROACTIVE TOKEN CHECK: Avoid sending requests if tokens are completely empty
+      final config = ref.read(appConfigsServiceProvider);
+      final geminiToken = await SecureTokenStorage.getToken(ApiTokenType.gemini);
+      final groqToken = await SecureTokenStorage.getToken(ApiTokenType.groq);
+
       if (task.isTranscription) {
+        if (geminiToken.isEmpty) {
+          logger.w('[Manager] Transcription aborted: Gemini token is empty');
+          ref.read(playerProvider('main').notifier).setPlaying(false);
+          ref.read(aiErrorStateProvider.notifier).state = const AiUserFacingError(
+            title: 'Missing API Key',
+            message: 'Please provide a valid Gemini API Key in Settings to use AI Transcription.',
+            instruction: 'Open Settings and add your Google Gemini API Key.',
+          );
+          return;
+        }
+
         logger.d('[Task] Starting background transcription for video ${task.videoId}');
         final result = await aiService.runTranscriptionForVideo(
           video: video,
@@ -161,7 +197,7 @@ class TranslationBackgroundManager {
         );
 
         if (result.phase == AiRequestPhase.error) {
-          ref.read(playerProvider.notifier).setPlaying(false);
+          ref.read(playerProvider('main').notifier).setPlaying(false);
           if (result.error != null) {
             ref.read(aiErrorStateProvider.notifier).state = result.error;
           }
@@ -177,6 +213,36 @@ class TranslationBackgroundManager {
       }
 
       if (phrases.isEmpty) return;
+
+      // PROACTIVE TOKEN & PROVIDER VALIDATION
+      final isGeminiEnabled = config.getIsGeminiEnabled;
+      final isGroqEnabled = config.getIsGroqEnabled;
+      final hasGeminiKey = geminiToken.isNotEmpty;
+      final hasGroqKey = groqToken.isNotEmpty;
+
+      // If we have at least one provider enabled and it HAS a key, we can proceed.
+      // The AiService/AiModelScorer will handle selecting the available one.
+      final bool canWorkWithGemini = isGeminiEnabled && hasGeminiKey;
+      final bool canWorkWithGroq = isGroqEnabled && hasGroqKey;
+
+      if (!canWorkWithGemini && !canWorkWithGroq) {
+        logger.w('[Manager] Translation aborted: No available providers with API keys.');
+        ref.read(playerProvider('main').notifier).setPlaying(false);
+        
+        String errorMessage = 'Please enable at least one AI service (Gemini or Groq) and provide its API key in Settings.';
+        if (isGeminiEnabled && !hasGeminiKey && !isGroqEnabled) {
+          errorMessage = 'Gemini is enabled but API key is missing. Please add it in Settings.';
+        } else if (isGroqEnabled && !hasGroqKey && !isGeminiEnabled) {
+          errorMessage = 'Groq is enabled but API key is missing. Please add it in Settings.';
+        }
+
+        ref.read(aiErrorStateProvider.notifier).state = AiUserFacingError(
+          title: 'AI Services Unavailable',
+          message: errorMessage,
+          instruction: 'Go to Settings and make sure you have enabled a service with a valid API key.',
+        );
+        return;
+      }
 
       // Mark as processing
       for (var p in phrases) {
@@ -198,7 +264,15 @@ class TranslationBackgroundManager {
         if (config.getIsAutomaticModelSwitch && result.failedStepType != null && result.failedModel != null) {
           final stepType = _mapStepToEnum(result.failedStepType!);
           if (stepType != null) {
-             final fallback = await ref.read(aiModelServiceProvider).getBestFallbackModel(stepType, result.failedModel!.name);
+             final enabledProviders = <AiProvider>{
+               if (config.getIsGeminiEnabled) AiProvider.google,
+               if (config.getIsGroqEnabled) AiProvider.groq,
+             };
+             final fallback = await ref.read(aiModelServiceProvider).getBestFallbackModel(
+               stepType, 
+               result.failedModel!.name,
+               enabledProviders: enabledProviders,
+             );
              if (fallback != null) {
                logger.i('[Manager] Attempt failed (${result.error?.message}). Switching model to ${fallback.name}. Waiting 3s before retry...');
                await ref.read(aiModelServiceProvider).incrementErrorCount(result.failedModel!.name, errorMessage: result.error?.message);
@@ -217,7 +291,7 @@ class TranslationBackgroundManager {
         // SILENT ERRORS: Only show dialog if NOT handled by automatic switch OR if it's a manual request (Normal priority)
         if (!handledWithFallback || task.priority == TaskPriority.normal) {
           // Pause video on fatal error
-          ref.read(playerProvider.notifier).setPlaying(false);
+          ref.read(playerProvider('main').notifier).setPlaying(false);
           
           // Trigger global error dialog
           if (result.error != null) {
@@ -235,7 +309,7 @@ class TranslationBackgroundManager {
       await ref.read(phraseServiceProvider).resetTranslatingState(task.phraseIds);
       
       // Pause video on fatal error
-      ref.read(playerProvider.notifier).setPlaying(false);
+      ref.read(playerProvider('main').notifier).setPlaying(false);
       
       // Trigger global error
       if (e is GeminiException) {
@@ -278,15 +352,37 @@ class TranslationBackgroundManager {
   int get activeTasks => _activeTasks;
 
   void cancelTask(int videoId) async {
+    final tasksToCancel = _queue.where((t) => t.videoId == videoId).toList();
+    final cancelledPhraseIds = tasksToCancel.expand((t) => t.phraseIds).toList();
+    
     _queue.removeWhere((t) => t.videoId == videoId);
     ref.read(translationQueueProvider.notifier).state = List.from(_queue);
-    logger.i('[Manager] Translation tasks for video $videoId cancelled from queue.');
+    
+    logger.i('[Manager] Translation tasks for video $videoId cancelled from queue. Resetting ${cancelledPhraseIds.length} phrases.');
 
     try {
+      final phraseService = ref.read(phraseServiceProvider);
+      
+      // 1. Reset all phrases that were pending in the queue
+      if (cancelledPhraseIds.isNotEmpty) {
+        await phraseService.resetTranslatingState(cancelledPhraseIds);
+      }
+
+      // 2. Also proactively find any other phrases marked as processing for this video and reset them
+      final allPhrases = await phraseService.getPhrasesByVideoId(videoId);
+      final activeProcessingIds = allPhrases
+          .where((p) => p.uiStatus.isProcessing)
+          .map((p) => p.id)
+          .toList();
+          
+      if (activeProcessingIds.isNotEmpty) {
+        await phraseService.resetTranslatingState(activeProcessingIds);
+      }
+
       final jobService = ref.read(jobServiceProvider);
       await jobService.cancelJobsForVideo(videoId);
     } catch (e) {
-      logger.e('[Manager] Failed to mark jobs as stopped for video $videoId', error: e);
+      logger.e('[Manager] Failed to cleanup after cancelling tasks for video $videoId', error: e);
     }
   }
 }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:eiga/providers/ui/language_provider.dart';
+import 'package:eiga/providers/ui/upload_provider.dart';
 import 'package:eiga/config/languages/language_hub.dart';
+import '../../../../providers/ui/language_provider.dart';
 import '../../../styles/additional_window_theme.dart';
 import '../../../styles/app_colors.dart';
 import '../../cards/language_widget.dart';
@@ -17,6 +18,36 @@ class LanguageSelectionSection extends ConsumerStatefulWidget {
 class _LanguageSelectionSectionState extends ConsumerState<LanguageSelectionSection> {
   LanguageType _selectedTabType = LanguageType.original;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final languageState = ref.read(languageProvider);
+      final uploadState = ref.read(uploadProvider);
+      
+      // Автовизначення мови (якщо ще не встановлена), шукаємо в назві файлу або субтитрів
+      if (languageState.original == null) {
+        final sampleText = '${uploadState.fileName ?? ''} ${uploadState.subtitleFileName ?? ''}';
+        for (var lang in LanguageHub.all) {
+          if (sampleText.toLowerCase().contains(lang.name.toLowerCase()) || sampleText.toLowerCase().contains(lang.code.toLowerCase())) {
+            ref.read(languageProvider.notifier).setOriginal(lang.name);
+            break;
+          }
+        }
+      }
+
+      // Якщо мову не вдалося задетектувати автоматично, відкриваємо нижній діалог вибору (BottomSheet)
+      if (ref.read(languageProvider).original == null) {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => const LanguagePreviewWidget(),
+        );
+      }
+    });
+  }
+
   Widget _buildInlineTabTrigger({
     required String label,
     required String? currentValue,
@@ -29,10 +60,10 @@ class _LanguageSelectionSectionState extends ConsumerState<LanguageSelectionSect
         onTap: () => setState(() => _selectedTabType = type),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
           decoration: BoxDecoration(
             color: isSelected ? theme.primaryAccent.withValues(alpha: 0.06) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: isSelected ? theme.primaryAccent : AppColors.slate200,
               width: isSelected ? 1.5 : 1.0,
@@ -51,7 +82,7 @@ class _LanguageSelectionSectionState extends ConsumerState<LanguageSelectionSect
               ),
               const SizedBox(height: 4),
               Text(
-                currentValue ?? (type == LanguageType.original ? 'Select Source' : 'Select Target'),
+                currentValue ?? (type == LanguageType.original ? 'Select' : 'Select'),
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -84,7 +115,7 @@ class _LanguageSelectionSectionState extends ConsumerState<LanguageSelectionSect
         Row(
           children: [
             _buildInlineTabTrigger(
-              label: 'ORIGINAL (AUDIO/OCR)',
+              label: 'Original',
               currentValue: languageState.original,
               type: LanguageType.original,
               theme: theme,
@@ -97,7 +128,7 @@ class _LanguageSelectionSectionState extends ConsumerState<LanguageSelectionSect
             ),
             const SizedBox(width: 8),
             _buildInlineTabTrigger(
-              label: 'TARGET (SMART AI)',
+              label: 'Translation',
               currentValue: languageState.target,
               type: LanguageType.translation,
               theme: theme,
@@ -128,23 +159,6 @@ class _LanguageSelectionSectionState extends ConsumerState<LanguageSelectionSect
               );
             },
           ),
-        
-        // Маленька кнопка для відкриття альтернативного повноекранного діалогу
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            onPressed: () => showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (context) => const LanguagePreviewWidget(),
-            ),
-            icon: const Icon(Icons.fullscreen_rounded, size: 14),
-            label: const Text('Open dialog picker', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-            style: TextButton.styleFrom(foregroundColor: theme.primaryAccent, padding: const EdgeInsets.symmetric(horizontal: 4)),
-          ),
-        ),
       ],
     );
   }

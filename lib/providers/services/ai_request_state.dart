@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:hooks_riverpod/legacy.dart';
 import '../../backend/services/utils/ai_exceptions.dart';
 
 import '../../backend/database/schemas/ai_model.dart';
@@ -44,4 +43,12 @@ class AiRequestResult {
       );
 }
 
-final aiRequestResultProvider = StateProvider<AiRequestResult?>((ref) => null);
+class AiRequestResultNotifier extends Notifier<AiRequestResult?> {
+  @override
+  AiRequestResult? build() => null;
+  set state(AiRequestResult? value) => super.state = value;
+}
+
+final aiRequestResultProvider = NotifierProvider<AiRequestResultNotifier, AiRequestResult?>(
+  AiRequestResultNotifier.new,
+);

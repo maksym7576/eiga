@@ -6,6 +6,7 @@ import 'package:eiga/backend/database/schemas/video.dart';
 import 'package:eiga/providers/services/isar_services_providers.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/ui/language_provider.dart';
+import 'package:eiga/providers/services/translation_provider.dart';
 import 'package:eiga/backend/services/background/translation_background_manager.dart';
 import 'package:eiga/ui/styles/app_colors.dart';
 import 'package:intl/intl.dart';
@@ -94,7 +95,8 @@ class _VideoLibraryCardContent extends ConsumerWidget {
     }
 
     final isAiTranscription = video.subtitleFileName == 'AI Generated' || video.subtitleSource == 'ai';
-    final isReady = video.isSubtitleReady == true || (!isAiTranscription && video.pathSubtitle != null);
+    final hasNoSubtitles = video.subtitleSource == 'none';
+    final isReady = video.isSubtitleReady == true || hasNoSubtitles || (!isAiTranscription && video.pathSubtitle != null);
     
     // Fallback: If video.processingProgress is 0 or null, check if there's an active job
     final jobsAsync = ref.watch(translationJobsStreamProvider(video.id));
@@ -131,10 +133,36 @@ class _VideoLibraryCardContent extends ConsumerWidget {
     }
 
     return GestureDetector(
-      onTap: isReady ? onTap : () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('AI is still generating subtitles for this video...')),
-        );
+      onTap: () {
+        if (!isReady) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('AI is still generating subtitles for this video...')),
+          );
+        } else if (hasNoSubtitles) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: const Text('Open without subtitles?'),
+              content: const Text('This video has no subtitles. Are you sure you want to open it?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onTap();
+                  },
+                  child: const Text('Open', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          );
+        } else {
+          onTap();
+        }
       },
       child: SizedBox(
         width: width,
@@ -476,6 +504,30 @@ class _VideoCardMenu extends ConsumerWidget {
               const SnackBar(content: Text('Local cache removed')),
             );
           }
+        } else if (value == 'translate_all') {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: const Text('Translate everything?'),
+              content: const Text('This will queue ALL untranslated phrases for this video. It may take some time and consume AI quota.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true), 
+                  child: const Text('Translate All', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))
+                ),
+              ],
+            ),
+          );
+          if (confirmed == true) {
+            ref.read(translationProvider.notifier).translateAll(video.id);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('All phrases queued for translation')),
+              );
+            }
+          }
         } else if (value == 'delete') {
           final confirmed = await showDialog<bool>(
             context: context,
@@ -565,6 +617,19 @@ class _VideoCardMenu extends ConsumerWidget {
               ],
             ),
           ),
+
+        if (video.isSubtitleReady == true)
+          const PopupMenuItem(
+            value: 'translate_all',
+            child: Row(
+              children: [
+                Icon(Icons.translate_rounded, size: 18, color: Colors.blue),
+                SizedBox(width: 12),
+                Text('Translate All', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.blue)),
+              ],
+            ),
+          ),
+
         const PopupMenuDivider(),
         const PopupMenuItem(
           value: 'delete',

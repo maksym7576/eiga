@@ -5,12 +5,14 @@ import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import '../../../providers/services/translation_provider.dart';
 import '../subtitles/windowed_subtitle.dart';
+import '../subtitles/components/shimmer_text.dart';
 
 class PlayerPhraseItem extends HookConsumerWidget {
   final Phrase phrase;
   final bool isActive;
   final bool isPast;
   final bool isFuture;
+  final String playerScope;
 
   const PlayerPhraseItem({
     super.key,
@@ -18,11 +20,12 @@ class PlayerPhraseItem extends HookConsumerWidget {
     this.isActive = false,
     this.isPast = false,
     this.isFuture = false,
+    this.playerScope = 'main',
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isAutoScrollEnabled = ref.watch(isAutoScrollEnabledProvider);
+    final isAutoScrollEnabled = ref.watch(isAutoScrollEnabledProvider(playerScope));
     // Removed playerTimeProvider watch to prevent high-frequency rebuilds
 
     final startBase = DateTime(1970, 1, 1);
@@ -37,14 +40,18 @@ class PlayerPhraseItem extends HookConsumerWidget {
       itemOpacity = 0.7; // Slightly increased for better overall balance
     }
 
+    // A card is only considered "translating" if its current stage is actually in 'processing' state.
+    // Cards in 'pending' or 'completed' should not show background animations.
+    final bool isTranslating = phrase.uiStatus.isProcessing;
+
     return RepaintBoundary(
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
           if (phrase.startTime != null) {
             final position = phrase.startTime!.difference(startBase);
-            ref.read(playerProvider.notifier).seekTo(position);
-            ref.read(playerProvider.notifier).setAutoScroll(true);
+            ref.read(playerProvider(playerScope).notifier).seekTo(position);
+            ref.read(playerProvider(playerScope).notifier).setAutoScroll(true);
             
             // If not translated, trigger a focused translation request for this part of video
             if (!phrase.isTranslated && !phrase.isTranslating) {
@@ -52,75 +59,82 @@ class PlayerPhraseItem extends HookConsumerWidget {
             }
           }
           // Clear word selection when tapping background
-          ref.read(playerProvider.notifier).clearSelection();
-          ref.read(playerProvider.notifier).setPlaying(true);
+          ref.read(playerProvider(playerScope).notifier).clearSelection();
+          ref.read(playerProvider(playerScope).notifier).setPlaying(true);
         },
-        child: Container(
-          width: double.infinity,
-          padding: EdgeInsets.only(
-            left: isActive ? 8 : (isAutoScrollEnabled ? 16 : 8),
-            right: 16,
-            top: 14,
-            bottom: 14,
-          ),
-          decoration: BoxDecoration(
-            gradient: isActive
-                ? const LinearGradient(
-                    colors: [
-                      Color(0xB2EEF2FF), // EEF2FF @ 70%
-                      Color(0x4DEEF2FF), // EEF2FF @ 30%
-                      Colors.transparent,
-                    ],
-                    stops: [0.0, 0.5, 1.0],
-                  )
-                : null,
-            color: isActive ? null : Colors.white,
-            border: Border(
-              bottom: const BorderSide(color: Color(0xFFF1F5F9)),
-              left: isActive ? const BorderSide(color: Color(0xFF3B66F5), width: 4) : BorderSide.none,
-            ),
-          ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Opacity(
-                opacity: itemOpacity,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (!isAutoScrollEnabled)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: _buildTimeColumn(phrase, isActive),
-                      ),
-                    Expanded(
-                      child: WindowedSubtitle(
-                        phrase: phrase,
-                        isPast: isPast,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isActive)
-                Positioned(
-                  right: -14,
-                  top: 0,
-                  bottom: 0,
-                  child: Center(
-                    child: Container(
-                      width: 2,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF3B66F5).withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(1),
-                      ),
-                    ),
+        child: _buildMainContent(context, ref, isAutoScrollEnabled, isTranslating, itemOpacity),
+      ),
+    );
+  }
+
+  Widget _buildMainContent(BuildContext context, WidgetRef ref, bool isAutoScrollEnabled, bool isTranslating, double itemOpacity) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.only(
+        left: isActive ? 8 : (isAutoScrollEnabled ? 16 : 8),
+        right: 16,
+        top: 14,
+        bottom: 14,
+      ),
+      decoration: BoxDecoration(
+        gradient: isActive
+            ? const LinearGradient(
+                colors: [
+                  Color(0xB2EEF2FF), // EEF2FF @ 70%
+                  Color(0x4DEEF2FF), // EEF2FF @ 30%
+                  Colors.transparent,
+                ],
+                stops: [0.0, 0.5, 1.0],
+              )
+            : null,
+        color: isActive ? null : Colors.white,
+        border: Border(
+          bottom: const BorderSide(color: Color(0xFFF1F5F9)),
+          left: isActive 
+              ? const BorderSide(color: Color(0xFF3B66F5), width: 4) 
+              : BorderSide.none,
+        ),
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Opacity(
+            opacity: itemOpacity,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!isAutoScrollEnabled)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _buildTimeColumn(phrase, isActive),
+                  ),
+                Expanded(
+                  child: WindowedSubtitle(
+                    phrase: phrase,
+                    isPast: isPast,
+                    playerScope: playerScope,
                   ),
                 ),
-            ],
+              ],
+            ),
           ),
-        ),
+          if (isActive)
+            Positioned(
+              right: -14,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: Container(
+                  width: 2,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3B66F5).withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

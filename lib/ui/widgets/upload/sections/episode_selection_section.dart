@@ -1,355 +1,567 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
 import 'package:eiga/providers/ui/search_provider.dart';
-import 'package:eiga/providers/ui/metadata_state_provider.dart';
+import 'package:eiga/providers/ui/jimaku_files_provider.dart';
 import '../../../../backend/database/dto/media_dto.dart';
 import '../../../styles/additional_window_theme.dart';
 import '../../../styles/app_colors.dart';
 import '../../dialogs/app_bottom_sheet.dart';
-import '../../search/cloud/cloud_subtitle_source.dart';
-import '../../shared/app_text_field.dart';
 import '../../shared/app_text_button.dart';
-
-import '../sheets/sync_preview_sheet.dart';
+import '../selectors/subtitle_method_selector.dart';
 import '../components/sync_status_indicators.dart';
+import '../components/sync_technical_details.dart';
+import '../../search/cloud/cloud_file_tile.dart';
+import '../../search/cloud/cloud_group_tile.dart';
+import 'subtitle_version_section.dart';
+import 'subtitle_input_section.dart';
+import 'subtitle_preview_list.dart';
 
-class EpisodeSelectionSection extends ConsumerWidget {
+class EpisodeSelectionSection extends HookConsumerWidget {
   const EpisodeSelectionSection({super.key});
-
-  void _showPreview(BuildContext context, UploadState state) {
-    AppBottomSheet.show(
-      context: context,
-      heightFactor: 0.9,
-      child: SyncPreviewSheet(
-        videoPath: state.videoPath!,
-        phrases: state.previewPhrases,
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = AdditionalWindowTheme.of(context);
     final state = ref.watch(uploadProvider);
-    final subtitleSource = ref.watch(uploadProvider.select((s) => s.subtitleSource));
-    
-    final selectedEntry = subtitleSource == SubtitleSource.local
-        ? ref.watchAniListSelectedEntry()
-        : ref.watchJimakuSelectedEntry();
+    final theme = AdditionalWindowTheme.of(context);
+    final entry = ref.watchJimakuSelectedEntry() ?? ref.watchSelectedMetadataEntry();
+    final isTechExpanded = useState(false);
 
-    if (selectedEntry == null) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        child: Row(
-          children: [
-            Icon(Icons.info_outline, size: 16, color: theme.mutedText),
-            const SizedBox(width: 10),
-            Text(
-              'Match media in step 2 to select episodes',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: theme.mutedText,
-              ),
-            ),
+    if (state.subtitleSource == SubtitleSource.none) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildMethodHeader(theme, 'Custom Subtitle Attachment', Icons.upload_file_rounded),
+          const SizedBox(height: 16),
+          const SubtitleInputSection(showHeader: false),
+          if (state.activeSelection != null) ...[
+            const SizedBox(height: 24),
+            _buildActiveSubtitleCard(context, ref, state, isTechExpanded),
           ],
-        ),
+        ],
       );
     }
 
-    int? epCount;
-    List<int> episodes = const [];
-
-    if (subtitleSource == SubtitleSource.local) {
-      final aniListData = ref.watch(aniListProvider).value;
-      final displayData = (aniListData != null && aniListData.sourceId == selectedEntry.sourceId) ? aniListData : selectedEntry;
-      epCount = displayData.episodes;
-    } else {
-      final id = selectedEntry.sourceId;
-      if (subtitleSource == SubtitleSource.jimaku) {
-        final sourceKey = SearchSourceKeys.jimaku;
-        final summary = ref.watch(cloudSummaryProvider((sourceKey, id)));
-        epCount = summary?.episodeCount;
-        episodes = summary?.episodes ?? const [];
-      }
+    if (state.subtitleSource == SubtitleSource.ai) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildMethodHeader(theme, 'Neural Audio Transcription', Icons.auto_awesome_rounded),
+          const SizedBox(height: 16),
+          if (state.activeSelection != null) ...[
+            _buildAiTranscriptionConfig(context, ref, state, theme),
+            const SizedBox(height: 24),
+            _buildActiveSubtitleCard(context, ref, state, isTechExpanded),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFEFF6FF), Color(0xFFF8FAFC)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFDBEAFE)),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AI Transcription Ready',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Subtitles will be generated once you add the video. Please keep the app open and do not lock your phone as this process may take a while.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                      fontWeight: FontWeight.w500,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      );
     }
 
-    final visibleEpisodes = episodes.length > 12 ? episodes.take(12).toList() : episodes;
-    final hasMoreEpisodes = episodes.length > 12;
+    final needsEntry = state.subtitleMethod == SubtitleMethod.quick ||
+        state.subtitleMethod == SubtitleMethod.ai_scan ||
+        (state.subtitleMethod == SubtitleMethod.manual && state.subtitleSource != SubtitleSource.local);
 
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SubtitleMethodSelector(),
+        const SizedBox(height: 24),
+
+        // ВЕРХ: залежить від методу
+        if (needsEntry && entry == null)
+          _buildEmptyState(theme, 'Match media in Step 2 to enable features here')
+        else
+          _buildContentByMethod(context, ref, state, entry),
+
+        if (state.isParsing) ...[
+          const SizedBox(height: 16),
+          const LinearProgressIndicator(),
+        ],
+
+        // НИЗ: однаковий для всіх методів
+        if (state.activeSelection != null) ...[
+          const SizedBox(height: 24),
+          if (state.analyzedVersions.length > 1 || state.subtitleMethod == SubtitleMethod.ai_scan)
+            const SubtitleVersionSection()
+          else
+            _buildActiveSubtitleCard(context, ref, state, isTechExpanded),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildAiTranscriptionConfig(BuildContext context, WidgetRef ref, UploadState state, AdditionalWindowTheme theme) {
     return Container(
-      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Select Episode',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: theme.normalText,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(10),
                 ),
+                child: const Icon(Icons.psychology_rounded, color: Color(0xFF2563EB), size: 20),
               ),
-              if (subtitleSource == SubtitleSource.jimaku && epCount != null && episodes.isNotEmpty && hasMoreEpisodes)
-                AppTextButton(
-                  onPressed: () => _showAllEpisodes(context, ref, episodes, selectedEntry, subtitleSource),
-                  text: 'See all $epCount',
-                ),
+              const SizedBox(width: 12),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Whisper Neural Engine', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                  Text('Automatic speech-to-text conversion', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          
-          if (subtitleSource == SubtitleSource.jimaku && episodes.isNotEmpty) ...[
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: visibleEpisodes.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 2.2,
+          const SizedBox(height: 20),
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'Subtitles will be automatically generated by the AI neural network.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
               ),
-              itemBuilder: (context, index) {
-                final episode = visibleEpisodes[index];
-                return _buildEpisodeButton(
-                   context, 
-                   ref,
-                   episode, 
-                   selectedEntry,
-                   subtitleSource,
-                   isSelected: ref.watch(uploadProvider.select((s) => s.episode)) == episode.toString(),
-                 );
-              },
             ),
-          ] else if (subtitleSource == SubtitleSource.local || subtitleSource == SubtitleSource.ai) ...[
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Expanded(
-                  child: AppTextField(
-                    onChanged: (val) => ref.read(uploadProvider.notifier).setEpisode(val),
-                    keyboardType: TextInputType.number,
-                    hintText: 'Episode number (Optional)',
-                    controller: TextEditingController(text: ref.read(uploadProvider).episode),
-                  ),
-                ),
-                if (ref.watch(uploadProvider).subtitlePath != null && subtitleSource != SubtitleSource.ai) ...[
-                  const SizedBox(width: 12),
-                  _LocalSyncStatusIndicator(),
-                ],
-              ],
-            ),
-          ] else ...[
-            Text(
-              'Analyzing files...',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: theme.mutedText),
-            ),
-          ],
-          
-          if (subtitleSource != SubtitleSource.ai) ...[
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Text(
-                  'Sync subtitle',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: theme.normalText,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                const Spacer(),
-                if (!state.isEvaluatingBatch && !state.isCheckingSync && state.episode != null && (state.subtitleSource == SubtitleSource.jimaku)) ...[
-                  ElevatedButton(
-                    onPressed: () {
-                      final sourceKey = SearchSourceKeys.jimaku;
-                      final entry = ref.read(selectedEntryProvider(sourceKey));
-                      if (entry is UnifiedMetadataDTO) {
-                        ref.read(uploadProvider.notifier).evaluateAllEpisodeSubtitles();
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.primaryAccent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    child: const Text('Start Analysis', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                if (state.previewPhrases.isNotEmpty)
-                  AppTextButton(
-                    onPressed: () => _showPreview(context, state),
-                    text: 'Manual Preview',
-                  ),
-              ],
-            ),
-            if (state.isEvaluatingBatch || state.isCheckingSync) ...[
-              const SizedBox(height: 16),
-              buildBatchProgress(state, theme),
-            ],
-            if (!state.isEvaluatingBatch && !state.isCheckingSync && state.analyzedVersions.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  'No versions analyzed yet',
-                  style: TextStyle(fontSize: 11, color: theme.mutedText, fontWeight: FontWeight.w500),
-                ),
-              ),
-          ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildEpisodeButton(BuildContext context, WidgetRef ref, int episode, UnifiedMetadataDTO entry, SubtitleSource source, {bool isSelected = false}) {
+  Widget _buildContentByMethod(BuildContext context, WidgetRef ref, UploadState state, UnifiedMetadataDTO? entry) {
+    switch (state.subtitleMethod) {
+      case SubtitleMethod.manual: return _buildManualView(context, ref, state, entry);
+      case SubtitleMethod.quick:  return _buildQuickView(context, ref, state, entry!);
+      case SubtitleMethod.ai_scan: return _buildAiScanView(context, ref, state, entry!);
+      case SubtitleMethod.video:  return _buildVideoView(context, state);
+    }
+  }
+
+  // --- MANUAL VIEW: Folder Tree View ---
+  Widget _buildManualView(BuildContext context, WidgetRef ref, UploadState state, UnifiedMetadataDTO? entry) {
     final theme = AdditionalWindowTheme.of(context);
+    final jimakuId = entry?.jimakuId?.toString() ?? entry?.sourceId ?? '';
+    final filesState = ref.watch(jimakuFilesProvider(jimakuId));
     
-    return InkWell(
-      onTap: () {
-        final sourceKey = SearchSourceKeys.jimaku;
-        CloudSubtitleSource(sourceKey).selectEpisodeSubtitle(entry, episode, ref);
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? theme.primaryAccent : AppColors.slate100,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: theme.primaryAccent.withValues(alpha: 0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            )
-          ] : null,
-        ),
-        child: Center(
-          child: Text(
-            'Ep $episode',
-            style: TextStyle(
-              color: isSelected ? Colors.white : AppColors.slate700,
-              fontSize: 11,
-              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+    if (filesState.isLoading) return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildMethodHeader(theme, 'Select from Community', Icons.cloud_queue_rounded),
+        const SizedBox(height: 12),
+        if (filesState.rawFiles.isEmpty)
+          _buildEmptyState(theme, 'No files found on Jimaku for this entry')
+        else
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 500),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: filesState.files.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 6),
+              itemBuilder: (context, index) {
+                final item = filesState.files[index];
+                if (item.isGroup) {
+                  return CloudGroupTile(
+                    group: item.group!,
+                    onTap: () => ref.read(jimakuFilesProvider(jimakuId).notifier).toggleGroup(item.group!.name),
+                  );
+                } else {
+                  final file = item.file!;
+                  final isActive = state.manualSelection?.fileName == file.name;
+                  final bool isSubItem = filesState.expandedGroups.any((g) => file.name.contains(g));
+                  
+                  return CloudFileTile(
+                    file: file,
+                    isActive: isActive,
+                    onTap: () => ref.read(uploadProvider.notifier).selectManual(file),
+                    isSubItem: isSubItem,
+                  );
+                }
+              },
             ),
           ),
-        ),
+      ],
+    );
+  }
+
+  // --- QUICK VIEW: Episode Picker + Algorithm ---
+  Widget _buildQuickView(BuildContext context, WidgetRef ref, UploadState state, UnifiedMetadataDTO entry) {
+    final theme = AdditionalWindowTheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildMethodHeader(theme, 'Auto-Match by Episode', Icons.bolt_rounded),
+        const SizedBox(height: 12),
+        _buildEpisodeGrid(context, ref, state, entry, (ep) => ref.read(uploadProvider.notifier).runQuickMatch(ep)),
+      ],
+    );
+  }
+
+  Widget _buildMatchedFileBanner(AdditionalWindowTheme theme, String fileName) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.primaryAccent.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.primaryAccent.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.auto_awesome_rounded, size: 14, color: theme.primaryAccent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Auto-matched: $fileName',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: theme.primaryAccent,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  void _showAllEpisodes(BuildContext context, WidgetRef ref, List<int> episodes, UnifiedMetadataDTO entry, SubtitleSource source) {
+  // --- AI SCAN VIEW: Episode Picker + Batch Scan ---
+  Widget _buildAiScanView(BuildContext context, WidgetRef ref, UploadState state, UnifiedMetadataDTO entry) {
     final theme = AdditionalWindowTheme.of(context);
-    final selectedEp = ref.watch(uploadProvider.select((state) => state.episode));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildMethodHeader(theme, 'Neural Episode Search', Icons.auto_awesome_rounded),
+            if ((ref.watch(cloudSummaryProvider((SearchSourceKeys.jimaku, entry.sourceId)))?.episodes.length ?? entry.episodes ?? 0) > 12)
+              AppTextButton(
+                onPressed: () => _showAllEpisodesDialog(context, ref, state, entry, (ep) => ref.read(uploadProvider.notifier).runAiBatchMatch(ep)),
+                text: 'See more',
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildEpisodeGrid(context, ref, state, entry, (ep) => ref.read(uploadProvider.notifier).runAiBatchMatch(ep), limit: 12),
+        if (state.isEvaluatingBatch) ...[
+          const SizedBox(height: 16),
+          buildBatchProgress(state, theme),
+        ],
+      ],
+    );
+  }
 
+  void _showAllEpisodesDialog(BuildContext context, WidgetRef ref, UploadState state, UnifiedMetadataDTO entry, Function(String) onSelected) {
     AppBottomSheet.show(
       context: context,
-      heightFactor: 0.8,
-      child: Builder(
-        builder: (sheetContext) => Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const AppBottomSheetHeader(
-              title: 'Select Episode',
-            ),
-            const SizedBox(height: 8),
-            Flexible(
-              child: GridView.builder(
-                shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(20, 0, 12, 20),
-                itemCount: episodes.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: 2.2,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const AppBottomSheetHeader(title: 'All Episodes'),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _buildEpisodeGrid(context, ref, state, entry, (ep) {
+              Navigator.pop(context);
+              onSelected(ep);
+            }),
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  // --- VIDEO VIEW: Embedded Track ---
+  Widget _buildVideoView(BuildContext context, UploadState state) {
+    final theme = AdditionalWindowTheme.of(context);
+    if (state.videoSelection == null) {
+      return _buildEmptyState(theme, 'Select an embedded subtitle track in the player first');
+    }
+    return _buildMethodHeader(theme, 'Embedded Track', Icons.movie_filter_rounded);
+  }
+
+  // --- REUSABLE COMPONENTS ---
+
+  Widget _buildEpisodeGrid(BuildContext context, WidgetRef ref, UploadState state, UnifiedMetadataDTO entry, Function(String) onSelected, {int? limit}) {
+    final theme = AdditionalWindowTheme.of(context);
+    final summary = ref.watch(cloudSummaryProvider((SearchSourceKeys.jimaku, entry.sourceId)));
+    var episodes = summary?.episodes ?? List.generate(entry.episodes ?? 1, (i) => i + 1);
+    
+    if (limit != null && episodes.length > limit) {
+      episodes = episodes.sublist(0, limit);
+    }
+    
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: episodes.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4, 
+        childAspectRatio: 2.2, 
+        mainAxisSpacing: 10, 
+        crossAxisSpacing: 10
+      ),
+      itemBuilder: (context, index) {
+        final ep = episodes[index].toString();
+        final isSelected = int.tryParse(state.episode ?? '') == int.tryParse(ep);
+        
+        return Material(
+          color: isSelected ? const Color(0xFFEFF6FF).withValues(alpha: 0.7) : const Color(0xFFF1F5F9).withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: () => onSelected(ep),
+            borderRadius: BorderRadius.circular(12),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected ? theme.primaryAccent : Colors.transparent,
+                  width: 2,
                 ),
-                itemBuilder: (context, index) {
-                  final episode = episodes[index];
-                  final isSelected = selectedEp == episode.toString();
-                  return InkWell(
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    final sourceKey = SearchSourceKeys.jimaku;
-                    CloudSubtitleSource(sourceKey).selectEpisodeSubtitle(entry, episode, ref);
-                  },
-                    borderRadius: BorderRadius.circular(10),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: isSelected ? theme.primaryAccent : AppColors.slate100,
-                        borderRadius: BorderRadius.circular(10),
+                boxShadow: isSelected ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ] : null,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Ep $ep', 
+                    style: TextStyle(
+                      color: isSelected ? theme.primaryAccent : AppColors.slate700, 
+                      fontSize: 13, 
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    )
+                  ),
+                  if (isSelected) ...[
+                    const SizedBox(width: 4),
+                    Icon(Icons.check_rounded, size: 14, color: theme.primaryAccent),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildActiveSubtitleCard(BuildContext context, WidgetRef ref, UploadState state, ValueNotifier<bool> isExpanded) {
+    final theme = AdditionalWindowTheme.of(context);
+    final notifier = ref.read(uploadProvider.notifier);
+    final sel = state.activeSelection!;
+    final isAi = state.subtitleMethod == SubtitleMethod.ai_scan;
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 15,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.description_rounded, color: theme.primaryAccent, size: 20),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                sel.fileName,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.slate900,
+                                  letterSpacing: -0.3,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            IconButton(
+                              onPressed: notifier.clearActiveSelection,
+                              icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.slate400),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              visualDensity: VisualDensity.compact,
+                              tooltip: 'Dismiss file',
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => notifier.setStepIndex(0),
+                      icon: const Icon(Icons.play_circle_outline_rounded, size: 16),
+                      label: const Text('Video Preview'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        foregroundColor: AppColors.slate700,
+                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                       ),
-                      child: Text(
-                        'Ep $episode',
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : AppColors.slate700,
-                          fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF2563EB), Color(0xFF4F46E5)],
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.primaryAccent.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: state.isCheckingSync ? null : notifier.checkCurrentSync,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (state.isCheckingSync)
+                              const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            else
+                              const Icon(Icons.auto_fix_high_rounded, size: 16),
+                            const SizedBox(width: 8),
+                            Text(state.isCheckingSync ? 'Checking...' : 'Check Sync', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            if (!state.isCheckingSync) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text('AI', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ),
-                  );
-                },
+                  ),
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+        if (state.syncConfidence > 0 || state.isCheckingSync)
+          ...buildTechDetails(
+            context,
+            state,
+            theme,
+            notifier,
+            isExpanded,
+            currentOffset: state.suggestedOffset ?? state.activeSelection?.offset,
+          ),
+      ],
     );
   }
-}
 
-class _LocalSyncStatusIndicator extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(uploadProvider);
+  Widget _buildMethodHeader(AdditionalWindowTheme theme, String title, IconData icon) {
+    return Row(children: [Icon(icon, size: 16, color: theme.primaryAccent), const SizedBox(width: 10), Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900))]);
+  }
 
-    if (state.isCheckingSync) {
-      return const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5));
-    }
-
-    IconData icon;
-    Color color;
-
-    switch (state.syncStatus) {
-      case SyncMatchStatus.perfect:
-        icon = Icons.check_circle_rounded;
-        color = AppColors.successText;
-        break;
-      case SyncMatchStatus.offset:
-        icon = Icons.warning_amber_rounded;
-        color = AppColors.warningText;
-        break;
-      case SyncMatchStatus.mismatch:
-        icon = Icons.error_outline_rounded;
-        color = Colors.redAccent;
-        break;
-      default:
-        return const SizedBox.shrink();
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Icon(icon, size: 18, color: color),
-    );
+  Widget _buildEmptyState(AdditionalWindowTheme theme, String message) {
+    return Container(padding: const EdgeInsets.all(20), child: Text(message, style: TextStyle(color: theme.mutedText, fontSize: 12)));
   }
 }

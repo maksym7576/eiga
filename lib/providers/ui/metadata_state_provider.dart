@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:hooks_riverpod/legacy.dart';
 import 'package:eiga/backend/database/dto/media_dto.dart';
 import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
 import '../services/external_api_providers.dart';
@@ -113,5 +112,22 @@ final shikimoriProvider = AsyncNotifierProvider<ShikimoriNotifier, UnifiedMetada
   ShikimoriNotifier.new,
 );
 
-final jimakuEntryFinalProvider = StateProvider<UnifiedMetadataDTO?>((ref) => null);
-final jimakuFileFinalProvider = StateProvider<FileJimakuDTO?>((ref) => null);
+class JimakuEntryFinalNotifier extends Notifier<UnifiedMetadataDTO?> {
+  @override
+  UnifiedMetadataDTO? build() => null;
+  set state(UnifiedMetadataDTO? value) => super.state = value;
+}
+
+final jimakuEntryFinalProvider = NotifierProvider<JimakuEntryFinalNotifier, UnifiedMetadataDTO?>(
+  JimakuEntryFinalNotifier.new,
+);
+
+class JimakuFileFinalNotifier extends Notifier<FileJimakuDTO?> {
+  @override
+  FileJimakuDTO? build() => null;
+  set state(FileJimakuDTO? value) => super.state = value;
+}
+
+final jimakuFileFinalProvider = NotifierProvider<JimakuFileFinalNotifier, FileJimakuDTO?>(
+  JimakuFileFinalNotifier.new,
+);

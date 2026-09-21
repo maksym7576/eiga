@@ -228,7 +228,7 @@ class SubtitleSettingsNotifier extends Notifier<SubtitleSettings> {
     config.setSubFontWeightFs(0.5);
 
     // Reset Win
-    config.setSubWindowedFontSize(18.0);
+    config.setSubWindowedFontSize(12.0);
     config.setSubOriginalScaleWin(1.0);
     config.setSubTranslationScaleWin(1.0);
     config.setSubAdditionalScaleWin(1.0);

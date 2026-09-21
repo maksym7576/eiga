@@ -15,8 +15,13 @@ class ShimmerText extends StatefulWidget {
       Color(0xFF0F172A),
       Color(0xFF0F172A),
     ],
+    this.shimmerStops,
     this.duration = const Duration(milliseconds: 2200),
+    this.blendMode = BlendMode.srcIn,
   });
+
+  final List<double>? shimmerStops;
+  final BlendMode blendMode;
 
   @override
   State<ShimmerText> createState() => _ShimmerTextState();
@@ -43,13 +48,15 @@ class _ShimmerTextState extends State<ShimmerText> with SingleTickerProviderStat
       animation: _controller,
       builder: (context, child) {
         return ShaderMask(
-          blendMode: BlendMode.srcIn,
+          blendMode: widget.blendMode,
           shaderCallback: (bounds) {
             return LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: widget.shimmerColors,
-              stops: const [0.0, 0.35, 0.5, 0.65, 1.0],
+              stops: widget.shimmerStops ?? (widget.shimmerColors.length == 5 
+                ? const [0.0, 0.35, 0.5, 0.65, 1.0] 
+                : null),
               transform: _SlidingGradientTransform(offset: _controller.value),
             ).createShader(bounds);
           },
@@ -68,7 +75,7 @@ class _SlidingGradientTransform extends GradientTransform {
 
   @override
   Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
-    final double t = (offset * 4) - 2;
+    final double t = (offset * 2.5) - 1.25;
     return Matrix4.translationValues(t * bounds.width, 0, 0);
   }
 }

@@ -12,6 +12,8 @@ import 'package:eiga/ui/widgets/popovers/word_details_popover.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 
+import '../../../widgets/player/app_player.dart';
+
 // --- Snappy motion constants for instant response ---
 const _kExpandDuration = Duration(milliseconds: 200);
 const _kCollapseDuration = Duration(milliseconds: 180);
@@ -44,7 +46,8 @@ class VideoMobileView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playerState = ref.watch(playerProvider);
+    const String scope = 'main';
+    final playerState = ref.watch(playerProvider(scope));
     final isFullscreen = playerState.isFullscreen;
     final orientation = MediaQuery.of(context).orientation;
     final video = ref.watch(currentVideoProvider).value;
@@ -78,63 +81,29 @@ class VideoMobileView extends HookConsumerWidget {
     // Persistent video content. Only PlayerView itself carries the
     // GlobalKey — everything else around it (background tap layer,
     // controls, subtitle overlay) is free to rebuild normally.
-    final videoContent = Stack(
-      clipBehavior: Clip.none,
-      children: [
-        const KeyedSubtree(
-          key: GlobalObjectKey('mobile_player_view'),
-          child: PlayerView(),
-        ),
-        const Positioned.fill(child: _VideoPlayerBackgroundLayer()),
-        const Positioned.fill(child: RepaintBoundary(child: PlayerControls())),
-        const FullscreenSubtitle(),
-      ],
+    final videoContent = AppPlayer(
+      scope: scope,
+      aspectRatio: null, // Let the AnimatedPositioned control it
+      showOverlaySubtitlesInWindowed: false, // Don't show overlay subs in windowed mode on mobile video screen
     );
 
     return Scaffold(
       backgroundColor: isFullscreen ? Colors.black : const Color(0xFFF8FAFC),
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onDoubleTap: () {
-          ref.read(playerProvider.notifier).handleLockTap(orientation);
-        },
-        child: Stack(
-          // CRITICAL: with the old Column-based layout, the Column's
-          // Expanded child incidentally forced the Stack to full screen
-          // size. Now that every region is a Positioned/AnimatedPositioned,
-          // the only non-positioned child left is WordDetailsPopover — and
-          // Stack sizes itself to its non-positioned children's natural
-          // size when there is one. WordDetailsPopover has ~zero natural
-          // size when nothing is selected, which collapsed the whole Stack
-          // (and everything positioned inside it) down to nothing, showing
-          // just the Scaffold's white background. StackFit.expand forces
-          // the Stack to always fill the available screen size regardless.
-          fit: StackFit.expand,
-          children: [
-            // --- Video (always mounted, only coordinates animate) ---
-            AnimatedPositioned(
-              duration: containerDuration,
-              curve: containerCurve,
-              top: videoTop,
-              left: 0,
-              right: 0,
-              height: videoHeight,
-              child: RepaintBoundary(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTap: () {
-                    if (isFullscreen && orientation == Orientation.portrait) {
-                      if (!playerState.isLocked) {
-                        ref.read(playerProvider.notifier).setFullscreen(false);
-                      } else {
-                        ref.read(playerProvider.notifier).resetLockAndFullscreen();
-                      }
-                    }
-                  },
-                  child: videoContent,
-                ),
-              ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // --- Video (always mounted, only coordinates animate) ---
+          AnimatedPositioned(
+            duration: containerDuration,
+            curve: containerCurve,
+            top: videoTop,
+            left: 0,
+            right: 0,
+            height: videoHeight,
+            child: RepaintBoundary(
+              child: videoContent,
             ),
+          ),
 
             // --- Header (hidden in fullscreen) ---
             AnimatedPositioned(
@@ -188,11 +157,12 @@ class VideoMobileView extends HookConsumerWidget {
                         return Column(
                           children: [
                             PlayerResizableContainerHandle(
+                              scope: scope,
                               currentHeight: resizableHeight,
                               minHeight: minHeight,
                               maxHeight: maxHeight,
                             ),
-                            const Expanded(child: PlayerPhraseList()),
+                            Expanded(child: PlayerPhraseList(playerScope: scope)),
                           ],
                         );
                       },
@@ -215,27 +185,26 @@ class VideoMobileView extends HookConsumerWidget {
                   opacity: isFullscreen ? 0.0 : 1.0,
                   child: IgnorePointer(
                     ignoring: isFullscreen,
-                    child: const PlayerBottomDock(),
+                    child: PlayerBottomDock(playerScope: scope),
                   ),
                 ),
               ),
             ),
-
-            const WordDetailsPopover(),
           ],
         ),
-      ),
     );
   }
 }
 
 class PlayerResizableContainerHandle extends ConsumerWidget {
+  final String scope;
   final double currentHeight;
   final double minHeight;
   final double maxHeight;
 
   const PlayerResizableContainerHandle({
     super.key,
+    required this.scope,
     required this.currentHeight,
     required this.minHeight,
     required this.maxHeight,
@@ -246,7 +215,7 @@ class PlayerResizableContainerHandle extends ConsumerWidget {
     return GestureDetector(
       onVerticalDragUpdate: (details) {
         final newHeight = (currentHeight + details.delta.dy).clamp(minHeight, maxHeight);
-        ref.read(playerProvider.notifier).updateResizableHeight(newHeight);
+        ref.read(playerProvider(scope).notifier).updateResizableHeight(newHeight);
       },
       child: const PlayerDragIndicator(),
     );
@@ -300,16 +269,17 @@ class _VideoPlayerBackgroundLayer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final orientation = MediaQuery.of(context).orientation;
+    const scope = 'main';
 
     return GestureDetector(
       onTap: () {
-        final playerState = ref.read(playerProvider);
+        final playerState = ref.read(playerProvider(scope));
         if (playerState.isLocked) return;
-        ref.read(playerProvider.notifier).toggleControls();
-        ref.read(playerProvider.notifier).clearSelection();
+        ref.read(playerProvider(scope).notifier).toggleControls();
+        ref.read(playerProvider(scope).notifier).clearSelection();
       },
       onDoubleTap: () {
-        ref.read(playerProvider.notifier).handleLockTap(orientation);
+        ref.read(playerProvider(scope).notifier).handleLockTap(orientation);
       },
       behavior: HitTestBehavior.opaque,
       child: const SizedBox.expand(),

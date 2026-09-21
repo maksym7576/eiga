@@ -10,11 +10,13 @@ import '../../../utils/ui/scaling_utils.dart';
 class WindowedSubtitle extends ConsumerWidget {
   final Phrase phrase;
   final bool isPast;
+  final String playerScope;
 
   const WindowedSubtitle({
     super.key,
     required this.phrase,
     this.isPast = false,
+    this.playerScope = 'main',
   });
 
   @override
@@ -26,11 +28,26 @@ class WindowedSubtitle extends ConsumerWidget {
         if ((phrase.originalPhrase != null && phrase.originalPhrase!.isNotEmpty) || 
             (phrase.translatedPhrase != null && phrase.translatedPhrase!.isNotEmpty)) {
           
-          final isMorphologyRunning = uiStatus.activeStageKey == StageKey.morphology;
+          final Color textColor = isPast ? const Color(0xFF94A3B8) : const Color(0xFF0F172A);
+          final isProcessing = uiStatus.isProcessing;
           final content = _buildTranslatedContent(context, ref, constraints.maxWidth);
 
-          if (isMorphologyRunning) {
-            return ShimmerText(child: content);
+          if (isProcessing) {
+            return ShimmerText(
+              // Using srcATop to keep the original text colors (word statuses)
+              // but overlay the shimmer highlight
+              blendMode: BlendMode.srcATop,
+              shimmerColors: [
+                Colors.transparent,
+                Colors.transparent,
+                const Color(0xFF3B66F5).withValues(alpha: 0.6),
+                const Color(0xFF3B66F5).withValues(alpha: 0.8),
+                const Color(0xFF3B66F5).withValues(alpha: 0.6),
+                Colors.transparent,
+                Colors.transparent,
+              ],
+              child: content,
+            );
           }
           return content;
         }
@@ -39,61 +56,40 @@ class WindowedSubtitle extends ConsumerWidget {
         final activeStageKey = uiStatus.activeStageKey;
         final hasFailed = uiStatus.isError;
 
-        String labelText = '';
-        bool isPulse = false;
-
         if (hasFailed) {
-          labelText = 'Failed processing text';
-        } else {
-          switch (activeStageKey) {
-            case StageKey.translation:
-              labelText = 'Translating sentence...';
-              isPulse = true;
-              break;
-            case StageKey.morphology:
-              labelText = 'Analyzing grammar structures...';
-              isPulse = true;
-              break;
-            case StageKey.tokenizeSource:
-              labelText = 'Tokenizing source...';
-              isPulse = true;
-              break;
-            case StageKey.tokenizeTranslation:
-              labelText = 'Tokenizing translation...';
-              isPulse = true;
-              break;
-            default:
-              labelText = phrase.originalPhrase ?? 'Processing audio timeline...';
-              break;
-          }
-        }
-
-        final Widget textWidget = Text(
-          labelText,
-          style: TextStyle(
-            fontSize: SubtitleScaling.calculateFontSize(constraints.maxWidth, 15),
-            color: hasFailed 
-                ? Colors.redAccent 
-                : (isPast ? Colors.black38 : const Color(0xFF334155)),
-            fontWeight: isPast ? FontWeight.normal : FontWeight.w500,
-          ),
-        );
-
-        if (isPulse) {
-          return ShimmerText(
-            shimmerColors: const [
-              Color(0xFF64748B),
-              Color(0xFF64748B),
-              Color(0xFF3B66F5),
-              Color(0xFF64748B),
-              Color(0xFF64748B),
-            ],
-            child: textWidget,
+          return Text(
+            'Failed processing text',
+            style: TextStyle(
+              fontSize: SubtitleScaling.calculateFontSize(constraints.maxWidth, 15),
+              color: Colors.redAccent,
+              fontWeight: FontWeight.w500,
+            ),
           );
         }
 
-        return textWidget;
+        // When it is processing/translating and there is no text yet, just display the shimmering loading line
+        return _buildShimmerLine(constraints.maxWidth);
       },
+    );
+  }
+
+  Widget _buildShimmerLine(double maxWidth) {
+    return ShimmerText(
+      shimmerColors: const [
+        Color(0xFFE2E8F0),
+        Color(0xFFE2E8F0),
+        Color(0xFF3B66F5),
+        Color(0xFFE2E8F0),
+        Color(0xFFE2E8F0),
+      ],
+      child: Container(
+        width: maxWidth * 0.7,
+        height: 6,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE2E8F0),
+          borderRadius: BorderRadius.circular(3),
+        ),
+      ),
     );
   }
 
@@ -105,15 +101,18 @@ class WindowedSubtitle extends ConsumerWidget {
     
     final settings = ref.watch(subtitleSettingsProvider);
 
+    final Color textColor = isPast ? const Color(0xFF94A3B8) : const Color(0xFF0F172A);
+
     return SubtitleTextContent(
       phrase: phrase,
       mainOption: mainOpt,
       additionalOption: addOpt,
       showTranslation: showTranslation,
       baseFontSize: SubtitleScaling.calculateFontSize(maxWidth, settings.windowed.fontSize),
-      textColor: isPast ? const Color(0xFF94A3B8) : const Color(0xFF0F172A),
+      textColor: textColor,
       useShadows: false,
       isFullscreen: false,
+      playerScope: playerScope,
     );
   }
 }

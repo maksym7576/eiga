@@ -79,8 +79,11 @@ class AssParser {
     final endRaw = parts[2].trim();
     final rawText = parts.sublist(9).join(',');
 
+    // Strip ASS override tags and HTML-like tags early to avoid issues with spacing
     var cleanText = rawText.replaceAll(RegExp(r'\{[^}]*\}'), '');
+    cleanText = cleanText.replaceAll(RegExp(r'<[^>]*>'), '');
     cleanText = cleanText.replaceAll(RegExp(r'\\[Nn]'), ' ').trim();
+    
     if (cleanText.isEmpty) return null;
 
     return _RawDialogue(style, startRaw, endRaw, cleanText);
@@ -100,8 +103,20 @@ class AssParser {
   }
 
   String _processText(String text) {
-    if (removeAllSpaces) return text.replaceAll(RegExp(r'\s+'), '');
-    return text.replaceAll(RegExp(r'\s+'), ' ').trim();
+    // 1. Strip HTML-like tags
+    var cleanText = text.replaceAll(RegExp(r'<[^>]*>'), '');
+
+    // 2. Handle spaces based on language
+    if (removeAllSpaces) {
+      final latinMatch = RegExp(r'[a-zA-Z]').allMatches(cleanText).length;
+      final totalChars = cleanText.replaceAll(RegExp(r'\s+'), '').length;
+      
+      if (totalChars > 0 && (latinMatch / totalChars) > 0.5) {
+        return cleanText.replaceAll(RegExp(r'\s+'), ' ').trim();
+      }
+      return cleanText.replaceAll(RegExp(r'\s+'), '');
+    }
+    return cleanText.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
   DateTime _parseTime(String raw) {

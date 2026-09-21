@@ -8,12 +8,10 @@ abstract class SearchSource<TEntry, TFile> {
   bool get hasFileStage;
   Map<String, dynamic> get defaultFilters;
 
-  Future<List<TEntry>> search(String query, Map<String, dynamic> filters, WidgetRef ref);
-  
-  Future<List<dynamic>> fetchNextPage(String query, int page, Map<String, dynamic> filters, WidgetRef ref);
-
-  Future<List<TFile>> getFiles(TEntry entry, Map<String, dynamic> filters, WidgetRef ref) => Future.value(const []);
-  Future<String> resolve(dynamic selected, WidgetRef ref);
+  Future<List<TEntry>> search(String query, Map<String, dynamic> filters, dynamic ref);
+  Future<List<dynamic>> fetchNextPage(String query, int page, Map<String, dynamic> filters, dynamic ref);
+  Future<List<TFile>> getFiles(TEntry entry, Map<String, dynamic> filters, dynamic ref) => Future.value(const []);
+  Future<String> resolve(dynamic selected, dynamic ref);
   Widget buildFilterBar(BuildContext context, WidgetRef ref);
   Widget buildFileCard(TFile file, bool isActive, VoidCallback onTap) => const SizedBox.shrink();
   String entryId(TEntry entry);

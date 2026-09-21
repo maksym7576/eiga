@@ -3,8 +3,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
 import '../../../styles/additional_window_theme.dart';
 import '../../../styles/app_colors.dart';
-import '../../dialogs/app_bottom_sheet.dart';
-import '../../shared/app_text_button.dart';
 
 class PhrasesPreviewSection extends ConsumerWidget {
   const PhrasesPreviewSection({super.key});
@@ -15,114 +13,52 @@ class PhrasesPreviewSection extends ConsumerWidget {
     final state = ref.watch(uploadProvider);
     final notifier = ref.read(uploadProvider.notifier);
 
-    if (!state.isParsing && state.previewPhrases.isEmpty && state.availableStreams.isEmpty) {
+    if (state.activeSelection == null) {
       return const SizedBox.shrink();
     }
 
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      alignment: Alignment.topCenter,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(bottom: BorderSide(color: theme.dividerColor)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Phrases Preview',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: theme.normalText),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '(${state.previewPhrases.length} lines)',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: theme.mutedText),
-                        ),
-                      ],
-                    ),
-                    if (state.previewPhrases.length > 5)
-                      AppTextButton(
-                        onPressed: () => _showAllPhrases(context, state, theme),
-                        text: 'See all phrases',
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildOptimizationControls(theme, state, notifier),
-                if (state.availableStreams.keys.length > 1) ...[
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: state.availableStreams.keys.map((streamKey) {
-                        final isSelected = state.selectedStreamKey == streamKey;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ChoiceChip(
-                            label: Text('$streamKey (${state.availableStreams[streamKey]?.length ?? 0})', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                            selected: isSelected,
-                            onSelected: (selected) {
-                              if (selected) {
-                                notifier.selectSubtitleStream(streamKey);
-                              }
-                            },
-                            selectedColor: theme.primaryAccent.withValues(alpha: 0.2),
-                            backgroundColor: AppColors.slate100,
-                            labelStyle: TextStyle(color: isSelected ? theme.primaryAccent : AppColors.slate700),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          _buildPhrasesList(theme, state),
-          const SizedBox(height: 12),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: _buildOptimizationControls(theme, state, notifier),
     );
   }
 
   Widget _buildOptimizationControls(AdditionalWindowTheme theme, UploadState state, UploadNotifier notifier) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.slate50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.slate100),
+        color: const Color(0xFFF8FAFC).withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.auto_awesome_rounded, size: 14, color: AppColors.brandBlue),
-              const SizedBox(width: 8),
-              Text(
-                'Animation Optimization',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: theme.primaryAccent),
+              const Icon(Icons.auto_awesome_rounded, size: 16, color: Color(0xFF2563EB)),
+              const SizedBox(width: 10),
+              const Text(
+                'ANIMATION OPTIMIZATION',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A), letterSpacing: 0.5),
               ),
               const Spacer(),
               if (state.appliedPaddingMs > 0 || state.appliedFillGaps)
-                Text(
-                  'Adjusted',
-                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.successText, letterSpacing: 0.5),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.2)),
+                  ),
+                  child: const Text(
+                    'ADJUSTED',
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
+                  ),
                 ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -131,6 +67,7 @@ class PhrasesPreviewSection extends ConsumerWidget {
                   label: 'Original',
                   isSelected: state.appliedPaddingMs == 0 && !state.appliedFillGaps,
                   onSelected: () => notifier.optimizeTimings(0, fillGaps: false),
+                  showCheck: true,
                 ),
                 _OptionChip(
                   label: '+100ms',
@@ -148,17 +85,12 @@ class PhrasesPreviewSection extends ConsumerWidget {
                   onSelected: () => notifier.optimizeTimings(500, fillGaps: state.appliedFillGaps),
                 ),
                 const SizedBox(width: 8),
-                Container(width: 1, height: 20, color: AppColors.slate200),
+                Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),
                 const SizedBox(width: 8),
-                ChoiceChip(
-                  label: const Text('Fill Gaps', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                  selected: state.appliedFillGaps,
-                  onSelected: (val) => notifier.optimizeTimings(state.appliedPaddingMs, fillGaps: val),
-                  selectedColor: AppColors.brandBlue.withValues(alpha: 0.15),
-                  backgroundColor: Colors.white,
-                  side: BorderSide(color: state.appliedFillGaps ? AppColors.brandBlue : AppColors.slate200),
-                  labelStyle: TextStyle(color: state.appliedFillGaps ? AppColors.brandBlue : AppColors.slate600),
-                  visualDensity: VisualDensity.compact,
+                _OptionChip(
+                  label: 'Fill Gaps',
+                  isSelected: state.appliedFillGaps,
+                  onSelected: () => notifier.optimizeTimings(state.appliedPaddingMs, fillGaps: !state.appliedFillGaps),
                 ),
               ],
             ),
@@ -167,186 +99,68 @@ class PhrasesPreviewSection extends ConsumerWidget {
       ),
     );
   }
-
-  void _showAllPhrases(BuildContext context, UploadState state, AdditionalWindowTheme theme) {
-    AppBottomSheet.show(
-      context: context,
-      heightFactor: 0.9,
-      child: _PhrasesFullView(phrases: state.previewPhrases, theme: theme),
-    );
-  }
-
-  Widget _buildPhrasesList(AdditionalWindowTheme theme, UploadState state) {
-    if (state.isParsing) {
-      final double progress = state.totalEvaluationCount > 0 
-          ? state.currentEvaluationIndex / state.totalEvaluationCount 
-          : 0.0;
-      final bool isBatch = state.isEvaluatingBatch;
-      
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.04),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.withOpacity(0.15)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      isBatch ? 'Neural Batch Sync Analysis...' : 'Parsing Subtitle File...',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                    ),
-                    if (isBatch && state.totalEvaluationCount > 0)
-                      Text(
-                        '${(progress * 100).toInt()}%',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.blue),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: isBatch && progress > 0 ? progress : null,
-                    backgroundColor: Colors.black.withOpacity(0.05),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
-                    minHeight: 6,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  isBatch 
-                      ? 'Processing subtitle version ${state.currentEvaluationIndex} of ${state.totalEvaluationCount}'
-                      : 'Extracting markers, checking VAD speech segments, and aligning timeline...',
-                  style: TextStyle(fontSize: 11, color: theme.mutedText),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: state.previewPhrases.length > 5 ? 5 : state.previewPhrases.length,
-      separatorBuilder: (context, index) => Divider(height: 1, color: theme.dividerColor),
-      itemBuilder: (context, index) {
-        final phrase = state.previewPhrases[index];
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 60,
-                child: Text(
-                  _formatTime(phrase.startTime), 
-                  style: TextStyle(fontFamily: 'monospace', fontSize: 11, fontWeight: FontWeight.w500, color: theme.mutedText)
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  phrase.originalPhrase ?? '', 
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.normalText)
-                ),
-              ),
-              const SizedBox(width: 8),
-              if (phrase.translatedPhrase != null)
-                Text(
-                  phrase.translatedPhrase!,
-                  style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: theme.mutedText),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  static String _formatTime(DateTime? time) {
-    if (time == null) return '00:00:00';
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:${time.second.toString().padLeft(2, '0')}';
-  }
 }
 
 class _OptionChip extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onSelected;
+  final bool showCheck;
 
   const _OptionChip({
     required this.label,
     required this.isSelected,
     required this.onSelected,
+    this.showCheck = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: ChoiceChip(
-        label: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-        selected: isSelected,
-        onSelected: (_) => onSelected(),
-        selectedColor: AppColors.brandBlue.withValues(alpha: 0.1),
-        backgroundColor: Colors.white,
-        side: BorderSide(color: isSelected ? AppColors.brandBlue.withValues(alpha: 0.3) : AppColors.slate200),
-        labelStyle: TextStyle(color: isSelected ? AppColors.brandBlue : AppColors.slate600),
-        visualDensity: VisualDensity.compact,
-      ),
-    );
-  }
-}
-
-class _PhrasesFullView extends StatelessWidget {
-  final List<dynamic> phrases;
-  final AdditionalWindowTheme theme;
-
-  const _PhrasesFullView({required this.phrases, required this.theme});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        AppBottomSheetHeader(
-          title: 'All Phrases',
-          subtitle: '${phrases.length} lines detected',
-        ),
-        const SizedBox(height: 4),
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            itemCount: phrases.length,
-            separatorBuilder: (context, index) => Divider(height: 1, color: theme.dividerColor),
-            itemBuilder: (context, index) {
-              final phrase = phrases[index];
-              return ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: Text(
-                  PhrasesPreviewSection._formatTime(phrase.startTime), 
-                  style: TextStyle(fontFamily: 'monospace', fontSize: 11, color: theme.mutedText)
+      padding: const EdgeInsets.only(right: 8),
+      child: Material(
+        color: isSelected ? const Color(0xFFDBEAFE).withValues(alpha: 0.7) : Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          onTap: onSelected,
+          borderRadius: BorderRadius.circular(10),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFFCBD5E1),
+                width: isSelected ? 2 : 1,
+              ),
+              boxShadow: isSelected ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
-                title: Text(
-                  phrase.originalPhrase ?? '', 
-                  style: TextStyle(fontSize: 14, color: theme.normalText, fontWeight: FontWeight.w500)
+              ] : null,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isSelected && showCheck) ...[
+                  const Icon(Icons.check_rounded, size: 14, color: Color(0xFF1D4ED8)),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFF475569),
+                  ),
                 ),
-              );
-            },
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 12),
-      ],
+      ),
     );
   }
 }

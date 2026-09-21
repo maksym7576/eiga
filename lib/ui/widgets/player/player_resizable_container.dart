@@ -5,7 +5,8 @@ import 'package:eiga/providers/ui/player_provider.dart';
 
 class PlayerResizableContainer extends ConsumerWidget {
   final Widget child;
-  const PlayerResizableContainer({super.key, required this.child});
+  final String playerScope;
+  const PlayerResizableContainer({super.key, required this.child, this.playerScope = 'main'});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -13,7 +14,7 @@ class PlayerResizableContainer extends ConsumerWidget {
     final screenHeight = MediaQuery.of(context).size.height;
     final orientation = MediaQuery.of(context).orientation;
     
-    final playerState = ref.watch(playerProvider);
+    final playerState = ref.watch(playerProvider(playerScope));
     final resizableHeight = playerState.resizableHeight;
 
     // Constraints change based on orientation
@@ -34,7 +35,7 @@ class PlayerResizableContainer extends ConsumerWidget {
         GestureDetector(
           onVerticalDragUpdate: (details) {
             final newHeight = (currentHeight + details.delta.dy).clamp(minHeight, maxHeight);
-            ref.read(playerProvider.notifier).updateResizableHeight(newHeight);
+            ref.read(playerProvider(playerScope).notifier).updateResizableHeight(newHeight);
           },
           child: Container(
             height: 24,

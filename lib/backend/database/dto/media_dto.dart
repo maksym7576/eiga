@@ -21,6 +21,7 @@ class UnifiedMetadataDTO {
   final int? malId;
   final int? tvmazeId;
   final int? shikimoriId;
+  final int? jimakuId;
   final String? tmdbId;
   final String? imdbId;
   final String? thetvdbId;
@@ -53,6 +54,7 @@ class UnifiedMetadataDTO {
     this.malId,
     this.tvmazeId,
     this.shikimoriId,
+    this.jimakuId,
     this.tmdbId,
     this.imdbId,
     this.thetvdbId,
@@ -65,6 +67,7 @@ class UnifiedMetadataDTO {
     String? imagePath,
     String? bannerPath,
     int? episodes,
+    int? jimakuId,
     List<MediaEpisodeDTO>? episodesList,
     List<MediaCastDTO>? cast,
     Map<String, dynamic>? extras,
@@ -90,6 +93,7 @@ class UnifiedMetadataDTO {
       malId: malId,
       tvmazeId: tvmazeId,
       shikimoriId: shikimoriId,
+      jimakuId: jimakuId ?? this.jimakuId,
       tmdbId: tmdbId,
       imdbId: imdbId,
       thetvdbId: thetvdbId,
@@ -177,8 +181,6 @@ class MediaCastDTO {
   }
 }
 
-/// A marker class used in the cache to indicate that a metadata lookup was 
-/// performed but no data was found. This prevents infinite loading spinners.
 class NoMetadataDTO {
   const NoMetadataDTO();
 }

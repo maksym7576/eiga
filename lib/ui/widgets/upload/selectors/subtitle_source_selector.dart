@@ -17,10 +17,23 @@ class SubtitleSourceSelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isExpanded = ref.watch(isSubtitleSelectorExpandedProvider);
-    final subtitleSource = ref.watch(uploadProvider.select((s) => s.subtitleSource));
+    final state = ref.watch(uploadProvider);
+    final metadataType = ref.watch(selectedMetadataProvider);
+    final subtitleSource = state.subtitleSource;
+    
+    final bool isManualMetadata = metadataType == MetadataProviderType.manual;
     
     final jimakuToken = ref.watch(tokenProvider(ApiTokenType.jimaku)).value ?? '';
     final hasToken = jimakuToken.isNotEmpty;
+
+    final availableOptions = [
+      SubtitleSource.jimaku,
+      SubtitleSource.none,
+      SubtitleSource.ai,
+    ].where((s) {
+      if (isManualMetadata && s == SubtitleSource.jimaku) return false;
+      return true;
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -29,25 +42,28 @@ class SubtitleSourceSelector extends ConsumerWidget {
           title: 'Subtitles Source:',
           isExpanded: isExpanded,
           selectedValue: subtitleSource,
-          options: SubtitleSource.values,
+          options: availableOptions,
           getTitle: (type) {
             switch (type) {
-              case SubtitleSource.local: return 'Local';
-              case SubtitleSource.jimaku: return 'Jimaku';
-              case SubtitleSource.ai: return 'AI Transcribe';
+              case SubtitleSource.jimaku: return 'Jimaku Community';
+              case SubtitleSource.none: return 'Manual / Off';
+              case SubtitleSource.local: return 'Pre-selected Local';
+              case SubtitleSource.ai: return 'AI Generation';
             }
           },
           getSubtitle: (type) {
             switch (type) {
-              case SubtitleSource.local: return 'From device storage';
-              case SubtitleSource.jimaku: return 'Community cloud';
-              case SubtitleSource.ai: return 'Automatic AI generation';
+              case SubtitleSource.jimaku: return 'Cloud subtitle database';
+              case SubtitleSource.none: return isManualMetadata ? 'Attach subtitles from device' : 'Attach subtitles manually';
+              case SubtitleSource.local: return 'Use already picked file';
+              case SubtitleSource.ai: return 'Transcribe audio automatically';
             }
           },
           getIcon: (type) {
             switch (type) {
-              case SubtitleSource.local: return Icons.folder_open_rounded;
               case SubtitleSource.jimaku: return Icons.cloud_outlined;
+              case SubtitleSource.none: return Icons.subtitles_off_rounded;
+              case SubtitleSource.local: return Icons.folder_open_rounded;
               case SubtitleSource.ai: return Icons.auto_awesome_rounded;
             }
           },

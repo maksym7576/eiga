@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:eiga/config/localization/localization_hub.dart';
+
 import 'package:eiga/providers/services/app_configs_provider.dart';
 import 'package:eiga/providers/ui/ai_models_state_provider.dart';
 import '../../../config/pipelines/pipeline_steps.dart';
 import '../../styles/additional_window_theme.dart';
-import '../../styles/app_colors.dart';
+
 import 'model_selection_screen.dart';
 import 'processing_mode_screen.dart';
 
@@ -52,6 +52,34 @@ class _GeneralSettingsScreenState extends ConsumerState<GeneralSettingsScreen> {
               value: config.getVideoCachingEnabled,
               onChanged: (val) async {
                 await config.setVideoCachingEnabled(val);
+                setState(() {});
+              },
+            ),
+            const SizedBox(height: 24),
+            _buildSectionHeader(context, 'AI PROVIDERS'),
+            const SizedBox(height: 8),
+            _buildSwitchCard(
+              context,
+              title: 'Enable Google Gemini',
+              subtitle: 'Use Gemini models for translation and analysis.',
+              value: config.getIsGeminiEnabled,
+              onChanged: (val) async {
+                if (!val && !config.getIsGroqEnabled) return; // Prevent disabling all
+                await config.setIsGeminiEnabled(val);
+                ref.invalidate(aiModelsProvider);
+                setState(() {});
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildSwitchCard(
+              context,
+              title: 'Enable Groq Cloud',
+              subtitle: 'Use Llama 3 & Mixtral via Groq for ultra-fast speed.',
+              value: config.getIsGroqEnabled,
+              onChanged: (val) async {
+                if (!val && !config.getIsGeminiEnabled) return; // Prevent disabling all
+                await config.setIsGroqEnabled(val);
+                ref.invalidate(aiModelsProvider);
                 setState(() {});
               },
             ),
@@ -205,7 +233,7 @@ class _GeneralSettingsScreenState extends ConsumerState<GeneralSettingsScreen> {
             Switch.adaptive(
               value: value,
               onChanged: onChanged,
-              activeColor: theme.primaryAccent,
+              activeTrackColor: theme.primaryAccent,
             ),
           ],
         ),
@@ -255,7 +283,7 @@ class _GeneralSettingsScreenState extends ConsumerState<GeneralSettingsScreen> {
   }
 
   Widget _buildModelButtonsGrid(BuildContext context) {
-    final theme = AdditionalWindowTheme.of(context);
+
     final aiState = ref.watch(aiModelsProvider);
 
     return GridView.count(

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:eiga/config/secure_storage.dart';
+import 'package:eiga/providers/services/token_provider.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
 import 'package:eiga/ui/widgets/settings/control_button_widget.dart';
 import 'package:eiga/ui/widgets/settings/setting_tile.dart';
@@ -121,80 +124,88 @@ class SettingsMobileView extends StatelessWidget {
   Widget _buildServicesCard(BuildContext context) {
     final theme = AdditionalWindowTheme.of(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardBackground,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return Consumer(
+      builder: (context, ref, child) {
+        final geminiToken = ref.watch(tokenProvider(ApiTokenType.gemini)).value ?? '';
+        final groqToken = ref.watch(tokenProvider(ApiTokenType.groq)).value ?? '';
+        final jimakuToken = ref.watch(tokenProvider(ApiTokenType.jimaku)).value ?? '';
+
+        return Container(
+          decoration: BoxDecoration(
+            color: theme.cardBackground,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: theme.dividerColor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          SettingTile(
-            title: 'Gemini API Key',
-            subtitle: 'Real-time translation & insights',
-            icon: Icons.vpn_key_rounded,
-            iconColor: Colors.white,
-            iconBackground: const [Color(0xFF2563EB), Color(0xFF4F46E5)],
-            badgeText: 'Has key',
-            badgeColor: Colors.teal,
-            onTap: () => ControlButtonWidget.openGeminiKeyDialog(context),
+          child: Column(
+            children: [
+              SettingTile(
+                title: 'Gemini API Key',
+                subtitle: 'Real-time translation & insights',
+                icon: Icons.vpn_key_rounded,
+                iconColor: Colors.white,
+                iconBackground: const [Color(0xFF2563EB), Color(0xFF4F46E5)],
+                badgeText: geminiToken.isNotEmpty ? 'Has key' : 'No key',
+                badgeColor: geminiToken.isNotEmpty ? Colors.teal : Colors.redAccent,
+                onTap: () => ControlButtonWidget.openGeminiKeyDialog(context),
+              ),
+              Divider(height: 1, color: theme.dividerColor, indent: 64),
+              SettingTile(
+                title: 'Groq Cloud API Key',
+                subtitle: 'Ultra-fast inference speed',
+                icon: Icons.speed_rounded,
+                iconColor: Colors.white,
+                iconBackground: const [Color(0xFFF55036), Color(0xFFD946EF)],
+                badgeText: groqToken.isNotEmpty ? 'Has key' : 'No key',
+                badgeColor: groqToken.isNotEmpty ? Colors.teal : Colors.redAccent,
+                onTap: () => ControlButtonWidget.openGroqKeyDialog(context),
+              ),
+              Divider(height: 1, color: theme.dividerColor, indent: 64),
+              SettingTile(
+                title: 'Jimaku API Key',
+                subtitle: 'Auto-search for subtitles & dictionaries',
+                icon: Icons.vpn_key_rounded,
+                iconColor: Colors.white,
+                iconBackground: const [Color(0xFF4338CA), Color(0xFF9333EA)],
+                badgeText: jimakuToken.isNotEmpty ? 'Has key' : 'No key',
+                badgeColor: jimakuToken.isNotEmpty ? Colors.teal : Colors.redAccent,
+                onTap: () => ControlButtonWidget.openJimakuKeyDialog(context),
+              ),
+              Divider(height: 1, color: theme.dividerColor, indent: 64),
+              SettingTile(
+                title: 'Anki Integration',
+                subtitle: 'Configure decks and fields for vocabulary export',
+                icon: Icons.star_rounded,
+                iconColor: Colors.white,
+                iconBackground: const [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AnkiSettingsScreen()),
+                  );
+                },
+              ),
+              Divider(height: 1, color: theme.dividerColor, indent: 64),
+              SettingTile(
+                title: 'Clear All Data',
+                subtitle: 'Permanently delete all videos, phrases, and progress.',
+                icon: Icons.delete_forever_rounded,
+                iconColor: Colors.redAccent,
+                iconBackground: [Colors.redAccent.withValues(alpha: 0.1), Colors.redAccent.withValues(alpha: 0.1)],
+                isDestructive: true,
+                actionLabel: 'Delete',
+                onTap: () => onFullReset(context),
+              ),
+            ],
           ),
-          Divider(height: 1, color: theme.dividerColor, indent: 64),
-          SettingTile(
-            title: 'Grok (X.AI) API Key',
-            subtitle: 'Alternative high-performance AI',
-            icon: Icons.vpn_key_rounded,
-            iconColor: Colors.white,
-            iconBackground: const [Color(0xFF000000), Color(0xFF333333)],
-            badgeText: 'Has key',
-            badgeColor: Colors.teal,
-            onTap: () => ControlButtonWidget.openXAiKeyDialog(context),
-          ),
-          Divider(height: 1, color: theme.dividerColor, indent: 64),
-          SettingTile(
-            title: 'Jimaku API Key',
-            subtitle: 'Auto-search for subtitles & dictionaries',
-            icon: Icons.vpn_key_rounded,
-            iconColor: Colors.white,
-            iconBackground: const [Color(0xFF4338CA), Color(0xFF9333EA)],
-            badgeText: 'Has key',
-            badgeColor: Colors.teal,
-            onTap: () => ControlButtonWidget.openJimakuKeyDialog(context),
-          ),
-          Divider(height: 1, color: theme.dividerColor, indent: 64),
-          SettingTile(
-            title: 'Anki Integration',
-            subtitle: 'Configure decks and fields for vocabulary export',
-            icon: Icons.star_rounded,
-            iconColor: Colors.white,
-            iconBackground: const [Color(0xFF3B82F6), Color(0xFF2563EB)],
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AnkiSettingsScreen()),
-              );
-            },
-          ),
-          Divider(height: 1, color: theme.dividerColor, indent: 64),
-          SettingTile(
-            title: 'Clear All Data',
-            subtitle: 'Permanently delete all videos, phrases, and progress.',
-            icon: Icons.delete_forever_rounded,
-            iconColor: Colors.redAccent,
-            iconBackground: [Colors.redAccent.withValues(alpha: 0.1), Colors.redAccent.withValues(alpha: 0.1)],
-            isDestructive: true,
-            actionLabel: 'Delete',
-            onTap: () => onFullReset(context),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

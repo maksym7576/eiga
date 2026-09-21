@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../config/secure_storage.dart';
-import 'package:eiga/providers/database/isar_providers.dart';
+import 'package:eiga/config/secure_storage.dart';
 import 'package:eiga/providers/services/isar_services_providers.dart';
-import 'package:eiga/providers/services/token_provider.dart';
 import 'package:eiga/providers/ui/redirect_providers.dart';
-import '../../../models/ui/guide_step.dart';
-import '../../styles/additional_window_theme.dart';
-import '../../screens/settings/api_key_config_screen.dart';
+import 'package:eiga/models/ui/guide_step.dart';
+import 'package:eiga/ui/styles/additional_window_theme.dart';
+import 'package:eiga/ui/screens/settings/api_key_config_screen.dart';
 
 class ControlButtonWidget extends ConsumerStatefulWidget {
   const ControlButtonWidget({super.key});
@@ -17,13 +15,13 @@ class ControlButtonWidget extends ConsumerStatefulWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const ApiKeyConfigScreen(
+        builder: (context) => ApiKeyConfigScreen(
           type: ApiTokenType.gemini,
           title: 'Gemini API Key',
           description: 'Real-time Japanese translation & insights',
-          iconGradient: [Color(0xFF2563EB), Color(0xFF4F46E5)],
+          iconGradient: const [Color(0xFF2563EB), Color(0xFF4F46E5)],
           icon: Icons.vpn_key_rounded,
-          steps: [
+          steps: const [
             GuideStep(
               title: 'Go to Google AI Studio',
               link: 'https://ai.google.dev/aistudio',
@@ -46,28 +44,28 @@ class ControlButtonWidget extends ConsumerStatefulWidget {
     );
   }
 
-  static void openXAiKeyDialog(BuildContext context) {
+  static void openGroqKeyDialog(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const ApiKeyConfigScreen(
-          type: ApiTokenType.xai,
-          title: 'Grok (X.AI) API Key',
-          description: 'Alternative high-performance AI translation',
-          iconGradient: [Color(0xFF000000), Color(0xFF333333)],
-          icon: Icons.vpn_key_rounded,
-          steps: [
+        builder: (context) => ApiKeyConfigScreen(
+          type: ApiTokenType.groq,
+          title: 'Groq Cloud API Key',
+          description: 'Ultra-fast inference for translation and tokenization',
+          iconGradient: const [Color(0xFFF55036), Color(0xFFD946EF)],
+          icon: Icons.speed_rounded,
+          steps: const [
             GuideStep(
-              title: 'Go to X.AI Console',
-              link: 'https://console.x.ai/',
-              linkLabel: 'Open X.AI Console',
+              title: 'Create Groq Account',
+              subtitle: 'Go to GroqCloud console and sign up.',
+              link: 'https://console.groq.com/',
+              linkLabel: 'Open GroqCloud',
             ),
             GuideStep(
-              title: 'Sign in with your X (Twitter) account',
-            ),
-            GuideStep(
-              title: 'Create a new API Key',
-              subtitle: 'Copy the generated key from the dashboard',
+              title: 'Generate API Key',
+              subtitle: 'Go to API Keys section and create a new secret key.',
+              link: 'https://console.groq.com/keys',
+              linkLabel: 'Open API Keys',
             ),
           ],
         ),
@@ -79,13 +77,13 @@ class ControlButtonWidget extends ConsumerStatefulWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const ApiKeyConfigScreen(
+        builder: (context) => ApiKeyConfigScreen(
           type: ApiTokenType.jimaku,
           title: 'Jimaku API Key',
           description: 'Auto-search for subtitles & dictionaries',
-          iconGradient: [Color(0xFF4338CA), Color(0xFF9333EA)],
+          iconGradient: const [Color(0xFF4338CA), Color(0xFF9333EA)],
           icon: Icons.vpn_key_rounded,
-          steps: [
+          steps: const [
             GuideStep(
               title: 'Go to Jimaku Login',
               link: 'https://jimaku.cc/login',
@@ -179,9 +177,9 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
         ref.read(openJimakuDialogProvider.notifier).state = false;
         ControlButtonWidget.openJimakuKeyDialog(context);
       }
-      if (ref.read(openXAiDialogProvider)) {
-        ref.read(openXAiDialogProvider.notifier).state = false;
-        ControlButtonWidget.openXAiKeyDialog(context);
+      if (ref.read(openGroqDialogProvider)) {
+        ref.read(openGroqDialogProvider.notifier).state = false;
+        ControlButtonWidget.openGroqKeyDialog(context);
       }
     });
   }
@@ -230,8 +228,8 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
             Expanded(
               child: _settingsButton(
                 context,
-                title: 'Grok key',
-                onPressed: () => ControlButtonWidget.openXAiKeyDialog(context),
+                title: 'Groq key',
+                onPressed: () => ControlButtonWidget.openGroqKeyDialog(context),
               ),
             ),
           ],

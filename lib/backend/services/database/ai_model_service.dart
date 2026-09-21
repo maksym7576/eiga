@@ -120,11 +120,16 @@ class AiModelService {
     }
   }
 
-  Future<AiModel?> getBestFallbackModel(TranslationPipelineStep step, String excludeName) async {
+  Future<AiModel?> getBestFallbackModel(TranslationPipelineStep step, String excludeName, {Set<AiProvider>? enabledProviders}) async {
     final models = await getModelsForStep(step);
     if (models.isEmpty) return null;
 
-    final candidates = models.where((m) => m.name != excludeName).toList();
+    final candidates = models.where((m) {
+      if (m.name == excludeName) return false;
+      if (enabledProviders != null && !enabledProviders.contains(m.provider)) return false;
+      return true;
+    }).toList();
+    
     if (candidates.isEmpty) return null;
 
     // Sort by: 

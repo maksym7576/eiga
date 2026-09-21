@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
 import 'package:eiga/backend/services/utils/jimaku_clustering_util.dart';
@@ -18,18 +19,35 @@ class JimakuFilesNotifier extends Notifier<CloudFilesState> {
   Future<void> loadFiles() async {
     if (state.isLoading) return;
     
+    developer.log('JimakuFilesNotifier: loadFiles() started for arg: "$arg"', name: 'JimakuFiles');
     state = state.copyWith(isLoading: true);
     try {
       final service = await ref.read(jimakuServiceProvider.future);
       final entryIdInt = int.tryParse(arg);
       if (entryIdInt == null) {
+         developer.log('JimakuFilesNotifier: FAILED - entryIdInt is null for arg: "$arg"', name: 'JimakuFiles');
          state = state.copyWith(isLoading: false);
          return;
       }
 
-      final rawFiles = await service.getFiles(entryIdInt);
+      developer.log('JimakuFilesNotifier: Calling service.getFiles($entryIdInt)', name: 'JimakuFiles');
+      List<FileJimakuDTO> rawFiles = [];
+      try {
+        rawFiles = await service.getFiles(entryIdInt);
+      } catch (e) {
+        if (e.toString().contains('404')) {
+           developer.log('JimakuFilesNotifier: 404 for ID $entryIdInt. Attempting to resolve via name search...', name: 'JimakuFiles');
+           // In Notifier, we don't have the entry object easily here, but we can search by ID in search metadata
+           // Actually JimakuService.getFiles already has internal 404 resolution.
+           // If it still failed, it means resolution didn't work.
+           rethrow;
+        }
+        rethrow;
+      }
+      developer.log('JimakuFilesNotifier: Received ${rawFiles.length} raw files', name: 'JimakuFiles');
       
       final groups = JimakuClusteringUtil.groupFiles(rawFiles);
+      developer.log('JimakuFilesNotifier: Grouped into ${groups.length} clusters', name: 'JimakuFiles');
       final flattened = _flatten(groups, state.expandedGroups);
       
       state = state.copyWith(
@@ -37,7 +55,9 @@ class JimakuFilesNotifier extends Notifier<CloudFilesState> {
         files: flattened,
         isLoading: false,
       );
-    } catch (e) {
+      developer.log('JimakuFilesNotifier: State updated with ${flattened.length} items', name: 'JimakuFiles');
+    } catch (e, st) {
+      developer.log('JimakuFilesNotifier: ERROR loading files', name: 'JimakuFiles', error: e, stackTrace: st);
       state = state.copyWith(isLoading: false);
     }
   }

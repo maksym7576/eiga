@@ -65,6 +65,8 @@ class Video {
 
   int? lastPositionMs;
 
+  int? selectedAudioTrackIndex;
+
   Video();
 
   @ignore
@@ -125,6 +127,7 @@ class Video {
     int? transcriptionResumeSeconds,
     bool? isCached,
     int? lastPositionMs,
+    int? selectedAudioTrackIndex,
   }) {
     return Video()
       ..id = id ?? this.id
@@ -172,6 +175,7 @@ class Video {
       ..processingProgress = processingProgress ?? this.processingProgress
       ..transcriptionResumeSeconds = transcriptionResumeSeconds ?? this.transcriptionResumeSeconds
       ..isCached = isCached ?? this.isCached
-      ..lastPositionMs = lastPositionMs ?? this.lastPositionMs;
+      ..lastPositionMs = lastPositionMs ?? this.lastPositionMs
+      ..selectedAudioTrackIndex = selectedAudioTrackIndex ?? this.selectedAudioTrackIndex;
   }
 }

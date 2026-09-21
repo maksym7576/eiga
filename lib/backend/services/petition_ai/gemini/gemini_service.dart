@@ -89,57 +89,17 @@ class GeminiService {
 
   Future<String> sendRequest(String url, String prompt, {required AiModel model}) async {
     try {
-      logger.d('[AiHttp] Sending request (Provider: ${model.provider.name})');
+      logger.d('[GeminiHttp] Sending request to ${model.name}');
       
       final Map<String, String> headers = {'Content-Type': 'application/json'};
       
-      // Add provider-specific headers
-      switch (model.provider) {
-        case AiProvider.google:
-          // Key is already in the URL
-          break;
-        case AiProvider.openai:
-          final token = await SecureTokenStorage.getToken(ApiTokenType.openai);
-          headers['Authorization'] = 'Bearer $token';
-          break;
-        case AiProvider.anthropic:
-          final token = await SecureTokenStorage.getToken(ApiTokenType.anthropic);
-          headers['x-api-key'] = token;
-          headers['anthropic-version'] = '2023-06-01'; // Required for Anthropic
-          break;
-        case AiProvider.xai:
-          final token = await SecureTokenStorage.getToken(ApiTokenType.xai);
-          headers['Authorization'] = 'Bearer $token';
-          break;
-        case AiProvider.custom:
-          break;
-      }
-
-      final Map<String, dynamic> requestBody;
-      
-      // Format body based on provider
-      if (model.provider == AiProvider.openai) {
-        requestBody = {
-          "model": model.name,
-          "messages": [{"role": "user", "content": prompt}],
-          "temperature": 0.1,
-        };
-      } else if (model.provider == AiProvider.anthropic) {
-        requestBody = {
-          "model": model.name,
-          "messages": [{"role": "user", "content": prompt}],
-          "max_tokens": 4096,
-        };
-      } else {
-        // Default (Google)
-        requestBody = {
-          "contents": [
-            {
-              "parts": [{"text": prompt}],
-            },
-          ],
-        };
-      }
+      final Map<String, dynamic> requestBody = {
+        "contents": [
+          {
+            "parts": [{"text": prompt}],
+          },
+        ],
+      };
 
       final response = await http
           .post(
@@ -149,60 +109,46 @@ class GeminiService {
       )
       .timeout(
         const Duration(seconds: 160),
-        onTimeout: () => throw GeminiGeneralException("AI request time out"),
+        onTimeout: () => throw GeminiGeneralException("Gemini request time out"),
       );
 
-      // Increment usage for each request
       await ref.read(aiModelServiceProvider).incrementUsage(model.name, 1);
 
       if (response.statusCode == 200) {
         final bodyText = response.body;
         if (bodyText.trim().isEmpty) {
-          throw GeminiGeneralException("Empty response body from AI");
+          throw GeminiGeneralException("Empty response body from Gemini");
         }
 
         final data = jsonDecode(bodyText);
         
-        // Extract text based on provider
-        if (model.provider == AiProvider.openai) {
-          return data['choices'][0]['message']['content'].toString();
-        } else if (model.provider == AiProvider.anthropic) {
-          return data['content'][0]['text'].toString();
-        } else {
-          // Google
-          if (data is Map && data['candidates'] != null && data['candidates'].isNotEmpty) {
-            final candidate = data['candidates'][0];
-            if (candidate['content'] != null &&
-                candidate['content']['parts'] != null &&
-                candidate['content']['parts'].isNotEmpty) {
-              String rawText = candidate['content']['parts'][0]['text'].toString();
-              String cleanedResponse = rawText.replaceAll('```json', '').replaceAll('```', '').trim();
-              return cleanedResponse;
-            }
+        if (data is Map && data['candidates'] != null && data['candidates'].isNotEmpty) {
+          final candidate = data['candidates'][0];
+          if (candidate['content'] != null &&
+              candidate['content']['parts'] != null &&
+              candidate['content']['parts'].isNotEmpty) {
+            String rawText = candidate['content']['parts'][0]['text'].toString();
+            String cleanedResponse = rawText.replaceAll('```json', '').replaceAll('```', '').trim();
+            return cleanedResponse;
           }
         }
-        throw GeminiGeneralException("Unexpected response shape from AI");
+        throw GeminiGeneralException("Unexpected response shape from Gemini");
       } else {
         _handleHttpError(response);
         throw Exception("Unreachable code");
       }
     } catch (e) {
       if (e is GeminiException) rethrow;
-      throw GeminiGeneralException("Connection error: ${e.toString()}");
+      throw GeminiGeneralException("Connection error to Gemini: ${e.toString()}");
     }
   }
 
   Future<String> sendRequestWithAudio(String url, String prompt, String base64Audio, {required AiModel model, String mimeType = 'audio/mp3'}) async {
     try {
-      logger.d('[AiHttp] Sending audio request (Provider: ${model.provider.name})');
+      logger.d('[GeminiAudio] Sending request to ${model.name}');
       
       final Map<String, String> headers = {'Content-Type': 'application/json'};
       
-      // Only Google Gemini supports inline_data easily in this format for now
-      if (model.provider != AiProvider.google) {
-        throw GeminiGeneralException("Audio input only supported for Google provider currently");
-      }
-
       final Map<String, dynamic> requestBody = {
         "contents": [
           {

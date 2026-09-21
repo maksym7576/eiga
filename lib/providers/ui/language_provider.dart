@@ -29,6 +29,19 @@ class LanguageNotifier extends Notifier<LanguageState> {
     state = state.copyWith(target: language);
   }
 
+  void autoDetectFromText(String text) {
+    // Простий автодетект мови за назвою або ім'ям файлу/субтитрів
+    final lower = text.toLowerCase();
+    for (var lang in LanguageHub.all) {
+      if (lower.contains(lang.name.toLowerCase()) || lower.contains(lang.code.toLowerCase())) {
+        if (state.original == null) {
+          state = state.copyWith(original: lang.name);
+        }
+        return;
+      }
+    }
+  }
+
   void reset() {
     state = LanguageState();
   }

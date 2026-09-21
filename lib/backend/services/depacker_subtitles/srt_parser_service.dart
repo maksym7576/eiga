@@ -63,9 +63,28 @@ class SrtParser {
   }
 
   String _processText(String text) {
-    // Strip ASS/SRT override tags like {\an8}, {\pos(...)}, etc.
+    // 1. Strip ASS/SRT override tags like {\an8}, {\pos(...)}, etc.
     var cleanText = text.replaceAll(RegExp(r'\{[^}]*\}'), '');
-    if (removeAllSpaces) return cleanText.replaceAll(RegExp(r'\s+'), '');
+    
+    // 2. Strip HTML-like tags (even weird ones like <fontface=...>)
+    // Using a more aggressive regex to catch tags with missing spaces
+    cleanText = cleanText.replaceAll(RegExp(r'<[^>]*>'), '');
+    
+    // 3. Handle spaces based on language
+    if (removeAllSpaces) {
+      // Check if text actually contains CJK characters before removing ALL spaces
+      // If it's mostly Latin, keep spaces for readability
+      final latinMatch = RegExp(r'[a-zA-Z]').allMatches(cleanText).length;
+      final totalChars = cleanText.replaceAll(RegExp(r'\s+'), '').length;
+      
+      if (totalChars > 0 && (latinMatch / totalChars) > 0.5) {
+        // Mostly Latin text - keep spaces
+        return cleanText.replaceAll(RegExp(r'\s+'), ' ').trim();
+      }
+      
+      return cleanText.replaceAll(RegExp(r'\s+'), '');
+    }
+    
     return cleanText.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 

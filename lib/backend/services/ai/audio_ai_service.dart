@@ -1,19 +1,19 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/backend/database/schemas/ai_model.dart';
 import 'package:eiga/backend/services/petition_ai/gemini/gemini_service.dart';
-import 'package:eiga/backend/services/petition_ai/xai/xai_service.dart';
+import 'package:eiga/backend/services/petition_ai/groq/groq_service.dart';
 import 'package:eiga/backend/services/utils/ai_exceptions.dart';
 import 'package:eiga/utils/logger.dart';
 
 class AudioAiService {
   final Ref ref;
   final GeminiService geminiService;
-  final XAiService xAiService;
+  final GroqService groqService;
 
   AudioAiService({
     required this.ref,
     required this.geminiService,
-    required this.xAiService,
+    required this.groqService,
   });
 
   Future<String> sendAudioRequest(
@@ -26,10 +26,9 @@ class AudioAiService {
     switch (model.provider) {
       case AiProvider.google:
         return await geminiService.sendRequestWithAudio(url, prompt, base64Audio, model: model, mimeType: mimeType);
-      case AiProvider.xai:
-        // Grok doesn't support native audio yet in the same way, 
-        // but we could implement it if they add it.
-        throw GeminiGeneralException("Audio input not yet supported for Grok provider");
+      case AiProvider.groq:
+        // Groq supports Whisper for transcription, but for LLM audio input it might differ.
+        throw GeminiGeneralException("Audio input not yet supported for Groq provider");
       case AiProvider.openai:
       case AiProvider.anthropic:
       case AiProvider.custom:

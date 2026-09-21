@@ -19,17 +19,18 @@ class VideoScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    const String scope = 'main';
     // Warm up the translation service, prefetcher, and phrase streams during loading
     ref.watch(translationProvider);
     ref.watch(phraseDataPrefetcherProvider);
     ref.watch(phrasesStreamProvider);
 
     final videoAsync = ref.watch(currentVideoProvider);
-    final isFullscreen = ref.watch(playerProvider.select((s) => s.isFullscreen));
-    final isInitialized = ref.watch(playerProvider.select((s) => s.isInitialized));
+    final isFullscreen = ref.watch(playerProvider(scope).select((s) => s.isFullscreen));
+    final isInitialized = ref.watch(playerProvider(scope).select((s) => s.isInitialized));
 
     useEffect(() {
-      final playerNotifier = ref.read(playerProvider.notifier);
+      final playerNotifier = ref.read(playerProvider(scope).notifier);
       final playerIdSetter = ref.read(playerIdProvider.notifier);
 
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -69,10 +70,10 @@ class VideoScreen extends HookConsumerWidget {
     useEffect(() {
       videoAsync.whenData((video) {
         if (video != null) {
-          final playerState = ref.read(playerProvider);
+          final playerState = ref.read(playerProvider(scope));
           if (playerState.videoId != video.id || !playerState.isInitialized) {
             Future.microtask(() {
-              ref.read(playerProvider.notifier).initController(video.id, video.videoPath!);
+              ref.read(playerProvider(scope).notifier).initController(video.id, video.videoPath!);
             });
           }
         }
@@ -83,7 +84,7 @@ class VideoScreen extends HookConsumerWidget {
     final orientation = MediaQuery.of(context).orientation;
     final bool isLandscape = orientation == Orientation.landscape;
 
-    final isLocked = ref.watch(playerProvider.select((s) => s.isLocked));
+    final isLocked = ref.watch(playerProvider(scope).select((s) => s.isLocked));
 
     // Auto-fullscreen logic: triggers ONLY on physical orientation changes.
     final prevOrientationRef = useRef<Orientation?>(null);
@@ -97,8 +98,8 @@ class VideoScreen extends HookConsumerWidget {
           // Only trigger if orientation has actually changed
           if (prevOrientation != null && prevOrientation != currentOrientation) {
              Future.microtask(() {
-              if (context.mounted && !ref.read(playerProvider).isLocked) {
-                ref.read(playerProvider.notifier).setFullscreen(isLandscape, updateSystem: true);
+              if (context.mounted && !ref.read(playerProvider(scope)).isLocked) {
+                ref.read(playerProvider(scope).notifier).setFullscreen(isLandscape, updateSystem: true);
               }
             });
           }
@@ -119,15 +120,15 @@ class VideoScreen extends HookConsumerWidget {
       child: CallbackShortcuts(
         bindings: <ShortcutActivator, VoidCallback>{
           const SingleActivator(LogicalKeyboardKey.escape): () {
-            final playerState = ref.read(playerProvider);
+            final playerState = ref.read(playerProvider(scope));
             if (playerState.isFullscreen) {
-              ref.read(playerProvider.notifier).setFullscreen(false);
+              ref.read(playerProvider(scope).notifier).setFullscreen(false);
             }
             // Clear any selections/popovers
-            ref.read(playerProvider.notifier).clearSelection();
+            ref.read(playerProvider(scope).notifier).clearSelection();
           },
           const SingleActivator(LogicalKeyboardKey.keyF): () {
-            ref.read(playerProvider.notifier).toggleFullscreen();
+            ref.read(playerProvider(scope).notifier).toggleFullscreen();
           },
         },
         child: Scaffold(
