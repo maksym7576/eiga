@@ -16,7 +16,6 @@ import 'package:eiga/backend/services/depacker_subtitles/season_episode_info.dar
 import 'package:eiga/backend/database/dto/media_dto.dart';
 import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
 import 'package:eiga/backend/services/audio/audio_sync_service.dart';
-import 'package:eiga/backend/services/background/translation_background_manager.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/services/isar_services_providers.dart';
 import 'package:eiga/providers/services/subtitle_depacker_providers.dart';
@@ -30,6 +29,7 @@ import 'package:eiga/providers/ui/metadata_state_provider.dart';
 import 'package:eiga/providers/ui/search_provider.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/ui/widgets/search/cloud/cloud_subtitle_source.dart';
+import 'package:eiga/backend/services/algorithms/sync_scoring_algorithm.dart';
 
 import '../../../config/languages/language_hub.dart';
 
@@ -39,21 +39,34 @@ class UploadNotifier extends Notifier<UploadState> {
     final jimakuTokenAsync = ref.watch(tokenProvider(ApiTokenType.jimaku));
     if (jimakuTokenAsync.isLoading) return UploadState(isInitialized: false);
     final jimakuToken = jimakuTokenAsync.value ?? '';
-    SubtitleSource defaultSource = jimakuToken.isNotEmpty ? SubtitleSource.jimaku : SubtitleSource.local;
+    SubtitleSource defaultSource = jimakuToken.isNotEmpty ? SubtitleSource.jimaku : SubtitleSource.none;
     return UploadState(subtitleSource: defaultSource, subtitleMethod: SubtitleMethod.quick, isInitialized: true);
   }
 
   void setVideoSource(VideoSource source) => state = state.copyWith(videoSource: source);
   void setSubtitleSource(SubtitleSource source) {
+    // Завжди перемикаємо метод на дефолтний для даного джерела, 
+    // навіть якщо джерело не змінилося (це фіксить баг, коли ми застрягли на методі Video Track)
+    if (source == SubtitleSource.jimaku || source == SubtitleSource.local) {
+      if (state.subtitleMethod == SubtitleMethod.video || state.subtitleMethod == SubtitleMethod.manual) {
+        state = state.copyWith(subtitleMethod: SubtitleMethod.quick);
+      }
+    } else if (source == SubtitleSource.ai) {
+      state = state.copyWith(subtitleMethod: SubtitleMethod.ai_scan);
+    } else if (source == SubtitleSource.none) {
+      state = state.copyWith(subtitleMethod: SubtitleMethod.manual);
+    }
+
+    if (state.subtitleSource == source) return;
+    
     state = state.copyWith(subtitleSource: source);
+    
     if (source == SubtitleSource.none) {
       clearActiveSelection();
-      state = state.copyWith(subtitleMethod: SubtitleMethod.manual);
     }
   }
   void setSubtitleMethod(SubtitleMethod method) {
     state = state.copyWith(subtitleMethod: method);
-    // Якщо вже вибрано епізод і ми перейшли на AI scan або Quick match, автоматично запускаємо підбір
     if (state.episode != null && state.videoPath != null) {
       if (method == SubtitleMethod.quick) {
         runQuickMatch(state.episode!);
@@ -69,7 +82,6 @@ class UploadNotifier extends Notifier<UploadState> {
   void setAiTranscriptionLanguage(String? lang) => state = state.copyWith(aiTranscriptionLanguage: lang);
   void setEpisode(String? episode) {
     state = state.copyWith(episode: episode);
-    // Автоматично запускаємо підбір / швидкий пошук при зміні епізоду
     if (episode != null) {
       if (state.subtitleMethod == SubtitleMethod.quick) {
         runQuickMatch(episode);
@@ -93,14 +105,12 @@ class UploadNotifier extends Notifier<UploadState> {
   void setStepIndex(int index) {
     state = state.copyWith(currentStepIndex: index);
     
-    // Зупиняємо відео в preview плеєрі, коли переходимо з першого кроку далі
     if (index > 0) {
       try {
-        ref.read(playerProvider('preview')).player?.pause();
+        ref.read(playerProvider('preview').notifier).setPlaying(false);
       } catch (_) {}
     }
     
-    // Auto-match on Step 3 (index 2) if possible
     if (index == 2 && state.episode != null && state.activeSelection == null) {
       if (state.subtitleMethod == SubtitleMethod.quick) {
         runQuickMatch(state.episode!);
@@ -147,9 +157,14 @@ class UploadNotifier extends Notifier<UploadState> {
 
   void reset() {
     final jimakuToken = ref.read(tokenProvider(ApiTokenType.jimaku)).value ?? '';
-    SubtitleSource defaultSource = jimakuToken.isNotEmpty ? SubtitleSource.jimaku : SubtitleSource.local;
+    SubtitleSource defaultSource = jimakuToken.isNotEmpty ? SubtitleSource.jimaku : SubtitleSource.none;
     state = UploadState(subtitleSource: defaultSource, subtitleMethod: SubtitleMethod.quick, isInitialized: true);
-    ref.invalidate(playerIdProvider);
+    
+    ref.read(playerIdProvider.notifier).state = 0;
+    try {
+      ref.read(playerProvider('preview').notifier).disposeController();
+    } catch (_) {}
+    
     ref.read(audioSyncServiceProvider).clearCache();
     ref.read(selectedEntryProvider(SearchSourceKeys.jimaku).notifier).state = null;
     ref.read(selectedEntryProvider(SearchSourceKeys.anilist).notifier).state = null;
@@ -162,6 +177,11 @@ class UploadNotifier extends Notifier<UploadState> {
     final file = await FilePicker.pickFile(type: FileType.any);
     if (file != null && file.path != null) {
       final path = file.path!;
+      
+      try {
+        ref.read(playerProvider('preview').notifier).disposeController();
+      } catch (_) {}
+
       final fileStat = File(path).statSync();
       final sizeMb = (fileStat.size / (1024 * 1024)).toStringAsFixed(1);
       ref.read(videoPathProvider.notifier).state = path;
@@ -169,7 +189,6 @@ class UploadNotifier extends Notifier<UploadState> {
       final baseName = p.basename(path);
       final info = parseSeasonEpisode(baseName);
       
-      // Clean title for search: remove [Group], (Resolution), .ext, and episode markers
       String cleanTitle = p.basenameWithoutExtension(baseName);
       cleanTitle = cleanTitle.replaceAll(RegExp(r'\[.*?\]|\(.*?\)', caseSensitive: false), ' ');
       cleanTitle = cleanTitle.replaceAll(RegExp(r'[\s\-_.]+(episode|ep|e|part)[\s\-_.]*\d+([\s\-_.]|$)', caseSensitive: false), ' ');
@@ -192,25 +211,30 @@ class UploadNotifier extends Notifier<UploadState> {
       try {
         await tempPlayer.open(Media(path), play: false);
         int retry = 0;
-        while (retry < 25) {
+        while (retry < 35) {
           final tracks = tempPlayer.state.tracks;
+          // Чекаємо, поки медіакіт виявить аудіодоріжки або субтитри
           if (tracks.audio.isNotEmpty || tracks.subtitle.isNotEmpty) {
-            await Future.delayed(const Duration(milliseconds: 500));
+            // Невелике плато у 300 мс, щоб переконатись, що всі потоки проскановані повністю
+            await Future.delayed(const Duration(milliseconds: 300));
             break;
           }
-          await Future.delayed(const Duration(milliseconds: 200));
+          await Future.delayed(const Duration(milliseconds: 100));
           retry++;
         }
         final tracks = tempPlayer.state.tracks;
         final audioTracks = tracks.audio.where((t) => t.id != 'auto' && t.id != 'no').indexed.map((e) => MediaTrackInfo(id: e.$2.id, title: e.$2.title, language: e.$2.language, index: e.$1)).toList();
         final subtitleTracks = tracks.subtitle.where((t) => t.id != 'auto' && t.id != 'no').indexed.map((e) => MediaTrackInfo(id: e.$2.id, title: e.$2.title, language: e.$2.language, index: e.$1)).toList();
         
-        // Автовизначення мови за назвою аудіо або субтитрів відео
         for (var sub in subtitleTracks) {
           final langCode = (sub.language ?? '').toLowerCase();
           final title = (sub.title ?? '').toLowerCase();
           for (var lang in LanguageHub.all) {
-            if (langCode == lang.code.toLowerCase() || title.contains(lang.name.toLowerCase()) || title.contains(lang.code.toLowerCase())) {
+            final lName = lang.name.toLowerCase();
+            final lCode = lang.code.toLowerCase();
+            final hasWord = title.split(RegExp(r'[^a-zA-Z]')).contains(lName) || 
+                            title.split(RegExp(r'[^a-zA-Z]')).contains(lCode);
+            if (langCode == lCode || hasWord) {
               ref.read(languageProvider.notifier).setOriginal(lang.name);
               break;
             }
@@ -218,8 +242,18 @@ class UploadNotifier extends Notifier<UploadState> {
           if (ref.read(languageProvider).original != null) break;
         }
         final height = tempPlayer.state.height;
+        final durationS = tempPlayer.state.duration.inSeconds;
         String? resolution = height != null ? (height >= 1080 ? '1080p' : (height >= 720 ? '720p' : '${height}p')) : null;
-        state = state.copyWith(audioTracks: audioTracks, subtitleTracks: subtitleTracks, selectedAudioTrack: audioTracks.isNotEmpty ? audioTracks.first : null, resolution: resolution, codec: 'H.264', isParsing: false);
+        
+        state = state.copyWith(
+          audioTracks: audioTracks, 
+          subtitleTracks: subtitleTracks, 
+          selectedAudioTrack: audioTracks.isNotEmpty ? audioTracks.first : null, 
+          resolution: resolution, 
+          videoDuration: durationS > 0 ? durationS : null,
+          codec: 'H.264', 
+          isParsing: false
+        );
       } finally {
         await tempPlayer.dispose();
       }
@@ -228,16 +262,22 @@ class UploadNotifier extends Notifier<UploadState> {
 
   void selectAudioTrack(MediaTrackInfo track) {
     state = state.copyWith(selectedAudioTrack: track);
-    // Миттєво застосовуємо вибір аудіодоріжки до плеєра прев'ю, якщо він вже ініціалізований
     try {
-      final previewPlayer = ref.read(playerProvider('preview').notifier);
-      previewPlayer.setAudioTrack(track.id);
+      ref.read(playerProvider('preview').notifier).setAudioTrack(track.id);
     } catch (_) {}
   }
 
   Future<void> selectOriginalSubtitle(MediaTrackInfo? track, {String? language}) async {
     if (track == null) {
-      state = state.copyWith(selectedOriginalSubtitle: null, videoSelection: null);
+      state = state.copyWith(
+        selectedOriginalSubtitle: null, 
+        videoSelection: null,
+        // Якщо скасовуємо вибір вбудованого треку, повертаємо метод на Quick 
+        // (щоб знову бачити хмарні субтитри)
+        subtitleMethod: state.subtitleSource == SubtitleSource.none ? SubtitleMethod.manual : SubtitleMethod.quick,
+      );
+      // Також скидаємо мову оригіналу в провайдері мов
+      ref.read(languageProvider.notifier).setOriginal(null);
       return;
     }
     state = state.copyWith(selectedOriginalSubtitle: track, isParsing: true, subtitleMethod: SubtitleMethod.video);
@@ -256,14 +296,124 @@ class UploadNotifier extends Notifier<UploadState> {
 
   Future<void> selectTranslationSubtitle(MediaTrackInfo? track, {String? language}) async {
     if (track == null) {
-      state = state.copyWith(selectedTranslationSubtitle: null, translationSubtitlePath: null);
+      state = state.copyWith(
+        selectedTranslationSubtitle: null, 
+        translationSubtitlePath: null,
+        originalPreviewPhrases: [], // Обов'язково очищаємо фрази перекладу
+      );
+      ref.read(languageProvider.notifier).setTarget(null);
       return;
     }
     state = state.copyWith(selectedTranslationSubtitle: track, isParsing: true);
     try {
       final extractedPath = await _extractSubtitle(track);
       if (extractedPath != null) {
-        state = state.copyWith(translationSubtitlePath: extractedPath);
+        List<Phrase> transPhrases = await _parsePhrases(extractedPath);
+        
+        final baseDate = DateTime(1970, 1, 1);
+        if (state.suggestedOffset != null && state.suggestedOffset != Duration.zero) {
+          final offset = state.suggestedOffset!;
+          transPhrases = transPhrases.map((p) {
+            if (p.startTime == null || p.endTime == null) return p;
+            final newStart = p.startTime!.add(offset);
+            final newEnd = p.endTime!.add(offset);
+            return Phrase(
+              videoId: p.videoId,
+              phraseOrder: p.phraseOrder,
+              originalPhrase: p.originalPhrase,
+              translatedPhrase: p.translatedPhrase,
+              startTime: newStart.isBefore(baseDate) ? baseDate : newStart,
+              endTime: newEnd.isBefore(baseDate) ? baseDate : newEnd,
+              isActive: p.isActive,
+              originalTokens: p.originalTokens,
+              translatedWords: p.translatedWords,
+              linkGroups: p.linkGroups,
+              idiomSpans: p.idiomSpans,
+              stageStatuses: p.stageStatuses,
+            );
+          }).toList();
+        }
+
+        final originalPhrases = state.previewPhrases;
+        if (originalPhrases.isNotEmpty && transPhrases.isNotEmpty) {
+          final List<Phrase> mergedPhrases = [];
+          
+          transPhrases.sort((a, b) => (a.startTime ?? baseDate).compareTo(b.startTime ?? baseDate));
+
+          for (var orig in originalPhrases) {
+            if (orig.startTime == null || orig.endTime == null) {
+              mergedPhrases.add(orig);
+              continue;
+            }
+
+            final origCenter = orig.startTime!.difference(baseDate).inMilliseconds + 
+                               (orig.endTime!.difference(orig.startTime!)).inMilliseconds ~/ 2;
+
+            Phrase? bestMatch;
+            int minDifference = 1500;
+
+            for (var trans in transPhrases) {
+              if (trans.startTime == null || trans.endTime == null) continue;
+              
+              final transStart = trans.startTime!.difference(baseDate).inMilliseconds;
+              if (transStart > origCenter + 2000) break;
+
+              final transCenter = transStart + (trans.endTime!.difference(trans.startTime!)).inMilliseconds ~/ 2;
+              final diff = (origCenter - transCenter).abs();
+              
+              if (diff < minDifference) {
+                minDifference = diff;
+                bestMatch = trans;
+              }
+            }
+
+            if (bestMatch != null) {
+              final DateTime effectiveEnd = (bestMatch.endTime != null && bestMatch.endTime!.isAfter(orig.endTime!))
+                  ? bestMatch.endTime!
+                  : orig.endTime!;
+
+              mergedPhrases.add(Phrase(
+                videoId: orig.videoId,
+                phraseOrder: orig.phraseOrder,
+                originalPhrase: orig.originalPhrase,
+                translatedPhrase: bestMatch.originalPhrase,
+                startTime: orig.startTime,
+                endTime: effectiveEnd,
+                isActive: orig.isActive,
+                originalTokens: orig.originalTokens,
+                translatedWords: orig.translatedWords,
+                linkGroups: orig.linkGroups,
+                idiomSpans: orig.idiomSpans,
+                stageStatuses: orig.stageStatuses,
+              ));
+            } else {
+              mergedPhrases.add(orig);
+            }
+          }
+
+          final updatedSelection = AnalyzedSubtitle(
+            fileName: state.subtitleFileName ?? 'Subtitles',
+            path: state.subtitlePath ?? '',
+            confidence: state.syncConfidence,
+            offset: state.suggestedOffset,
+            phrases: mergedPhrases,
+          );
+
+          state = state.copyWith(
+            manualSelection: state.subtitleMethod == SubtitleMethod.manual ? updatedSelection : state.manualSelection,
+            quickSelection: state.subtitleMethod == SubtitleMethod.quick ? updatedSelection : state.quickSelection,
+            aiSelection: state.subtitleMethod == SubtitleMethod.ai_scan ? updatedSelection : state.aiSelection,
+            videoSelection: state.subtitleMethod == SubtitleMethod.video ? updatedSelection : state.videoSelection,
+            translationSubtitlePath: extractedPath,
+            originalPreviewPhrases: transPhrases,
+          );
+        } else {
+          state = state.copyWith(
+            translationSubtitlePath: extractedPath,
+            originalPreviewPhrases: transPhrases,
+          );
+        }
+
         if (language != null) ref.read(languageProvider.notifier).setTarget(language);
       }
     } finally {
@@ -336,14 +486,23 @@ class UploadNotifier extends Notifier<UploadState> {
       final result = await ref.read(audioSyncServiceProvider).analyzeSync(
           videoPath: state.videoPath!,
           phrases: state.previewPhrases,
+          durationS: state.videoDuration,
           skipMinutes: ref.read(appConfigsServiceProvider).getSyncSkipMinutes,
           pointDurationMinutes: ref.read(appConfigsServiceProvider).getSyncPointDurationMinutes);
-      final updatedSelection = _updateCurrentSelectionWithResult(result);
+      
+      final calculatedConfidence = SyncScoringAlgorithm.calculateOverallConfidence(
+        pnr: result.pnr,
+        uniqueness: result.uniqueness,
+        consensus: result.consensusCount,
+        totalSegments: result.totalSegments,
+      );
+
+      final updatedSelection = _updateCurrentSelectionWithResult(result, calculatedConfidence);
       state = state.copyWith(
           isCheckingSync: false,
           syncStatus: _mapResultType(result.type),
           suggestedOffset: result.offset,
-          syncConfidence: result.confidence,
+          syncConfidence: calculatedConfidence,
           syncExplanation: result.explanation,
           syncCheckpoints: result.checkpoints,
           syncPnr: result.pnr,
@@ -359,11 +518,11 @@ class UploadNotifier extends Notifier<UploadState> {
     }
   }
 
-  AnalyzedSubtitle _updateCurrentSelectionWithResult(SyncResult result) {
+  AnalyzedSubtitle _updateCurrentSelectionWithResult(SyncResult result, double confidence) {
     return AnalyzedSubtitle(
-      fileName: state.subtitleFileName!,
-      path: state.subtitlePath!,
-      confidence: result.confidence,
+      fileName: state.subtitleFileName ?? 'Subtitles',
+      path: state.subtitlePath ?? '',
+      confidence: confidence,
       offset: result.offset,
       phrases: state.previewPhrases,
       explanation: result.explanation,
@@ -487,7 +646,7 @@ class UploadNotifier extends Notifier<UploadState> {
     state = state.copyWith(isEvaluatingBatch: true, analyzedVersions: [], syncStatus: SyncMatchStatus.analyzing);
     try {
       final syncService = ref.read(audioSyncServiceProvider);
-      await syncService.preheatVoiceMaps(state.videoPath!);
+      await syncService.preheatVoiceMaps(state.videoPath!, durationS: state.videoDuration);
       final service = await ref.read(jimakuServiceProvider.future);
       List<FileJimakuDTO> rawFiles = [];
       try { rawFiles = await service.getFiles(int.parse(entry.sourceId), episode: int.tryParse(state.episode!)); } catch (_) { rawFiles = await service.getFiles(int.parse(entry.sourceId)); }
@@ -507,17 +666,27 @@ class UploadNotifier extends Notifier<UploadState> {
             language: ref.read(languageProvider).original ?? 'Japanese'
           );
 
-          // Штраф за мульти-стрім файл (зменшуємо впевненість на 5%)
           final multiStreamPenalty = streams.length > 1 ? 0.05 : 0.0;
 
           for (var entry in streams.entries) {
             final phrases = entry.value;
-            final result = await syncService.analyzeSync(videoPath: state.videoPath!, phrases: phrases);
+            final result = await syncService.analyzeSync(
+              videoPath: state.videoPath!, 
+              phrases: phrases,
+              durationS: state.videoDuration,
+            );
             
+            final calculatedConfidence = SyncScoringAlgorithm.calculateOverallConfidence(
+              pnr: result.pnr,
+              uniqueness: result.uniqueness,
+              consensus: result.consensusCount,
+              totalSegments: result.totalSegments,
+            );
+
             analyzed.add(AnalyzedSubtitle(
               fileName: streams.length > 1 ? "${file.name} (${entry.key})" : file.name,
               path: path,
-              confidence: (result.confidence - multiStreamPenalty).clamp(0.0, 1.0),
+              confidence: (calculatedConfidence - multiStreamPenalty).clamp(0.0, 1.0),
               offset: result.offset,
               phrases: phrases,
               explanation: result.explanation,
@@ -579,6 +748,7 @@ class UploadNotifier extends Notifier<UploadState> {
       aiSelection: state.subtitleMethod == SubtitleMethod.ai_scan ? updatedSelection : state.aiSelection,
       videoSelection: state.subtitleMethod == SubtitleMethod.video ? updatedSelection : state.videoSelection,
       suggestedOffset: null,
+      syncConfidence: currentSelection.confidence, // Зберігаємо поточну оцінку синхронізації
     );
   }
 
@@ -644,7 +814,6 @@ class UploadNotifier extends Notifier<UploadState> {
       final videoId = await videoService.addVideo(video);
       developer.log('Video saved with ID: $videoId', name: 'UploadNotifier');
       
-      // Map to NEW objects to ensure Isar treats them as new entries
       final phrases = state.previewPhrases.map((p) => Phrase(
         videoId: videoId,
         phraseOrder: p.phraseOrder,
