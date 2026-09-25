@@ -6,6 +6,7 @@ import 'package:eiga/providers/ui/search_provider.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
 import 'package:eiga/providers/ui/cloud_files_state.dart';
 import 'package:eiga/ui/widgets/dialogs/app_bottom_sheet.dart';
+import 'package:eiga/ui/widgets/dialogs/app_bottom_sheet_header.dart';
 import 'package:eiga/ui/widgets/dialogs/app_sheet_footer.dart';
 import 'package:eiga/ui/widgets/search/search_source_abstract.dart';
 

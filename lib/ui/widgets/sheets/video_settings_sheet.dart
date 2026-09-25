@@ -5,7 +5,7 @@ import 'subtitle_size_settings_sheet.dart';
 import '../dialogs/app_bottom_sheet.dart';
 import '../../screens/video/video_data_share_screen.dart';
 
-enum _SettingsView { main, readingType }
+enum _SettingsView { main, readingType, subtitleSize }
 
 class VideoSettingsSheet extends StatefulWidget {
   const VideoSettingsSheet({super.key});
@@ -33,12 +33,23 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
           ),
         );
       },
-      child: _currentView == _SettingsView.main
-          ? _buildMainView(context)
-          : ReadingModeSheet(
-              onBack: () => setState(() => _currentView = _SettingsView.main),
-            ),
+      child: _getCurrentView(),
     );
+  }
+
+  Widget _getCurrentView() {
+    switch (_currentView) {
+      case _SettingsView.main:
+        return _buildMainView(context);
+      case _SettingsView.readingType:
+        return ReadingModeSheet(
+          onBack: () => setState(() => _currentView = _SettingsView.main),
+        );
+      case _SettingsView.subtitleSize:
+        return SubtitleSizeSettingsSheet(
+          onBack: () => setState(() => _currentView = _SettingsView.main),
+        );
+    }
   }
 
   Widget _buildMainView(BuildContext context) {
@@ -105,14 +116,7 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
           ),
           const SizedBox(height: 8),
           GestureDetector(
-            onTap: () {
-              Navigator.pop(context); // Close the settings sheet first
-              AppBottomSheet.show(
-                context: context,
-                backgroundColor: const Color(0xFFF8FAFC),
-                child: const SubtitleSizeSettingsSheet(),
-              );
-            },
+            onTap: () => setState(() => _currentView = _SettingsView.subtitleSize),
             child: _buildSettingsItem(
               icon: Icons.closed_caption_rounded,
               title: 'Subtitle Display',

@@ -5,6 +5,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import '../../../../backend/database/schemas/phrase.dart';
 import '../../../styles/additional_window_theme.dart';
 import '../../dialogs/app_bottom_sheet.dart';
+import '../../dialogs/app_bottom_sheet_header.dart';
 
 class SyncPreviewSheet extends StatefulWidget {
   final String videoPath;

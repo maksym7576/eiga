@@ -55,17 +55,17 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
     return Material(
       color: Colors.transparent,
       child: Container(
-        width: 300,
+        width: 320,
         height: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFF0F172A).withValues(alpha: 0.92),
-          borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          color: AppColors.bgDark.withValues(alpha: 0.85),
+          borderRadius: const BorderRadius.horizontal(left: Radius.circular(24)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.5),
-              blurRadius: 20,
-              offset: const Offset(-5, 0),
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 25,
+              offset: const Offset(-8, 0),
             ),
           ],
         ),
@@ -92,16 +92,18 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
                         ),
                       ),
                     ],
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                    icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 18),
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.06),
-                      padding: const EdgeInsets.all(6),
+                      backgroundColor: Colors.white.withValues(alpha: 0.08),
+                      shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(8),
                     ),
                   ),
                 ],
@@ -132,7 +134,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       _buildSection(
                         title: 'Vertical Position',
                         value: settings.verticalOffset.toStringAsFixed(2),
@@ -148,7 +150,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                       ),
                     ]),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
                     // --- SECTION 2: GAPS & SPACING ---
                     _buildGroupHeader('Spacing & Gaps'),
@@ -167,7 +169,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       _buildSection(
                         title: 'Original - Furigana Gap',
                         value: settings.fullscreen.originalToAdditionalSpacing.toStringAsFixed(2),
@@ -181,7 +183,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       _buildSection(
                         title: 'Original Letter Spacing',
                         value: settings.fullscreen.originalLetterSpacing.toStringAsFixed(1),
@@ -195,7 +197,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       _buildSection(
                         title: 'Translation Letter Spacing',
                         value: settings.fullscreen.translationLetterSpacing.toStringAsFixed(1),
@@ -211,7 +213,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                       ),
                     ]),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
                     // --- SECTION 3: STYLING & OUTLINE ---
                     _buildGroupHeader('Styling & Strokes'),
@@ -230,7 +232,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       _buildSection(
                         title: 'Global Outline Width (All Subtitles)',
                         value: settings.fullscreen.globalOutlineWidth.toStringAsFixed(1),
@@ -244,7 +246,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       _buildSection(
                         title: 'Original Outline Width',
                         value: settings.fullscreen.originalOutlineWidth.toStringAsFixed(1),
@@ -258,7 +260,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       _buildSection(
                         title: 'Translation Outline Width',
                         value: settings.fullscreen.translationOutlineWidth.toStringAsFixed(1),
@@ -274,7 +276,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                       ),
                     ]),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
                     // --- SECTION 4: BACKGROUND / BACKDROP ---
                     _buildGroupHeader('Background Backdrop'),
@@ -285,7 +287,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                         children: [
                           const Text(
                             'Show Backdrop',
-                            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                           ),
                           Switch.adaptive(
                             value: settings.showBackdrop,
@@ -295,7 +297,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                         ],
                       ),
                       if (settings.showBackdrop) ...[
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         _buildSection(
                           title: 'Opacity',
                           value: settings.backdropOpacity.toStringAsFixed(2),
@@ -309,7 +311,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         _buildSection(
                           title: 'Padding',
                           value: '${settings.backdropPadding.toInt()}px',
@@ -326,26 +328,26 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                       ],
                     ]),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
                     // --- SECTION 5: ADVANCED SCALING (Collapsible) ---
                     _buildAdvancedScalingSection(context, ref, settings),
 
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 32),
 
                     // Reset Button
                     SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton.icon(
+                      child: OutlinedButton.icon(
                         onPressed: () => ref.read(subtitleSettingsProvider.notifier).reset(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.08),
-                          foregroundColor: Colors.white70,
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: AppColors.cardDark.withValues(alpha: 0.6),
+                          foregroundColor: Colors.white,
                           elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
                           ),
                         ),
                         icon: const Icon(Icons.refresh_rounded, size: 18),
@@ -368,7 +370,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
       child: Text(
         title.toUpperCase(),
         style: TextStyle(
-          color: AppColors.brandBlue.withValues(alpha: 0.9),
+          color: AppColors.brandBlue,
           fontSize: 11,
           fontWeight: FontWeight.w900,
           letterSpacing: 0.8,
@@ -379,11 +381,18 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
 
   Widget _buildCard(List<Widget> children) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        color: AppColors.cardDark.withValues(alpha: 0.65), // Використання кольору cardDark з app_colors.dart
+        borderRadius: BorderRadius.circular(20), // Округлені форми у стилі білих карток
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -397,34 +406,41 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        color: AppColors.cardDark.withValues(alpha: 0.65), // Використання кольору cardDark з app_colors.dart
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
             onTap: () => isExpanded.value = !isExpanded.value,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(20),
             child: Padding(
-              padding: const EdgeInsets.all(12.0),
+              padding: const EdgeInsets.all(16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.aspect_ratio_rounded, color: Colors.white70, size: 18),
-                      SizedBox(width: 8),
+                      Icon(Icons.aspect_ratio_rounded, color: Colors.white, size: 18),
+                      SizedBox(width: 10),
                       Text(
                         'Advanced Scaling',
-                        style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w700),
+                        style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
                   Icon(
                     isExpanded.value ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                    color: Colors.white70,
+                    color: Colors.white,
                     size: 20,
                   ),
                 ],
@@ -433,7 +449,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
           ),
           if (isExpanded.value) ...[
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Column(
                 children: [
                   const Divider(color: Colors.white12, height: 16),
@@ -450,7 +466,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   _buildSection(
                     title: 'Furigana Scale',
                     value: '${(settings.fullscreen.additionalScale * 100).toInt()}%',
@@ -464,7 +480,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   _buildSection(
                     title: 'Translation Scale',
                     value: '${(settings.fullscreen.translationScale * 100).toInt()}%',
@@ -494,11 +510,19 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(title, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
             Text(value, style: const TextStyle(color: AppColors.brandBlue, fontSize: 12, fontWeight: FontWeight.w700)),
           ],
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         child,
       ],
     );
@@ -509,9 +533,9 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
       activeTrackColor: AppColors.brandBlue,
       inactiveTrackColor: Colors.white24,
       thumbColor: Colors.white,
-      trackHeight: 3.0,
+      trackHeight: 4.0,
       overlayColor: AppColors.brandBlue.withValues(alpha: 0.2),
-      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
+      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7.0),
     );
   }
 }

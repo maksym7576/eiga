@@ -1,4 +1,5 @@
 import 'package:isar_community/isar.dart';
+import '../../services/petition_ai/parsers/text_pipeline.dart';
 
 part 'phrase.g.dart';
 
@@ -230,10 +231,13 @@ class TokenEntry {
   int get id => wordPosition ?? 0;
 
   @ignore
-  String get mainText => versions.firstWhere(
-        (v) => v.key == 'original',
-        orElse: () => versions.isNotEmpty ? versions.first : ReadingItem(),
-      ).text ?? '';
+  String get mainText => TextPipeline.clean(
+    versions.firstWhere(
+      (v) => v.key == 'original',
+      orElse: () => versions.isNotEmpty ? versions.first : ReadingItem(),
+    ).text,
+    field: TextField.originalToken,
+  );
 
   TokenEntry({
     this.wordPosition,

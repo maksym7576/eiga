@@ -51,7 +51,8 @@ class GroqService {
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
         if (data['choices'] != null && data['choices'].isNotEmpty) {
-          return data['choices'][0]['message']['content'].toString().trim();
+          final raw = data['choices'][0]['message']['content'].toString();
+          return raw.replaceAll('```json', '').replaceAll('```', '').trim();
         }
         throw GeminiGeneralException("Unexpected response shape from Groq");
       } else {

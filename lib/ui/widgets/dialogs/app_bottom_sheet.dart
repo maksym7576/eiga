@@ -1,8 +1,17 @@
-import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../styles/app_bottom_sheet_theme.dart';
+import 'desktop/app_bottom_sheet_desktop.dart';
+import 'mobile/app_bottom_sheet_mobile.dart';
 
 class AppBottomSheet {
+  static bool _isDesktop() {
+    try {
+      return Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static Future<void> show({
     required BuildContext context,
     required Widget child,
@@ -14,250 +23,27 @@ class AppBottomSheet {
     bool isScrollControlled = true,
     VoidCallback? onClosed,
   }) async {
-    final theme = AppBottomSheetTheme.of(context);
-
-    await showGeneralDialog(
-      context: context,
-      barrierDismissible: barrierDismissible,
-      barrierLabel: barrierLabel,
-      barrierColor: theme.barrierColor,
-      transitionDuration: theme.transitionDuration,
-      pageBuilder: (context, anim1, anim2) {
-        return Align(
-          alignment: Alignment.bottomCenter,
-          child: Material(
-            color: Colors.transparent,
-            child: _DraggableSheetBody(
-              heightFactor: heightFactor,
-              backgroundColor: backgroundColor,
-              opaque: opaque,
-              theme: theme,
-              child: child,
-            ),
-          ),
-        );
-      },
-      transitionBuilder: (context, anim1, anim2, child) {
-        // Slide from bottom
-        return SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 1),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(parent: anim1, curve: Curves.easeOutCubic),
-          ),
-          child: child,
-        );
-      },
-    );
-
-    onClosed?.call();
-  }
-}
-
-class _DraggableSheetBody extends StatefulWidget {
-  final double heightFactor;
-  final Color? backgroundColor;
-  final bool opaque;
-  final AppBottomSheetTheme theme;
-  final Widget child;
-
-  const _DraggableSheetBody({
-    required this.heightFactor,
-    required this.backgroundColor,
-    required this.opaque,
-    required this.theme,
-    required this.child,
-  });
-
-  @override
-  State<_DraggableSheetBody> createState() => _DraggableSheetBodyState();
-}
-
-class _DraggableSheetBodyState extends State<_DraggableSheetBody>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _snapController;
-
-  double _dragExtent = 0;
-
-  static const double _closeExtentThreshold = 0.28;
-  static const double _closeVelocityThreshold = 700;
-
-  @override
-  void initState() {
-    super.initState();
-    _snapController = AnimationController(
-      vsync: this,
-      duration: widget.theme.snapDuration,
-    )..addListener(() {
-      setState(() => _dragExtent = _snapController.value);
-    });
-  }
-
-  @override
-  void dispose() {
-    _snapController.dispose();
-    super.dispose();
-  }
-
-  void _onDragStart(DragStartDetails details) {
-    _snapController.stop();
-  }
-
-  void _onDragUpdate(DragUpdateDetails details, double sheetHeight) {
-    if (sheetHeight <= 0) return;
-    setState(() {
-      _dragExtent =
-          (_dragExtent + details.delta.dy / sheetHeight).clamp(0.0, 1.0);
-    });
-  }
-
-  void _onDragEnd(DragEndDetails details) {
-    final velocity = details.velocity.pixelsPerSecond.dy;
-    final shouldClose = _dragExtent > _closeExtentThreshold ||
-        velocity > _closeVelocityThreshold;
-
-    if (shouldClose) {
-      Navigator.of(context).maybePop();
-      return;
+    if (_isDesktop()) {
+      await AppBottomSheetDesktop.show(
+        context: context,
+        child: child,
+        barrierLabel: barrierLabel,
+        backgroundColor: backgroundColor,
+        opaque: opaque,
+        barrierDismissible: barrierDismissible,
+        onClosed: onClosed,
+      );
+    } else {
+      await AppBottomSheetMobile.show(
+        context: context,
+        child: child,
+        barrierLabel: barrierLabel,
+        backgroundColor: backgroundColor,
+        opaque: opaque,
+        heightFactor: heightFactor,
+        barrierDismissible: barrierDismissible,
+        onClosed: onClosed,
+      );
     }
-
-    _snapController.value = _dragExtent;
-    _snapController.animateTo(0, curve: Curves.easeOut);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = widget.theme;
-    final sheetHeight =
-        MediaQuery.of(context).size.height * widget.heightFactor;
-
-    return Transform.translate(
-      offset: Offset(0, _dragExtent * sheetHeight),
-      child: ClipRRect(
-        borderRadius: theme.borderRadius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Container(
-            width: double.infinity,
-            constraints: BoxConstraints(maxHeight: sheetHeight),
-            decoration: BoxDecoration(
-              color: (widget.backgroundColor ?? theme.backgroundColor)
-                  .withValues(alpha: widget.opaque ? 1.0 : 0.85),
-              borderRadius: theme.borderRadius,
-              border: Border.all(
-                color: widget.opaque ? Colors.transparent : Colors.white.withValues(alpha: 0.1),
-                width: 1.5,
-              ),
-              boxShadow: theme.shadow,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onVerticalDragStart: _onDragStart,
-                  onVerticalDragUpdate: (d) => _onDragUpdate(d, sheetHeight),
-                  onVerticalDragEnd: _onDragEnd,
-                  child: Container(
-                    width: double.infinity,
-                    padding: theme.handlePadding,
-                    child: Center(
-                      child: Container(
-                        width: theme.handleWidth,
-                        height: theme.handleHeight,
-                        decoration: BoxDecoration(
-                          color: theme.handleColor,
-                          borderRadius:
-                              BorderRadius.circular(theme.handleRadius),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Flexible(
-                  child: widget.child,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class AppBottomSheetHeader extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-  final IconData? icon;
-  final Widget? trailing;
-  final EdgeInsets? padding;
-
-  const AppBottomSheetHeader({
-    super.key,
-    required this.title,
-    this.subtitle,
-    this.icon,
-    this.trailing,
-    this.padding,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = AppBottomSheetTheme.of(context);
-
-    return Padding(
-      padding: padding ?? const EdgeInsets.fromLTRB(20, 8, 8, 8),
-      child: Row(
-        children: [
-          if (icon != null) ...[
-            Icon(icon, color: theme.isDark ? Colors.white : Colors.black87, size: 20),
-            const SizedBox(width: 12),
-          ],
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                    color: theme.isDark ? Colors.white : Colors.black87,
-                  ),
-                ),
-                if (subtitle != null)
-                  Text(
-                    subtitle!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: theme.isDark ? Colors.white70 : Colors.black54,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          if (trailing != null) ...[
-            trailing!,
-            const SizedBox(width: 8),
-          ],
-          IconButton(
-            onPressed: () => Navigator.of(context).maybePop(),
-            icon: Icon(
-              Icons.close_rounded,
-              color: theme.isDark ? Colors.white38 : Colors.black26,
-            ),
-            style: IconButton.styleFrom(
-              backgroundColor: theme.isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
-              shape: const CircleBorder(),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

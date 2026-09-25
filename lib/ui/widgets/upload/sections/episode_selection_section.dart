@@ -8,6 +8,7 @@ import '../../../../backend/database/dto/media_dto.dart';
 import '../../../styles/additional_window_theme.dart';
 import '../../../styles/app_colors.dart';
 import '../../dialogs/app_bottom_sheet.dart';
+import '../../dialogs/app_bottom_sheet_header.dart';
 import '../../shared/app_text_button.dart';
 import '../selectors/subtitle_method_selector.dart';
 import '../components/sync_status_indicators.dart';
@@ -309,7 +310,7 @@ class EpisodeSelectionSection extends HookConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const AppBottomSheetHeader(title: 'All Episodes'),
+          AppBottomSheetHeader(title: 'All Episodes'),
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),

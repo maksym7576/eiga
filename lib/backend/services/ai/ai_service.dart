@@ -11,6 +11,7 @@ import 'package:eiga/backend/services/ai/ai_model_scorer.dart';
 import 'package:eiga/backend/services/utils/ai_exceptions.dart';
 import 'package:eiga/backend/services/utils/ai_error_handler.dart';
 import 'package:eiga/utils/logger.dart';
+import '../petition_ai/parsers/text_pipeline.dart';
 
 import '../../../config/secure_storage.dart';
 import '../../../providers/services/ai_request_state.dart';
@@ -525,7 +526,7 @@ class AiService {
 
       if (latestVideo != null) {
         latestVideo.isResearchDone = true;
-        latestVideo.researchInformation = response; 
+        latestVideo.researchInformation = TextPipeline.clean(response, field: TextField.researchContext);
         await videoService.updateVideo(latestVideo);
       }
       

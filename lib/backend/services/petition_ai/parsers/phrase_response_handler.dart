@@ -10,6 +10,7 @@ import '../../utils/ai_exceptions.dart';
 import 'package:eiga/providers/services/ai_request_state.dart';
 import 'response_parser_utils.dart';
 import '../../../../utils/logger.dart';
+import 'text_pipeline.dart';
 
 class PhraseOutcome {
   final int phraseId;
@@ -113,7 +114,7 @@ class PhraseResponseHandler {
           translatedWords.add(TranslationTokenEntry(
             blockId: blockId,
             translatedWordPosition: ResponseParserUtils.parseId(tItem[0]),
-            text: tItem[1]?.toString() ?? '',
+            text: TextPipeline.clean(tItem[1]?.toString(), field: TextField.translatedWord),
             isInferred: tItem[2] == true,
             sourceWordPositions: sourceWordPositions,
           ));
@@ -202,7 +203,7 @@ class PhraseResponseHandler {
           final String keyToLook = opt == 'original' ? 'text' : opt;
           final val = item[keyToLook] ?? item[opt];
           if (val != null) {
-            versions.add(ReadingItem(key: opt, text: val.toString()));
+            versions.add(ReadingItem(key: opt, text: TextPipeline.clean(val.toString(), field: TextField.originalToken)));
           }
         }
 
@@ -224,7 +225,7 @@ class PhraseResponseHandler {
         tokens.add(TranslationTokenEntry(
           translatedWordPosition: pos,
           blockId: posToBlock[pos] ?? pos,
-          text: item['text']?.toString() ?? item['translation']?.toString() ?? '',
+          text: TextPipeline.clean(item['text']?.toString() ?? item['translation']?.toString(), field: TextField.translatedWord),
         ));
       }
       await phraseService.updateTokens(phrase.id, original: null, translated: tokens);
@@ -469,8 +470,10 @@ class PhraseResponseHandler {
     for (var lineData in lines) {
       if (lineData is! Map<String, dynamic>) continue;
       final int phraseId = ResponseParserUtils.parseId(lineData['id']);
-      final String translation = lineData['translation']?.toString() ?? '';
-      final String? cleanedOriginal = lineData['cleanedOriginal']?.toString();
+      final String translation = TextPipeline.clean(lineData['translation']?.toString(), field: TextField.translatedPhrase);
+      final String? cleanedOriginal = lineData['cleanedOriginal'] != null
+          ? TextPipeline.clean(lineData['cleanedOriginal']?.toString(), field: TextField.originalPhrase)
+          : null;
 
       if (phraseId <= 0 || translation.isEmpty) {
         if (phraseId > 0) failedIds.add(phraseId);
