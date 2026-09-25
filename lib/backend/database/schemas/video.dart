@@ -61,9 +61,16 @@ class Video {
   double? processingProgress = 0.0;
   int? transcriptionResumeSeconds = 0;
 
+  // Metadata service used for creation
+  String? metadataProvider; // 'anilist', 'shikimori', 'tvmaze', 'manual'
+  String? subtitleMethodUsed; // 'quick', 'ai_scan', 'manual', 'video'
+
   bool isCached = false;
 
   int? lastPositionMs;
+
+  bool isSynced = false;
+  DateTime? lastSyncedAt;
 
   int? selectedAudioTrackIndex;
 

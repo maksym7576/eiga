@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import '../../../../backend/services/text/text_formatting_service.dart';
 import '../../../../backend/database/schemas/phrase.dart';
 import '../../../../backend/database/schemas/user_word_status.dart';
 import '../../../../config/ui/word_styles.dart';
@@ -54,9 +55,9 @@ class TranslationStyledContent extends HookConsumerWidget {
 
     final settings = ref.watch(subtitleSettingsProvider);
     final modeSettings = isFullscreen ? settings.fullscreen : settings.windowed;
-    
-    final double computedOutlineWidth = useShadows 
-        ? (baseFontSize * 0.05) * modeSettings.translationOutlineWidth 
+
+    final double computedOutlineWidth = useShadows
+        ? (baseFontSize * 0.05) * modeSettings.translationOutlineWidth * modeSettings.globalOutlineWidth
         : 0.0;
 
     if (hideBrackets) {
@@ -69,7 +70,7 @@ class TranslationStyledContent extends HookConsumerWidget {
         final bracketRegExp = RegExp(r'[([{（［｛].*?[)]}）］｝]');
         text = text.replaceAll(bracketRegExp, '').trim();
       }
-      
+
       if (text.isEmpty) {
         // If we are in the middle of active processing, show the current stage label
         if (phrase.uiStatus.isProcessing) {
@@ -90,20 +91,20 @@ class TranslationStyledContent extends HookConsumerWidget {
                 color: isFullscreen ? Colors.black26 : Colors.black.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: isFullscreen 
-                ? OutlinedText(
-                    text: 'Translating...',
-                    useOutline: true,
-                    outlineWidth: baseFontSize * 0.05,
-                    outlineColor: Colors.black.withValues(alpha: 0.8),
-                    style: TextStyle(
-                      fontSize: baseFontSize * 0.8,
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w600,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  )
-                : const SizedBox.shrink(),
+              child: isFullscreen
+                  ? OutlinedText(
+                text: 'Translating...',
+                useOutline: true,
+                outlineWidth: baseFontSize * 0.05,
+                outlineColor: Colors.black.withValues(alpha: 0.8),
+                style: TextStyle(
+                  fontSize: baseFontSize * 0.8,
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w600,
+                  fontStyle: FontStyle.italic,
+                ),
+              )
+                  : const SizedBox.shrink(),
             ),
           );
         }
@@ -134,8 +135,16 @@ class TranslationStyledContent extends HookConsumerWidget {
     return Wrap(
       key: ValueKey('tokens_wrap_${phrase.id}'),
       alignment: textAlign == TextAlign.center ? WrapAlignment.center : WrapAlignment.start,
-      spacing: baseFontSize * 0.05, 
-      runSpacing: baseFontSize * 0.1, 
+      // ПРИМІТКА: Wrap у Flutter НЕ підтримує справжнє baseline-вирівнювання
+      // (WrapCrossAlignment має лише start/end/center, без textBaseline —
+      // це властивість тільки Row/Column). Тому замість "магічного" baseline
+      // ми просто прибрали примусову висоту контейнерів (minHeight,
+      // alignment: bottomCenter), через яку й виникала "драбинка", і
+      // вирівнюємо по нижньому краю (end) — це найближче візуально до
+      // базової лінії тексту, коли контейнери мають природну висоту.
+      crossAxisAlignment: WrapCrossAlignment.end,
+      spacing: 0,
+      runSpacing: baseFontSize * 0.1,
       children: tokens.map((token) {
         final tokenText = token.text ?? '';
         final isHighlighted = highlightedTranslationIds.contains(token.translatedWordPosition);
@@ -227,17 +236,39 @@ class _TranslationTokenWidget extends HookConsumerWidget {
     final bool canTap = !isFullscreen || isLocked;
     final bool showHighlight = isHighlighted && !isPunctuation;
 
+    // 1. Отримуємо налаштування (припускаємо, що у settings.fullscreen/windowed є noSpacing)
+    // Якщо немає, поки false.
+    final bool globalNoSpacing = false;
+
+    // 2. Використовуємо наш сервіс для отримання відступів
+    final bool isAttachMerge = (token.attachMode == AttachMode.none ? TextFormattingService.getAttachMode(token.text ?? '') : token.attachMode) == AttachMode.merge;
+    final bool isAttachModify = (token.attachMode == AttachMode.none ? TextFormattingService.getAttachMode(token.text ?? '') : token.attachMode) == AttachMode.modify;
+
+    final double leftPadding = isAttachMerge ? 0.0 : baseFontSize * 0.15;
+    final double rightPadding = (isAttachMerge || isAttachModify) ? 0.0 : baseFontSize * 0.15;
+
+    // ВАЖЛИВО: тут ми навмисно НЕ задаємо BoxConstraints(minHeight: ...) і
+    // НЕ задаємо alignment: Alignment.bottomCenter. Раніше саме ця пара
+    // примушувала кожен контейнер токена мати фіксовану висоту й вирівнювала
+    // текст всередині неї по нижньому краю коробки (а не по базовій лінії
+    // шрифту), через що сусідні токени різної "внутрішньої" висоти (кома
+    // проти звичайного слова, різні fontSize для пунктуації) виглядали так,
+    // ніби стоять на різних рівнях — "драбинка". Тепер розмір контейнера
+    // природно підлаштовується під текст, а вирівнювання по одній лінії
+    // забезпечує crossAxisAlignment: WrapCrossAlignment.baseline на Wrap.
     Widget tokenContent = Container(
       key: ValueKey('token_bg_${token.translatedWordPosition}_$isHighlighted'),
-      padding: EdgeInsets.symmetric(
-        horizontal: isPunctuation ? baseFontSize * 0.06 : baseFontSize * 0.15, 
-        vertical: baseFontSize * 0.05
+      padding: EdgeInsets.only(
+          left: leftPadding,
+          right: rightPadding,
+          top: baseFontSize * 0.05,
+          bottom: baseFontSize * 0.05
       ),
       decoration: BoxDecoration(
         color: showHighlight
-            ? (isFullscreen 
-                ? const Color(0xFF3B66F5).withValues(alpha: 0.4)
-                : const Color(0xFFE2E8F0).withValues(alpha: 0.8))
+            ? (isFullscreen
+            ? const Color(0xFF3B66F5).withValues(alpha: 0.4)
+            : const Color(0xFFE2E8F0).withValues(alpha: 0.8))
             : Colors.transparent,
         borderRadius: BorderRadius.circular(baseFontSize * 0.3),
         border: Border.all(
@@ -253,9 +284,11 @@ class _TranslationTokenWidget extends HookConsumerWidget {
         outlineWidth: outlineWidth,
         outlineColor: isFullscreen ? Colors.black.withValues(alpha: 0.8) : Colors.black,
         style: TextStyle(
-          fontSize: baseFontSize * modeSettings.translationScale,
+          fontSize: (isPunctuation ? baseFontSize * 1.1 : baseFontSize) * modeSettings.translationScale,
           color: status?.color ?? (isFullscreen ? Colors.white : textColor.withValues(alpha: isPunctuation ? 0.95 : ((isHighlighted && !isPunctuation) ? 1.0 : 0.85))),
-          fontWeight: useOutline ? FontWeight.w800 : ((isHighlighted && !isPunctuation) ? FontWeight.w800 : (status != null ? WordStatusUI(status!).fontWeight : FontWeight.w700)),
+          fontWeight: (isHighlighted && !isPunctuation)
+              ? FontWeight.w900
+              : (status != null ? WordStatusUI(status!).fontWeight : FontWeight.values[(modeSettings.fontWeight * 8).round()]),
           height: 1.5,
           letterSpacing: modeSettings.translationLetterSpacing,
           decoration: TextDecoration.none,
@@ -268,12 +301,12 @@ class _TranslationTokenWidget extends HookConsumerWidget {
         behavior: HitTestBehavior.opaque,
         onTap: () {
           final playerNotifier = ref.read(playerProvider(playerScope).notifier);
-          
+
           if (isAnchor) {
             playerNotifier.clearSelection();
           } else {
             final RenderBox? box = context.findRenderObject() as RenderBox?;
-            final position = box != null && box.hasSize 
+            final position = box != null && box.hasSize
                 ? box.localToGlobal(Offset(box.size.width / 2, 0))
                 : null;
 
@@ -285,9 +318,9 @@ class _TranslationTokenWidget extends HookConsumerWidget {
 
             playerNotifier.selectWord(
               phraseId,
-              token.translatedWordPosition ?? 0, 
-              linked['words']!, 
-              linked['translations']!, 
+              token.translatedWordPosition ?? 0,
+              linked['words']!,
+              linked['translations']!,
               tId,
               shouldPause: true,
               position: position,

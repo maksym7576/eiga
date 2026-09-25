@@ -4,6 +4,7 @@ import '../../../../backend/database/schemas/phrase.dart';
 import '../../../../config/ui/word_styles.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
+import 'package:eiga/providers/ui/subtitle_settings_provider.dart';
 import '../../../styles/app_colors.dart';
 import 'outlined_text.dart';
 
@@ -59,6 +60,9 @@ class RubyText extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (word.versions.isEmpty) return const SizedBox.shrink();
 
+    final settings = ref.watch(subtitleSettingsProvider);
+    final modeSettings = isFullscreen ? settings.fullscreen : settings.windowed;
+
     String baseText = '';
     String? annotationText;
 
@@ -72,7 +76,7 @@ class RubyText extends HookConsumerWidget {
     }
 
     baseText = getTextForOption(mainOption) ?? word.mainText;
-    
+
     if (additionalOption != null && additionalOption != 'translation') {
       annotationText = getTextForOption(additionalOption!);
       if (annotationText != null) {
@@ -82,47 +86,52 @@ class RubyText extends HookConsumerWidget {
       }
     }
 
+    // Map 0.0-1.0 to FontWeight 100-900
+    FontWeight weightFromSettings = FontWeight.values[((modeSettings.fontWeight * 8).round())];
+    
     final effectiveBaseStyle = (baseStyle ?? const TextStyle()).copyWith(
       color: status?.color ?? baseStyle?.color,
-      fontWeight: (isHighlighted) ? FontWeight.w800 : (status != null ? WordStatusUI(status!).fontWeight : baseStyle?.fontWeight),
+      fontWeight: (isHighlighted)
+          ? FontWeight.w900
+          : (status != null ? WordStatusUI(status!).fontWeight : weightFromSettings),
     );
 
-    final bool isPunctuation = RegExp(r'^[\p{P}\p{S}]+$', unicode: true).hasMatch(baseText.trim());
+    final bool isPunctuation =
+    RegExp(r'^[\p{P}\p{S}]+$', unicode: true).hasMatch(baseText.trim());
 
     final bool showHighlight = isHighlighted && word.isClickable && !isPunctuation;
 
     final double fs = baseStyle?.fontSize ?? 16.0;
 
-    final double horizontalPadding = isPunctuation 
-        ? (fs * 0.12).clamp(3.0, 12.0) 
-        : (removeSpaces && !showHighlight) 
-            ? 0 
-            : (fs * 0.12).clamp(4.0, 16.0);
+    // Єдиний відступ: пропуск між словами, тільки для мов з пробілами.
+    // Для японської (removeSpaces) і для пунктуації він дорівнює 0.
+    final double rightPadding = (isPunctuation || removeSpaces) ? 0.0 : fs * 0.25;
 
+    // Рамка винесена у foregroundDecoration, щоб вона не збільшувала розмір віджета.
     final Widget baseTextWidget = Container(
       key: ValueKey('ruby_base_${word.id}_$isHighlighted'),
-      padding: EdgeInsets.symmetric(
-        horizontal: horizontalPadding, 
-        vertical: (fs * 0.05).clamp(2.0, 8.0)
-      ),
+      padding: EdgeInsets.only(right: rightPadding),
       decoration: BoxDecoration(
         color: showHighlight
-            ? (isFullscreen 
-                ? const Color(0xFF3B66F5).withValues(alpha: 0.4)
-                : AppColors.brandBlue.withValues(alpha: 0.35))
+            ? (isFullscreen
+            ? const Color(0xFF3B66F5).withValues(alpha: 0.4)
+            : AppColors.brandBlue.withValues(alpha: 0.35))
             : Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      foregroundDecoration: BoxDecoration(
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: showHighlight
-              ? (isFullscreen 
-                  ? const Color(0xFF3B66F5).withValues(alpha: 0.6)
-                  : AppColors.brandBlue.withValues(alpha: 0.5))
+              ? (isFullscreen
+              ? const Color(0xFF3B66F5).withValues(alpha: 0.6)
+              : AppColors.brandBlue.withValues(alpha: 0.5))
               : Colors.transparent,
           width: isPunctuation ? 0 : 1.2,
         ),
       ),
       child: OutlinedText(
-        text: baseText, 
+        text: baseText,
         style: effectiveBaseStyle,
         useOutline: useShadows,
         outlineWidth: outlineWidth,
@@ -130,50 +139,44 @@ class RubyText extends HookConsumerWidget {
       ),
     );
 
+    // Відступ між original і additional повністю з налаштувань.
+    final double annotationSpacing = fs * 0.2 * modeSettings.originalToAdditionalSpacing;
+
     final Widget mainContent = annotationText == null || annotationText.isEmpty
         ? baseTextWidget
         : Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Padding(
-                padding: EdgeInsets.only(
-                  bottom: 2,
-                  left: (fs * 0.55 * 0.12).clamp(1.5, 5.0),
-                  right: (fs * 0.55 * 0.12).clamp(1.5, 5.0),
-                ),
-                child: OutlinedText(
-                  text: annotationText,
-                  style: annotationStyle ?? const TextStyle(),
-                  maxLines: 1,
-                  overflow: TextOverflow.clip,
-                  useOutline: useShadows,
-                  outlineWidth: outlineWidth * 0.6,
-                  outlineColor: isFullscreen ? Colors.black.withValues(alpha: 0.8) : Colors.black,
-                ),
-              ),
-              baseTextWidget,
-            ],
-          );
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        OutlinedText(
+          text: annotationText,
+          style: annotationStyle ?? const TextStyle(),
+          maxLines: 1,
+          overflow: TextOverflow.clip,
+          useOutline: useShadows,
+          outlineWidth: outlineWidth * 0.6,
+          outlineColor: isFullscreen ? Colors.black.withValues(alpha: 0.8) : Colors.black,
+        ),
+        if (annotationSpacing > 0) SizedBox(height: annotationSpacing),
+        baseTextWidget,
+      ],
+    );
 
     final bool canTap = word.isClickable && (!isFullscreen || isLocked);
 
-    Widget gestureContent = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: mainContent,
-    );
+    Widget gestureContent = mainContent;
 
     if (canTap) {
       gestureContent = GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
           final playerNotifier = ref.read(playerProvider(playerScope).notifier);
-          
+
           if (isAnchor) {
             playerNotifier.clearSelection();
           } else {
             final RenderBox? box = context.findRenderObject() as RenderBox?;
-            final position = box != null && box.hasSize 
+            final position = box != null && box.hasSize
                 ? box.localToGlobal(Offset(box.size.width / 2, 0))
                 : null;
 
@@ -185,9 +188,9 @@ class RubyText extends HookConsumerWidget {
 
             playerNotifier.selectWord(
               phraseId,
-              word.id, 
-              linked['words']!, 
-              linked['translations']!, 
+              word.id,
+              linked['words']!,
+              linked['translations']!,
               tId,
               shouldPause: true,
               position: position,
@@ -204,7 +207,7 @@ class RubyText extends HookConsumerWidget {
         child: gestureContent,
       );
     }
-    
+
     return gestureContent;
   }
 }

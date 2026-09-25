@@ -18,20 +18,28 @@ enum SyncMatchResultType { perfect, offset, mismatch, error }
 class SyncCheckpoint {
   final String index;
   final String timeRange;
+  final int startS;
+  final int endS;
   final String phraseText;
   final String offsetText;
+  final double offsetMs;
   final String statusText;
   final String explanationText;
   final bool isDeviation;
+  final double confidence;
 
   SyncCheckpoint({
     required this.index,
     required this.timeRange,
+    required this.startS,
+    required this.endS,
     required this.phraseText,
     required this.offsetText,
+    required this.offsetMs,
     required this.statusText,
     required this.explanationText,
     required this.isDeviation,
+    this.confidence = 0.0,
   });
 }
 
@@ -264,9 +272,12 @@ class AudioSyncService {
             final representativePhrase = _findRepresentativePhrase(phrases, seg.startS, seg.durationS);
             
             checkpoints.add(SyncCheckpoint(
-              index: '#${i + 1}',
+              index: '${i + 1}',
               timeRange: _formatTimeRange(seg.startS, seg.durationS),
+              startS: seg.startS,
+              endS: seg.startS + seg.durationS,
               phraseText: representativePhrase != null ? '“${representativePhrase.originalPhrase}”' : 'Silence / No subtitles',
+              offsetMs: offsetMs.toDouble(),
               offsetText: '${offsetMs >= 0 ? '+' : ''}${(offsetMs / 1000.0).toStringAsFixed(2)}s',
               statusText: isDeviation ? 'deviation' : 'aligned',
               explanationText: correlation.confidence > 0.6 
@@ -275,6 +286,22 @@ class AudioSyncService {
                       ? 'Aligned successfully with slight local variations.'
                       : 'Potential deviation detected due to weak signal or noise.'),
               isDeviation: isDeviation,
+              confidence: correlation.confidence,
+            ));
+          } else {
+            // Add failed checkpoint for visualization
+            checkpoints.add(SyncCheckpoint(
+              index: '${i + 1}',
+              timeRange: _formatTimeRange(seg.startS, seg.durationS),
+              startS: seg.startS,
+              endS: seg.startS + seg.durationS,
+              phraseText: 'Match failed',
+              offsetMs: 0,
+              offsetText: 'N/A',
+              statusText: 'failed',
+              explanationText: 'No clear voice activity match found in this segment.',
+              isDeviation: true,
+              confidence: 0.0,
             ));
           }
         }

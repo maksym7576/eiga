@@ -41,7 +41,7 @@ class PlayerBottomDock extends HookConsumerWidget {
           padding: EdgeInsets.only(
             left: 16,
             right: 16,
-            bottom: MediaQuery.of(context).padding.bottom + 16,
+            bottom: 16, // Піднято вище від самого низу плеєра, щоб не налягати на управління
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,

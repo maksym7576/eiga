@@ -15,7 +15,7 @@ class LanguageWidget extends ConsumerWidget {
     required this.type,
   });
 
-  void _setLanguage(WidgetRef ref, String languageName) {
+  void _setLanguage(BuildContext context, WidgetRef ref, String languageName) {
     if (type == LanguageType.original) {
       ref.read(languageProvider.notifier).setOriginal(languageName);
     } else {
@@ -38,7 +38,7 @@ class LanguageWidget extends ConsumerWidget {
         (type == LanguageType.translation && languageName == original);
 
     return InkWell(
-      onTap: isOccupied ? null : () => _setLanguage(ref, languageName),
+      onTap: isOccupied ? null : () => _setLanguage(context, ref, languageName),
       child: Opacity(
         opacity: isOccupied ? 0.4 : 1.0,
         child: AnimatedContainer(

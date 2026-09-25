@@ -73,6 +73,7 @@ class _UploadDesktopViewState extends State<UploadDesktopView> {
                   scope: 'preview',
                   videoPath: state.videoPath,
                   phrases: state.previewPhrases,
+                  showOverlaySubtitlesInWindowed: false,
                 )
               : Column(
                   children: [

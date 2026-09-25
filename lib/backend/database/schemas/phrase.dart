@@ -36,6 +36,9 @@ class Phrase {
 
   bool isActive = false;
 
+  bool isSynced = false;
+  DateTime? lastSyncedAt;
+
   // Раніше окремі колекції Word / TranslationWord / Block —
   // тепер повністю embedded, приходять разом із Phrase в одному запиті.
   List<TokenEntry>? originalTokens;
@@ -265,6 +268,9 @@ class TranslationTokenEntry {
   List<int> sourceWordPositions = [];
   int? linkGroupId;
 
+  @enumerated
+  AttachMode attachMode = AttachMode.none;
+
   @ignore
   int get id => translatedWordPosition ?? 0;
 
@@ -275,6 +281,7 @@ class TranslationTokenEntry {
     this.isInferred = false,
     this.sourceWordPositions = const [],
     this.linkGroupId,
+    this.attachMode = AttachMode.none,
   });
 }
 

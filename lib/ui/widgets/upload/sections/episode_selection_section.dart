@@ -12,6 +12,7 @@ import '../../shared/app_text_button.dart';
 import '../selectors/subtitle_method_selector.dart';
 import '../components/sync_status_indicators.dart';
 import '../components/sync_technical_details.dart';
+import '../components/subtitle_sync_plaque.dart';
 import '../../search/cloud/cloud_file_tile.dart';
 import '../../search/cloud/cloud_group_tile.dart';
 import 'subtitle_version_section.dart';
@@ -104,24 +105,26 @@ class EpisodeSelectionSection extends HookConsumerWidget {
         const SubtitleMethodSelector(),
         const SizedBox(height: 24),
 
-        // ВЕРХ: залежить від методу
         if (needsEntry && entry == null)
           _buildEmptyState(theme, 'Match media in Step 2 to enable features here')
-        else
+        else ...[
           _buildContentByMethod(context, ref, state, entry),
+          const SizedBox(height: 24),
+        ],
 
         if (state.isParsing) ...[
           const SizedBox(height: 16),
           const LinearProgressIndicator(),
+          const SizedBox(height: 24),
         ],
 
         // НИЗ: однаковий для всіх методів
         if (state.activeSelection != null) ...[
-          const SizedBox(height: 24),
-          if (state.analyzedVersions.length > 1 || state.subtitleMethod == SubtitleMethod.ai_scan)
-            const SubtitleVersionSection()
-          else
+          if (state.analyzedVersions.length > 1 || state.subtitleMethod == SubtitleMethod.ai_scan) ...[
+            const SubtitleVersionSection(),
+          ] else ...[
             _buildActiveSubtitleCard(context, ref, state, isTechExpanded),
+          ],
         ],
       ],
     );
@@ -406,145 +409,87 @@ class EpisodeSelectionSection extends HookConsumerWidget {
     final theme = AdditionalWindowTheme.of(context);
     final notifier = ref.read(uploadProvider.notifier);
     final sel = state.activeSelection!;
-    final isAi = state.subtitleMethod == SubtitleMethod.ai_scan;
 
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 15,
-                offset: const Offset(0, 4),
+        SubtitleSyncPlaque(
+          version: sel,
+          theme: theme,
+          onDismiss: notifier.clearActiveSelection,
+          onTap: () {
+            // Можна додати швидкий перехід до прев'ю або іншу логіку
+          },
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => notifier.setStepIndex(0),
+                icon: const Icon(Icons.play_circle_outline_rounded, size: 16),
+                label: const Text('Video Preview'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  side: const BorderSide(color: Color(0xFFE2E8F0)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  foregroundColor: AppColors.slate700,
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
               ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(Icons.description_rounded, color: theme.primaryAccent, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF2563EB), Color(0xFF4F46E5)],
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                sel.fileName,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.slate900,
-                                  letterSpacing: -0.3,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            IconButton(
-                              onPressed: notifier.clearActiveSelection,
-                              icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.slate400),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              visualDensity: VisualDensity.compact,
-                              tooltip: 'Dismiss file',
-                            ),
-                          ],
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.primaryAccent.withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: state.isCheckingSync ? null : notifier.checkCurrentSync,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (state.isCheckingSync)
+                        const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      else
+                      const SizedBox(width: 8),
+                      Text(state.isCheckingSync ? 'Checking...' : 'Check Sync', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      if (!state.isCheckingSync) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('AI', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                         ),
                       ],
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => notifier.setStepIndex(0),
-                      icon: const Icon(Icons.play_circle_outline_rounded, size: 16),
-                      label: const Text('Video Preview'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        side: const BorderSide(color: Color(0xFFE2E8F0)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        foregroundColor: AppColors.slate700,
-                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF2563EB), Color(0xFF4F46E5)],
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: theme.primaryAccent.withValues(alpha: 0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: ElevatedButton(
-                        onPressed: state.isCheckingSync ? null : notifier.checkCurrentSync,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          shadowColor: Colors.transparent,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (state.isCheckingSync)
-                              const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            else
-                              const Icon(Icons.auto_fix_high_rounded, size: 16),
-                            const SizedBox(width: 8),
-                            Text(state.isCheckingSync ? 'Checking...' : 'Check Sync', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                            if (!state.isCheckingSync) ...[
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text('AI', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-        if (state.syncConfidence > 0 || state.isCheckingSync)
+        if (state.syncConfidence > 0 || state.isCheckingSync) ...[
+          const SizedBox(height: 16),
           ...buildTechDetails(
             context,
             state,
@@ -553,6 +498,7 @@ class EpisodeSelectionSection extends HookConsumerWidget {
             isExpanded,
             currentOffset: state.suggestedOffset ?? state.activeSelection?.offset,
           ),
+        ],
       ],
     );
   }

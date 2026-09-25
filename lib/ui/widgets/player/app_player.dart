@@ -17,6 +17,9 @@ class AppPlayer extends HookConsumerWidget {
   final List<Phrase>? phrases;
   final double? aspectRatio;
   final VoidCallback? onDoubleTap;
+
+  /// false = у віконному режимі субтитрів поверх відео немає.
+  /// У фулскріні вони показуються завжди.
   final bool showOverlaySubtitlesInWindowed;
 
   const AppPlayer({
@@ -35,11 +38,10 @@ class AppPlayer extends HookConsumerWidget {
     final isFullscreen = ref.watch(playerProvider(scope).select((s) => s.isFullscreen));
     final isInitialized = ref.watch(playerProvider(scope).select((s) => s.isInitialized));
 
-    // Auto-init for preview scope or when path changes
+    // Auto-init для preview scope або при зміні шляху
     useEffect(() {
       if (videoPath != null && scope == 'preview') {
         final playerState = ref.read(playerProvider(scope));
-        // Force re-init if path changed or not initialized
         if (playerState.videoId != 0 || !playerState.isInitialized) {
           Future.microtask(() {
             ref.read(playerProvider(scope).notifier).initController(0, videoPath!);
@@ -49,7 +51,7 @@ class AppPlayer extends HookConsumerWidget {
       return null;
     }, [videoPath, scope]);
 
-    // Handle track selection from upload state specifically for preview scope
+    // Вибір доріжок з upload state (тільки для preview)
     if (scope == 'preview') {
       final uploadState = ref.watch(uploadProvider);
       useEffect(() {
@@ -57,12 +59,14 @@ class AppPlayer extends HookConsumerWidget {
           if (uploadState.selectedAudioTrack != null) {
             ref.read(playerProvider(scope).notifier).setAudioTrack(uploadState.selectedAudioTrack!.id);
           }
-          // Embedded subtitles are handled by our overlay, but we keep native subs off
+          // Вбудовані субтитри малює наш оверлей, нативні вимкнені
           ref.read(playerProvider(scope).notifier).setSubtitleTrack(null);
         }
         return null;
       }, [isInitialized, uploadState.selectedAudioTrack, uploadState.selectedOriginalSubtitle]);
     }
+
+    final showSubtitles = isFullscreen || showOverlaySubtitlesInWindowed;
 
     Widget playerContent = MouseRegion(
       onHover: (_) {
@@ -77,18 +81,20 @@ class AppPlayer extends HookConsumerWidget {
           Positioned.fill(
             child: _PlayerInteractionLayer(
               scope: scope,
-              onDoubleTap: onDoubleTap ?? () => ref.read(playerProvider(scope).notifier).handleLockTap(orientation),
+              onDoubleTap: onDoubleTap ??
+                      () => ref.read(playerProvider(scope).notifier).handleLockTap(orientation),
             ),
           ),
+          if (showSubtitles)
+            FullscreenSubtitle(
+              playerScope: scope,
+              customPhrases: phrases,
+              forceShow: showOverlaySubtitlesInWindowed,
+            ),
           Positioned.fill(
             child: RepaintBoundary(
               child: PlayerControls(playerScope: scope),
             ),
-          ),
-          FullscreenSubtitle(
-            playerScope: scope,
-            customPhrases: phrases,
-            forceShow: showOverlaySubtitlesInWindowed,
           ),
           WordDetailsPopover(playerScope: scope),
         ],
@@ -96,8 +102,6 @@ class AppPlayer extends HookConsumerWidget {
     );
 
     if (isFullscreen) {
-      // On Mobile, we need a root-level Scaffold to cover everything.
-      // On Desktop, window_manager handles the window, so we just return the content.
       if (Platform.isAndroid || Platform.isIOS) {
         return Scaffold(
           backgroundColor: Colors.black,
@@ -121,6 +125,7 @@ class AppPlayer extends HookConsumerWidget {
   }
 }
 
+/// Єдиний шар, що відповідає за тапи по відео.
 class _PlayerInteractionLayer extends ConsumerWidget {
   final String scope;
   final VoidCallback onDoubleTap;
@@ -140,7 +145,7 @@ class _PlayerInteractionLayer extends ConsumerWidget {
         ref.read(playerProvider(scope).notifier).clearSelection();
       },
       onDoubleTap: onDoubleTap,
-      behavior: HitTestBehavior.opaque,
+      behavior: HitTestBehavior.translucent,
       child: const SizedBox.expand(),
     );
   }

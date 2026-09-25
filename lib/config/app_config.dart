@@ -52,15 +52,18 @@ class AppConfig {
   static const _keySubVerticalOffset = 'sub_vertical_offset';
   static const _keySubFontWeightFs = 'sub_font_weight_fs';
   static const _keySubFontWeightWin = 'sub_font_weight_win';
+  static const _keySubGlobalOutlineWidthFs = 'sub_global_outline_width_fs';
   
   // Advanced Typography - Fullscreen
-  static const _keySubLetterSpacingFs = 'sub_letter_spacing_fs'; // Keep for legacy or rename?
+  static const _keySubLetterSpacingFs = 'sub_letter_spacing_fs';
   static const _keySubTranslationLetterSpacingFs = 'sub_translation_letter_spacing_fs';
   static const _keySubOriginalScaleFs = 'sub_original_scale_fs';
   static const _keySubTranslationScaleFs = 'sub_translation_scale_fs';
   static const _keySubAdditionalScaleFs = 'sub_additional_scale_fs';
   static const _keySubOriginalOutlineWidthFs = 'sub_original_outline_width_fs';
   static const _keySubTranslationOutlineWidthFs = 'sub_translation_outline_width_fs';
+  static const _keySubOriginalToTranslationSpacingFs = 'sub_original_to_translation_spacing_fs';
+  static const _keySubOriginalToAdditionalSpacingFs = 'sub_original_to_additional_spacing_fs';
 
   // Advanced Typography - Windowed
   static const _keySubLetterSpacingWin = 'sub_letter_spacing_win';
@@ -204,6 +207,10 @@ class AppConfig {
     await _prefs.setDouble(_keySubFontWeightFs, value);
   }
 
+  Future<void> setSubGlobalOutlineWidthFs(double value) async {
+    await _prefs.setDouble(_keySubGlobalOutlineWidthFs, value);
+  }
+
   Future<void> setSubFontWeightWin(double value) async {
     await _prefs.setDouble(_keySubFontWeightWin, value);
   }
@@ -229,6 +236,12 @@ class AppConfig {
   }
   Future<void> setSubTranslationOutlineWidthFs(double value) async {
     await _prefs.setDouble(_keySubTranslationOutlineWidthFs, value);
+  }
+  Future<void> setSubOriginalToTranslationSpacingFs(double value) async {
+    await _prefs.setDouble(_keySubOriginalToTranslationSpacingFs, value);
+  }
+  Future<void> setSubOriginalToAdditionalSpacingFs(double value) async {
+    await _prefs.setDouble(_keySubOriginalToAdditionalSpacingFs, value);
   }
 
   // Setters - Windowed
@@ -297,23 +310,26 @@ class AppConfig {
   bool get getIsGroqEnabled => _prefs.getBool(_keyIsGroqEnabled) ?? true;
 
   double get getSubFontSize => _prefs.getDouble(_keySubFontSize) ?? 12.0;
-  double get getSubWindowedFontSize => _prefs.getDouble(_keySubWindowedFontSize) ?? 12.0;
+  double get getSubWindowedFontSize => _prefs.getDouble(_keySubWindowedFontSize) ?? 16.0; // Updated default to 16.0
   double get getSubOutlineWidth => _prefs.getDouble(_keySubOutlineWidth) ?? 1.0;
   double get getSubBackdropOpacity => _prefs.getDouble(_keySubBackdropOpacity) ?? 0.6;
   double get getSubBackdropPadding => _prefs.getDouble(_keySubBackdropPadding) ?? 8.0;
   bool get getSubShowBackdrop => _prefs.getBool(_keySubShowBackdrop) ?? true;
-  double get getSubVerticalOffset => _prefs.getDouble(_keySubVerticalOffset) ?? 0.0;
-  double get getSubFontWeightFs => _prefs.getDouble(_keySubFontWeightFs) ?? 0.5; // 0.0 to 1.0
+  double get getSubVerticalOffset => _prefs.getDouble(_keySubVerticalOffset) ?? 0.03;
+  double get getSubFontWeightFs => _prefs.getDouble(_keySubFontWeightFs) ?? 0.7; // 0.0 to 1.0
   double get getSubFontWeightWin => _prefs.getDouble(_keySubFontWeightWin) ?? 0.0;
+  double get getSubGlobalOutlineWidthFs => _prefs.getDouble(_keySubGlobalOutlineWidthFs) ?? 1.5;
 
   // Getters - FS
-  double get getSubLetterSpacingFs => _prefs.getDouble(_keySubLetterSpacingFs) ?? 0.0;
+  double get getSubLetterSpacingFs => _prefs.getDouble(_keySubLetterSpacingFs) ?? 2.0;
   double get getSubTranslationLetterSpacingFs => _prefs.getDouble(_keySubTranslationLetterSpacingFs) ?? 0.0;
   double get getSubOriginalScaleFs => _prefs.getDouble(_keySubOriginalScaleFs) ?? 1.0;
   double get getSubTranslationScaleFs => _prefs.getDouble(_keySubTranslationScaleFs) ?? 1.0;
   double get getSubAdditionalScaleFs => _prefs.getDouble(_keySubAdditionalScaleFs) ?? 1.0;
   double get getSubOriginalOutlineWidthFs => _prefs.getDouble(_keySubOriginalOutlineWidthFs) ?? 1.0;
   double get getSubTranslationOutlineWidthFs => _prefs.getDouble(_keySubTranslationOutlineWidthFs) ?? 1.0;
+  double get getSubOriginalToTranslationSpacingFs => _prefs.getDouble(_keySubOriginalToTranslationSpacingFs) ?? 0.0;
+  double get getSubOriginalToAdditionalSpacingFs => _prefs.getDouble(_keySubOriginalToAdditionalSpacingFs) ?? 1;
 
   // Getters - Windowed
   double get getSubLetterSpacingWin => _prefs.getDouble(_keySubLetterSpacingWin) ?? 0.0;
@@ -364,10 +380,16 @@ class AppConfig {
     await _prefs.remove(_keySubVerticalOffset);
     await _prefs.remove(_keySubFontWeightFs);
     await _prefs.remove(_keySubFontWeightWin);
+    await _prefs.remove(_keySubGlobalOutlineWidthFs);
     await _prefs.remove(_keySubLetterSpacingFs);
+    await _prefs.remove(_keySubTranslationLetterSpacingFs);
     await _prefs.remove(_keySubOriginalScaleFs);
     await _prefs.remove(_keySubTranslationScaleFs);
     await _prefs.remove(_keySubAdditionalScaleFs);
+    await _prefs.remove(_keySubOriginalOutlineWidthFs);
+    await _prefs.remove(_keySubTranslationOutlineWidthFs);
+    await _prefs.remove(_keySubOriginalToTranslationSpacingFs);
+    await _prefs.remove(_keySubOriginalToAdditionalSpacingFs);
     await _prefs.remove(_keySubLetterSpacingWin);
     await _prefs.remove(_keySubOriginalScaleWin);
     await _prefs.remove(_keySubTranslationScaleWin);

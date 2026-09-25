@@ -12,7 +12,10 @@ class ModeSubtitleSettings {
   final double additionalScale;
   final double originalOutlineWidth;
   final double translationOutlineWidth;
+  final double globalOutlineWidth;
   final double fontWeight; // 0.0 to 1.0 (Normal to Black)
+  final double originalToTranslationSpacing; // Proportional spacing factor
+  final double originalToAdditionalSpacing; // Proportional spacing factor
 
   const ModeSubtitleSettings({
     required this.fontSize,
@@ -23,7 +26,10 @@ class ModeSubtitleSettings {
     this.additionalScale = 1.0,
     this.originalOutlineWidth = 1.0,
     this.translationOutlineWidth = 1.0,
+    this.globalOutlineWidth = 1.0,
     this.fontWeight = 0.5,
+    this.originalToTranslationSpacing = 1.0,
+    this.originalToAdditionalSpacing = 1.0,
   });
 
   ModeSubtitleSettings copyWith({
@@ -35,7 +41,10 @@ class ModeSubtitleSettings {
     double? additionalScale,
     double? originalOutlineWidth,
     double? translationOutlineWidth,
+    double? globalOutlineWidth,
     double? fontWeight,
+    double? originalToTranslationSpacing,
+    double? originalToAdditionalSpacing,
   }) {
     return ModeSubtitleSettings(
       fontSize: fontSize ?? this.fontSize,
@@ -46,7 +55,10 @@ class ModeSubtitleSettings {
       additionalScale: additionalScale ?? this.additionalScale,
       originalOutlineWidth: originalOutlineWidth ?? this.originalOutlineWidth,
       translationOutlineWidth: translationOutlineWidth ?? this.translationOutlineWidth,
+      globalOutlineWidth: globalOutlineWidth ?? this.globalOutlineWidth,
       fontWeight: fontWeight ?? this.fontWeight,
+      originalToTranslationSpacing: originalToTranslationSpacing ?? this.originalToTranslationSpacing,
+      originalToAdditionalSpacing: originalToAdditionalSpacing ?? this.originalToAdditionalSpacing,
     );
   }
 }
@@ -112,7 +124,10 @@ class SubtitleSettingsNotifier extends Notifier<SubtitleSettings> {
         additionalScale: config.getSubAdditionalScaleFs,
         originalOutlineWidth: config.getSubOriginalOutlineWidthFs,
         translationOutlineWidth: config.getSubTranslationOutlineWidthFs,
+        globalOutlineWidth: config.getSubGlobalOutlineWidthFs,
         fontWeight: config.getSubFontWeightFs,
+        originalToTranslationSpacing: config.getSubOriginalToTranslationSpacingFs,
+        originalToAdditionalSpacing: config.getSubOriginalToAdditionalSpacingFs,
       ),
       windowed: ModeSubtitleSettings(
         fontSize: config.getSubWindowedFontSize,
@@ -164,6 +179,18 @@ class SubtitleSettingsNotifier extends Notifier<SubtitleSettings> {
   void setTranslationOutlineWidthFs(double val) {
     state = state.copyWith(fullscreen: state.fullscreen.copyWith(translationOutlineWidth: val));
     ref.read(appConfigsServiceProvider).setSubTranslationOutlineWidthFs(val);
+  }
+  void setGlobalOutlineWidthFs(double val) {
+    state = state.copyWith(fullscreen: state.fullscreen.copyWith(globalOutlineWidth: val));
+    ref.read(appConfigsServiceProvider).setSubGlobalOutlineWidthFs(val);
+  }
+  void setOriginalToTranslationSpacingFs(double val) {
+    state = state.copyWith(fullscreen: state.fullscreen.copyWith(originalToTranslationSpacing: val));
+    ref.read(appConfigsServiceProvider).setSubOriginalToTranslationSpacingFs(val);
+  }
+  void setOriginalToAdditionalSpacingFs(double val) {
+    state = state.copyWith(fullscreen: state.fullscreen.copyWith(originalToAdditionalSpacing: val));
+    ref.read(appConfigsServiceProvider).setSubOriginalToAdditionalSpacingFs(val);
   }
 
   void setFontWeightFs(double val) {
@@ -218,17 +245,21 @@ class SubtitleSettingsNotifier extends Notifier<SubtitleSettings> {
     
     // Reset FS
     config.setSubFontSize(12.0);
-    config.setSubLetterSpacingFs(0.0); 
+    config.setSubLetterSpacingFs(2.0); 
     config.setSubTranslationLetterSpacingFs(0.0);
     config.setSubOriginalScaleFs(1.0);
     config.setSubTranslationScaleFs(1.0);
     config.setSubAdditionalScaleFs(1.0);
     config.setSubOriginalOutlineWidthFs(1.0);
     config.setSubTranslationOutlineWidthFs(1.0);
-    config.setSubFontWeightFs(0.5);
+    config.setSubGlobalOutlineWidthFs(1.5);
+    config.setSubOriginalToTranslationSpacingFs(0.0);
+    config.setSubOriginalToAdditionalSpacingFs(0.99);
+    config.setSubFontWeightFs(0.7);
+    config.setSubVerticalOffset(0.03);
 
     // Reset Win
-    config.setSubWindowedFontSize(12.0);
+    config.setSubWindowedFontSize(16.0);
     config.setSubOriginalScaleWin(1.0);
     config.setSubTranslationScaleWin(1.0);
     config.setSubAdditionalScaleWin(1.0);

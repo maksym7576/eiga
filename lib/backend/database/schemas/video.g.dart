@@ -88,114 +88,130 @@ const VideoSchema = CollectionSchema(
       name: r'isSubtitleReady',
       type: IsarType.bool,
     ),
+    r'isSynced': PropertySchema(id: 19, name: r'isSynced', type: IsarType.bool),
     r'isUnverified': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'isUnverified',
       type: IsarType.bool,
     ),
     r'lastPositionMs': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'lastPositionMs',
       type: IsarType.long,
     ),
-    r'malId': PropertySchema(id: 21, name: r'malId', type: IsarType.long),
-    r'nameJumaku': PropertySchema(
+    r'lastSyncedAt': PropertySchema(
       id: 22,
+      name: r'lastSyncedAt',
+      type: IsarType.dateTime,
+    ),
+    r'malId': PropertySchema(id: 23, name: r'malId', type: IsarType.long),
+    r'metadataProvider': PropertySchema(
+      id: 24,
+      name: r'metadataProvider',
+      type: IsarType.string,
+    ),
+    r'nameJumaku': PropertySchema(
+      id: 25,
       name: r'nameJumaku',
       type: IsarType.string,
     ),
     r'originalLanguage': PropertySchema(
-      id: 23,
+      id: 26,
       name: r'originalLanguage',
       type: IsarType.string,
     ),
     r'originalName': PropertySchema(
-      id: 24,
+      id: 27,
       name: r'originalName',
       type: IsarType.string,
     ),
     r'pathSubtitle': PropertySchema(
-      id: 25,
+      id: 28,
       name: r'pathSubtitle',
       type: IsarType.string,
     ),
     r'pipelineIndetificator': PropertySchema(
-      id: 26,
+      id: 29,
       name: r'pipelineIndetificator',
       type: IsarType.string,
     ),
     r'processingProgress': PropertySchema(
-      id: 27,
+      id: 30,
       name: r'processingProgress',
       type: IsarType.double,
     ),
     r'researchInformation': PropertySchema(
-      id: 28,
+      id: 31,
       name: r'researchInformation',
       type: IsarType.string,
     ),
-    r'score': PropertySchema(id: 29, name: r'score', type: IsarType.double),
-    r'season': PropertySchema(id: 30, name: r'season', type: IsarType.string),
+    r'score': PropertySchema(id: 32, name: r'score', type: IsarType.double),
+    r'season': PropertySchema(id: 33, name: r'season', type: IsarType.string),
     r'selectedAudioTrackIndex': PropertySchema(
-      id: 31,
+      id: 34,
       name: r'selectedAudioTrackIndex',
       type: IsarType.long,
     ),
     r'seriesName': PropertySchema(
-      id: 32,
+      id: 35,
       name: r'seriesName',
       type: IsarType.string,
     ),
     r'shikimoriId': PropertySchema(
-      id: 33,
+      id: 36,
       name: r'shikimoriId',
       type: IsarType.long,
     ),
-    r'status': PropertySchema(id: 34, name: r'status', type: IsarType.string),
+    r'status': PropertySchema(id: 37, name: r'status', type: IsarType.string),
     r'subtitleFileName': PropertySchema(
-      id: 35,
+      id: 38,
       name: r'subtitleFileName',
       type: IsarType.string,
     ),
+    r'subtitleMethodUsed': PropertySchema(
+      id: 39,
+      name: r'subtitleMethodUsed',
+      type: IsarType.string,
+    ),
     r'subtitleSource': PropertySchema(
-      id: 36,
+      id: 40,
       name: r'subtitleSource',
       type: IsarType.string,
     ),
     r'textFormat': PropertySchema(
-      id: 37,
+      id: 41,
       name: r'textFormat',
       type: IsarType.string,
     ),
     r'thetvdbId': PropertySchema(
-      id: 38,
+      id: 42,
       name: r'thetvdbId',
       type: IsarType.string,
     ),
-    r'tmdbId': PropertySchema(id: 39, name: r'tmdbId', type: IsarType.string),
+    r'tmdbId': PropertySchema(id: 43, name: r'tmdbId', type: IsarType.string),
     r'totalEpisodes': PropertySchema(
-      id: 40,
+      id: 44,
       name: r'totalEpisodes',
       type: IsarType.long,
     ),
     r'transcriptionResumeSeconds': PropertySchema(
-      id: 41,
+      id: 45,
       name: r'transcriptionResumeSeconds',
       type: IsarType.long,
     ),
     r'transcriptionStatus': PropertySchema(
-      id: 42,
+      id: 46,
       name: r'transcriptionStatus',
       type: IsarType.string,
     ),
     r'translatedLanguage': PropertySchema(
-      id: 43,
+      id: 47,
       name: r'translatedLanguage',
       type: IsarType.string,
     ),
-    r'tvmazeId': PropertySchema(id: 44, name: r'tvmazeId', type: IsarType.long),
+    r'tvmazeId': PropertySchema(id: 48, name: r'tvmazeId', type: IsarType.long),
     r'videoPath': PropertySchema(
-      id: 45,
+      id: 49,
       name: r'videoPath',
       type: IsarType.string,
     ),
@@ -277,6 +293,12 @@ int _videoEstimateSize(
     }
   }
   {
+    final value = object.metadataProvider;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.nameJumaku;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -332,6 +354,12 @@ int _videoEstimateSize(
   }
   {
     final value = object.subtitleFileName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.subtitleMethodUsed;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -406,33 +434,37 @@ void _videoSerialize(
   writer.writeBool(offsets[16], object.isMovie);
   writer.writeBool(offsets[17], object.isResearchDone);
   writer.writeBool(offsets[18], object.isSubtitleReady);
-  writer.writeBool(offsets[19], object.isUnverified);
-  writer.writeLong(offsets[20], object.lastPositionMs);
-  writer.writeLong(offsets[21], object.malId);
-  writer.writeString(offsets[22], object.nameJumaku);
-  writer.writeString(offsets[23], object.originalLanguage);
-  writer.writeString(offsets[24], object.originalName);
-  writer.writeString(offsets[25], object.pathSubtitle);
-  writer.writeString(offsets[26], object.pipelineIndetificator);
-  writer.writeDouble(offsets[27], object.processingProgress);
-  writer.writeString(offsets[28], object.researchInformation);
-  writer.writeDouble(offsets[29], object.score);
-  writer.writeString(offsets[30], object.season);
-  writer.writeLong(offsets[31], object.selectedAudioTrackIndex);
-  writer.writeString(offsets[32], object.seriesName);
-  writer.writeLong(offsets[33], object.shikimoriId);
-  writer.writeString(offsets[34], object.status);
-  writer.writeString(offsets[35], object.subtitleFileName);
-  writer.writeString(offsets[36], object.subtitleSource);
-  writer.writeString(offsets[37], object.textFormat);
-  writer.writeString(offsets[38], object.thetvdbId);
-  writer.writeString(offsets[39], object.tmdbId);
-  writer.writeLong(offsets[40], object.totalEpisodes);
-  writer.writeLong(offsets[41], object.transcriptionResumeSeconds);
-  writer.writeString(offsets[42], object.transcriptionStatus);
-  writer.writeString(offsets[43], object.translatedLanguage);
-  writer.writeLong(offsets[44], object.tvmazeId);
-  writer.writeString(offsets[45], object.videoPath);
+  writer.writeBool(offsets[19], object.isSynced);
+  writer.writeBool(offsets[20], object.isUnverified);
+  writer.writeLong(offsets[21], object.lastPositionMs);
+  writer.writeDateTime(offsets[22], object.lastSyncedAt);
+  writer.writeLong(offsets[23], object.malId);
+  writer.writeString(offsets[24], object.metadataProvider);
+  writer.writeString(offsets[25], object.nameJumaku);
+  writer.writeString(offsets[26], object.originalLanguage);
+  writer.writeString(offsets[27], object.originalName);
+  writer.writeString(offsets[28], object.pathSubtitle);
+  writer.writeString(offsets[29], object.pipelineIndetificator);
+  writer.writeDouble(offsets[30], object.processingProgress);
+  writer.writeString(offsets[31], object.researchInformation);
+  writer.writeDouble(offsets[32], object.score);
+  writer.writeString(offsets[33], object.season);
+  writer.writeLong(offsets[34], object.selectedAudioTrackIndex);
+  writer.writeString(offsets[35], object.seriesName);
+  writer.writeLong(offsets[36], object.shikimoriId);
+  writer.writeString(offsets[37], object.status);
+  writer.writeString(offsets[38], object.subtitleFileName);
+  writer.writeString(offsets[39], object.subtitleMethodUsed);
+  writer.writeString(offsets[40], object.subtitleSource);
+  writer.writeString(offsets[41], object.textFormat);
+  writer.writeString(offsets[42], object.thetvdbId);
+  writer.writeString(offsets[43], object.tmdbId);
+  writer.writeLong(offsets[44], object.totalEpisodes);
+  writer.writeLong(offsets[45], object.transcriptionResumeSeconds);
+  writer.writeString(offsets[46], object.transcriptionStatus);
+  writer.writeString(offsets[47], object.translatedLanguage);
+  writer.writeLong(offsets[48], object.tvmazeId);
+  writer.writeString(offsets[49], object.videoPath);
 }
 
 Video _videoDeserialize(
@@ -462,33 +494,37 @@ Video _videoDeserialize(
   object.isMovie = reader.readBoolOrNull(offsets[16]);
   object.isResearchDone = reader.readBoolOrNull(offsets[17]);
   object.isSubtitleReady = reader.readBoolOrNull(offsets[18]);
-  object.isUnverified = reader.readBoolOrNull(offsets[19]);
-  object.lastPositionMs = reader.readLongOrNull(offsets[20]);
-  object.malId = reader.readLongOrNull(offsets[21]);
-  object.nameJumaku = reader.readStringOrNull(offsets[22]);
-  object.originalLanguage = reader.readStringOrNull(offsets[23]);
-  object.originalName = reader.readStringOrNull(offsets[24]);
-  object.pathSubtitle = reader.readStringOrNull(offsets[25]);
-  object.pipelineIndetificator = reader.readStringOrNull(offsets[26]);
-  object.processingProgress = reader.readDoubleOrNull(offsets[27]);
-  object.researchInformation = reader.readStringOrNull(offsets[28]);
-  object.score = reader.readDoubleOrNull(offsets[29]);
-  object.season = reader.readStringOrNull(offsets[30]);
-  object.selectedAudioTrackIndex = reader.readLongOrNull(offsets[31]);
-  object.seriesName = reader.readStringOrNull(offsets[32]);
-  object.shikimoriId = reader.readLongOrNull(offsets[33]);
-  object.status = reader.readStringOrNull(offsets[34]);
-  object.subtitleFileName = reader.readStringOrNull(offsets[35]);
-  object.subtitleSource = reader.readStringOrNull(offsets[36]);
-  object.textFormat = reader.readStringOrNull(offsets[37]);
-  object.thetvdbId = reader.readStringOrNull(offsets[38]);
-  object.tmdbId = reader.readStringOrNull(offsets[39]);
-  object.totalEpisodes = reader.readLongOrNull(offsets[40]);
-  object.transcriptionResumeSeconds = reader.readLongOrNull(offsets[41]);
-  object.transcriptionStatus = reader.readStringOrNull(offsets[42]);
-  object.translatedLanguage = reader.readStringOrNull(offsets[43]);
-  object.tvmazeId = reader.readLongOrNull(offsets[44]);
-  object.videoPath = reader.readStringOrNull(offsets[45]);
+  object.isSynced = reader.readBool(offsets[19]);
+  object.isUnverified = reader.readBoolOrNull(offsets[20]);
+  object.lastPositionMs = reader.readLongOrNull(offsets[21]);
+  object.lastSyncedAt = reader.readDateTimeOrNull(offsets[22]);
+  object.malId = reader.readLongOrNull(offsets[23]);
+  object.metadataProvider = reader.readStringOrNull(offsets[24]);
+  object.nameJumaku = reader.readStringOrNull(offsets[25]);
+  object.originalLanguage = reader.readStringOrNull(offsets[26]);
+  object.originalName = reader.readStringOrNull(offsets[27]);
+  object.pathSubtitle = reader.readStringOrNull(offsets[28]);
+  object.pipelineIndetificator = reader.readStringOrNull(offsets[29]);
+  object.processingProgress = reader.readDoubleOrNull(offsets[30]);
+  object.researchInformation = reader.readStringOrNull(offsets[31]);
+  object.score = reader.readDoubleOrNull(offsets[32]);
+  object.season = reader.readStringOrNull(offsets[33]);
+  object.selectedAudioTrackIndex = reader.readLongOrNull(offsets[34]);
+  object.seriesName = reader.readStringOrNull(offsets[35]);
+  object.shikimoriId = reader.readLongOrNull(offsets[36]);
+  object.status = reader.readStringOrNull(offsets[37]);
+  object.subtitleFileName = reader.readStringOrNull(offsets[38]);
+  object.subtitleMethodUsed = reader.readStringOrNull(offsets[39]);
+  object.subtitleSource = reader.readStringOrNull(offsets[40]);
+  object.textFormat = reader.readStringOrNull(offsets[41]);
+  object.thetvdbId = reader.readStringOrNull(offsets[42]);
+  object.tmdbId = reader.readStringOrNull(offsets[43]);
+  object.totalEpisodes = reader.readLongOrNull(offsets[44]);
+  object.transcriptionResumeSeconds = reader.readLongOrNull(offsets[45]);
+  object.transcriptionStatus = reader.readStringOrNull(offsets[46]);
+  object.translatedLanguage = reader.readStringOrNull(offsets[47]);
+  object.tvmazeId = reader.readLongOrNull(offsets[48]);
+  object.videoPath = reader.readStringOrNull(offsets[49]);
   return object;
 }
 
@@ -538,15 +574,15 @@ P _videoDeserializeProp<P>(
     case 18:
       return (reader.readBoolOrNull(offset)) as P;
     case 19:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 20:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 21:
       return (reader.readLongOrNull(offset)) as P;
     case 22:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 23:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 24:
       return (reader.readStringOrNull(offset)) as P;
     case 25:
@@ -554,25 +590,25 @@ P _videoDeserializeProp<P>(
     case 26:
       return (reader.readStringOrNull(offset)) as P;
     case 27:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 28:
       return (reader.readStringOrNull(offset)) as P;
     case 29:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 30:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 31:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 32:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 33:
-      return (reader.readLongOrNull(offset)) as P;
-    case 34:
       return (reader.readStringOrNull(offset)) as P;
+    case 34:
+      return (reader.readLongOrNull(offset)) as P;
     case 35:
       return (reader.readStringOrNull(offset)) as P;
     case 36:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 37:
       return (reader.readStringOrNull(offset)) as P;
     case 38:
@@ -580,9 +616,9 @@ P _videoDeserializeProp<P>(
     case 39:
       return (reader.readStringOrNull(offset)) as P;
     case 40:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 41:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 42:
       return (reader.readStringOrNull(offset)) as P;
     case 43:
@@ -590,6 +626,14 @@ P _videoDeserializeProp<P>(
     case 44:
       return (reader.readLongOrNull(offset)) as P;
     case 45:
+      return (reader.readLongOrNull(offset)) as P;
+    case 46:
+      return (reader.readStringOrNull(offset)) as P;
+    case 47:
+      return (reader.readStringOrNull(offset)) as P;
+    case 48:
+      return (reader.readLongOrNull(offset)) as P;
+    case 49:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2562,6 +2606,16 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterFilterCondition> isSyncedEqualTo(
+    bool value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'isSynced', value: value),
+      );
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterFilterCondition> isUnverifiedIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -2663,6 +2717,81 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterFilterCondition> lastSyncedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'lastSyncedAt'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> lastSyncedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'lastSyncedAt'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> lastSyncedAtEqualTo(
+    DateTime? value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'lastSyncedAt', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> lastSyncedAtGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'lastSyncedAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> lastSyncedAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'lastSyncedAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> lastSyncedAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'lastSyncedAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterFilterCondition> malIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -2732,6 +2861,170 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
           upper: upper,
           includeUpper: includeUpper,
         ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> metadataProviderIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'metadataProvider'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  metadataProviderIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'metadataProvider'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> metadataProviderEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'metadataProvider',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> metadataProviderGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'metadataProvider',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> metadataProviderLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'metadataProvider',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> metadataProviderBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'metadataProvider',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> metadataProviderStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'metadataProvider',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> metadataProviderEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'metadataProvider',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> metadataProviderContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'metadataProvider',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> metadataProviderMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'metadataProvider',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> metadataProviderIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'metadataProvider', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  metadataProviderIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'metadataProvider', value: ''),
       );
     });
   }
@@ -4699,6 +4992,170 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleMethodUsedIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'subtitleMethodUsed'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  subtitleMethodUsedIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'subtitleMethodUsed'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleMethodUsedEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'subtitleMethodUsed',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  subtitleMethodUsedGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'subtitleMethodUsed',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleMethodUsedLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'subtitleMethodUsed',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleMethodUsedBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'subtitleMethodUsed',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  subtitleMethodUsedStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'subtitleMethodUsed',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleMethodUsedEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'subtitleMethodUsed',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleMethodUsedContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'subtitleMethodUsed',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> subtitleMethodUsedMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'subtitleMethodUsed',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  subtitleMethodUsedIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'subtitleMethodUsed', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition>
+  subtitleMethodUsedIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'subtitleMethodUsed', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterFilterCondition> subtitleSourceIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -6291,6 +6748,18 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> sortByIsSynced() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSynced', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByIsSyncedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSynced', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> sortByIsUnverified() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isUnverified', Sort.asc);
@@ -6315,6 +6784,18 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> sortByLastSyncedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByLastSyncedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncedAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> sortByMalId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'malId', Sort.asc);
@@ -6324,6 +6805,18 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
   QueryBuilder<Video, Video, QAfterSortBy> sortByMalIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'malId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByMetadataProvider() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadataProvider', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByMetadataProviderDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadataProvider', Sort.desc);
     });
   }
 
@@ -6492,6 +6985,18 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
   QueryBuilder<Video, Video, QAfterSortBy> sortBySubtitleFileNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'subtitleFileName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortBySubtitleMethodUsed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subtitleMethodUsed', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortBySubtitleMethodUsedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subtitleMethodUsed', Sort.desc);
     });
   }
 
@@ -6846,6 +7351,18 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> thenByIsSynced() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSynced', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByIsSyncedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSynced', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> thenByIsUnverified() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isUnverified', Sort.asc);
@@ -6870,6 +7387,18 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> thenByLastSyncedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByLastSyncedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncedAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> thenByMalId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'malId', Sort.asc);
@@ -6879,6 +7408,18 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
   QueryBuilder<Video, Video, QAfterSortBy> thenByMalIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'malId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByMetadataProvider() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadataProvider', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByMetadataProviderDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadataProvider', Sort.desc);
     });
   }
 
@@ -7047,6 +7588,18 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
   QueryBuilder<Video, Video, QAfterSortBy> thenBySubtitleFileNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'subtitleFileName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenBySubtitleMethodUsed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subtitleMethodUsed', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenBySubtitleMethodUsedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subtitleMethodUsed', Sort.desc);
     });
   }
 
@@ -7304,6 +7857,12 @@ extension VideoQueryWhereDistinct on QueryBuilder<Video, Video, QDistinct> {
     });
   }
 
+  QueryBuilder<Video, Video, QDistinct> distinctByIsSynced() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isSynced');
+    });
+  }
+
   QueryBuilder<Video, Video, QDistinct> distinctByIsUnverified() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isUnverified');
@@ -7316,9 +7875,26 @@ extension VideoQueryWhereDistinct on QueryBuilder<Video, Video, QDistinct> {
     });
   }
 
+  QueryBuilder<Video, Video, QDistinct> distinctByLastSyncedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastSyncedAt');
+    });
+  }
+
   QueryBuilder<Video, Video, QDistinct> distinctByMalId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'malId');
+    });
+  }
+
+  QueryBuilder<Video, Video, QDistinct> distinctByMetadataProvider({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'metadataProvider',
+        caseSensitive: caseSensitive,
+      );
     });
   }
 
@@ -7433,6 +8009,17 @@ extension VideoQueryWhereDistinct on QueryBuilder<Video, Video, QDistinct> {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(
         r'subtitleFileName',
+        caseSensitive: caseSensitive,
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QDistinct> distinctBySubtitleMethodUsed({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'subtitleMethodUsed',
         caseSensitive: caseSensitive,
       );
     });
@@ -7643,6 +8230,12 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Video, bool, QQueryOperations> isSyncedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isSynced');
+    });
+  }
+
   QueryBuilder<Video, bool?, QQueryOperations> isUnverifiedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isUnverified');
@@ -7655,9 +8248,21 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Video, DateTime?, QQueryOperations> lastSyncedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastSyncedAt');
+    });
+  }
+
   QueryBuilder<Video, int?, QQueryOperations> malIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'malId');
+    });
+  }
+
+  QueryBuilder<Video, String?, QQueryOperations> metadataProviderProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'metadataProvider');
     });
   }
 
@@ -7744,6 +8349,12 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
   QueryBuilder<Video, String?, QQueryOperations> subtitleFileNameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'subtitleFileName');
+    });
+  }
+
+  QueryBuilder<Video, String?, QQueryOperations> subtitleMethodUsedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'subtitleMethodUsed');
     });
   }
 

@@ -25,8 +25,8 @@ class VideoDesktopView extends ConsumerWidget {
     final video = ref.watch(currentVideoProvider).value;
 
     // --- Unified Player Layer ---
-    // Keeping this component at a stable depth prevents MouseTracker assertions
-    // and keeps the video texture GlobalKey from re-mounting.
+    // Стабільна глибина дерева, щоб не ламався MouseTracker
+    // і не перемонтовувався GlobalKey відеотекстури.
     final playerContent = MouseRegion(
       key: const ValueKey('player_content_region'),
       onHover: (_) {
@@ -34,25 +34,38 @@ class VideoDesktopView extends ConsumerWidget {
       },
       child: Container(
         color: Colors.black,
-        child: const Stack(
+        child: Stack(
           children: [
-            PlayerView(playerScope: scope),
-            Positioned.fill(child: _VideoPlayerBackgroundLayer(playerScope: scope)),
-            Positioned.fill(child: PlayerControls(playerScope: scope)),
-            FullscreenSubtitle(playerScope: scope),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: SizedBox(
-                  width: 400,
-                  child: PlayerBottomDock(playerScope: scope),
-                ),
+            const PlayerView(playerScope: scope),
+            const Positioned.fill(child: _VideoPlayerBackgroundLayer(playerScope: scope)),
+            // Субтитри поверх відео тільки у фулскріні
+            if (isFullscreen)
+              const FullscreenSubtitle(
+                playerScope: scope,
+                forceShow: true,
               ),
-            ),
+            const Positioned.fill(child: PlayerControls(playerScope: scope)),
           ],
         ),
+      ),
+    );
+
+    // Список субтитрів + плаваюча панель (прогрес / Tracking / налаштування)
+    final sidebarContent = Container(
+      decoration: const BoxDecoration(
+        border: Border(left: BorderSide(color: Color(0xFFE2E8F0))),
+        color: Colors.white,
+      ),
+      child: Stack(
+        children: [
+          const Positioned.fill(child: PlayerPhraseList(playerScope: scope)),
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: PlayerBottomDock(playerScope: scope),
+          ),
+        ],
       ),
     );
 
@@ -61,10 +74,9 @@ class VideoDesktopView extends ConsumerWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. Main Layout (Video + Optional Sidebar)
+          // 1. Main Layout (Video + Sidebar)
           Column(
             children: [
-              // Header (Hidden in fullscreen)
               Visibility(
                 visible: !isFullscreen,
                 maintainState: true,
@@ -74,26 +86,17 @@ class VideoDesktopView extends ConsumerWidget {
                   onBack: () => context.pop(),
                 ),
               ),
-              
               Expanded(
                 child: ResizableSidebarContainer(
                   isSidebarHidden: isFullscreen,
                   mainChild: playerContent,
-                  sidebarChild: Container(
-                    decoration: const BoxDecoration(
-                      border: Border(left: BorderSide(color: Color(0xFFE2E8F0))),
-                      color: Colors.white,
-                    ),
-                    child: PlayerPhraseList(playerScope: scope),
-                  ),
+                  sidebarChild: sidebarContent,
                 ),
               ),
             ],
           ),
 
           // 2. Overlays
-          
-          // Popover
           if (!isFullscreen || areControlsVisible)
             const WordDetailsPopover(playerScope: scope),
         ],

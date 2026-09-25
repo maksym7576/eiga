@@ -59,21 +59,22 @@ class PhraseOriginalContent extends HookConsumerWidget {
     final video = ref.watch(currentVideoProvider).value;
     final languageName = video?.originalLanguage ?? 'Japanese';
     final languageConfig = LanguageHub.getByName(languageName);
-    
-    final bool hideBrackets = ref.watch(appConfigsServiceProvider.select((c) => c.getHideParenthesesContent));
+
+    final bool hideBrackets =
+    ref.watch(appConfigsServiceProvider.select((c) => c.getHideParenthesesContent));
 
     final settings = ref.watch(subtitleSettingsProvider);
     final modeSettings = isFullscreen ? settings.fullscreen : settings.windowed;
-    
+
     // High-performance dynamic stroke thickness calculation
-    final double computedOutlineWidth = useShadows 
-        ? (baseFontSize * 0.055) * modeSettings.originalOutlineWidth 
-        : 0.0;
+    final double computedOutlineWidth =
+    useShadows ? (baseFontSize * 0.055) * modeSettings.originalOutlineWidth * modeSettings.globalOutlineWidth : 0.0;
 
     List<TokenEntry> originalTokens = phrase.originalTokens ?? [];
 
     if (hideBrackets) {
-      originalTokens = originalTokens.where((t) => !hiddenWordIds.contains(t.wordPosition)).toList();
+      originalTokens =
+          originalTokens.where((t) => !hiddenWordIds.contains(t.wordPosition)).toList();
     }
 
     if (originalTokens.isEmpty) {
@@ -82,7 +83,7 @@ class PhraseOriginalContent extends HookConsumerWidget {
         final bracketRegExp = RegExp(r'[([{（［｛].*?[)]}）］｝]');
         trimmedFallback = trimmedFallback.replaceAll(bracketRegExp, '').trim();
       }
-      
+
       if (trimmedFallback.isEmpty) {
         if (phrase.uiStatus.isProcessing) {
           final stage = phrase.uiStatus.activeStageKey;
@@ -101,8 +102,6 @@ class PhraseOriginalContent extends HookConsumerWidget {
               Colors.transparent,
             ],
             child: Container(
-              margin: EdgeInsets.symmetric(vertical: baseFontSize * 0.1),
-              padding: EdgeInsets.symmetric(horizontal: baseFontSize * 0.4, vertical: baseFontSize * 0.1),
               decoration: BoxDecoration(
                 color: isFullscreen ? Colors.black26 : Colors.black.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(4),
@@ -117,6 +116,7 @@ class PhraseOriginalContent extends HookConsumerWidget {
                   fontWeight: FontWeight.w700,
                   color: isFullscreen ? Colors.white : textColor.withValues(alpha: 0.5),
                   fontStyle: FontStyle.italic,
+                  height: 1.0,
                 ),
               ),
             ),
@@ -125,26 +125,20 @@ class PhraseOriginalContent extends HookConsumerWidget {
         return const SizedBox.shrink();
       }
 
-      return Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: baseFontSize * 0.15,
-          vertical: baseFontSize * 0.05,
-        ),
-        child: OutlinedText(
-          text: trimmedFallback,
-          key: ValueKey('words_fallback_${phrase.id}'),
-          textAlign: textAlign,
-          useOutline: useShadows,
-          outlineWidth: computedOutlineWidth,
-          outlineColor: isFullscreen ? Colors.black.withValues(alpha: 0.8) : Colors.black,
-          style: TextStyle(
-            fontFamily: 'Noto Serif JP',
-            fontSize: baseFontSize * modeSettings.originalScale, 
-            color: isFullscreen ? Colors.white : textColor,
-            height: 1.8,
-            fontWeight: useShadows ? FontWeight.w800 : FontWeight.w700,
-            letterSpacing: modeSettings.originalLetterSpacing,
-          ),
+      return OutlinedText(
+        text: trimmedFallback,
+        key: ValueKey('words_fallback_${phrase.id}'),
+        textAlign: textAlign,
+        useOutline: useShadows,
+        outlineWidth: computedOutlineWidth,
+        outlineColor: isFullscreen ? Colors.black.withValues(alpha: 0.8) : Colors.black,
+        style: TextStyle(
+          fontFamily: 'Noto Serif JP',
+          fontSize: baseFontSize * modeSettings.originalScale,
+          color: isFullscreen ? Colors.white : textColor,
+          height: 1.0,
+          fontWeight: useShadows ? FontWeight.w800 : FontWeight.w700,
+          letterSpacing: modeSettings.originalLetterSpacing,
         ),
       );
     }
@@ -155,13 +149,14 @@ class PhraseOriginalContent extends HookConsumerWidget {
       key: ValueKey('words_wrap_${phrase.id}'),
       alignment: textAlign == TextAlign.center ? WrapAlignment.center : WrapAlignment.start,
       crossAxisAlignment: WrapCrossAlignment.end,
-      spacing: removeSpaces ? 0 : baseFontSize * 0.05, 
-      runSpacing: baseFontSize * 0.1, 
+      spacing: 0,
+      runSpacing: 0,
       children: List.generate(originalTokens.length, (i) {
         final token = originalTokens[i];
 
         final bool isFirst = i == 0 || originalTokens[i - 1].blockId != token.blockId;
-        final bool isLast = i == originalTokens.length - 1 || originalTokens[i + 1].blockId != token.blockId;
+        final bool isLast =
+            i == originalTokens.length - 1 || originalTokens[i + 1].blockId != token.blockId;
 
         WordStatus? wordStatus;
         if (token.lemma != null) {
@@ -191,17 +186,19 @@ class PhraseOriginalContent extends HookConsumerWidget {
           playerScope: playerScope,
           baseStyle: TextStyle(
             fontFamily: 'Noto Serif JP',
-            fontSize: baseFontSize,
+            fontSize: baseFontSize * modeSettings.originalScale,
             color: isFullscreen ? Colors.white : textColor,
-            height: 1.8,
+            height: 1.0,
             fontWeight: useShadows ? FontWeight.w800 : FontWeight.w700,
             letterSpacing: modeSettings.originalLetterSpacing,
           ),
           annotationStyle: TextStyle(
             fontFamily: 'Plus Jakarta Sans',
-            fontSize: baseFontSize * 0.55,
-            color: useShadows 
-                ? (isFullscreen ? Colors.white.withValues(alpha: 0.9) : textColor.withValues(alpha: 0.9)) 
+            fontSize: baseFontSize * 0.55 * modeSettings.additionalScale,
+            color: useShadows
+                ? (isFullscreen
+                ? Colors.white.withValues(alpha: 0.9)
+                : textColor.withValues(alpha: 0.9))
                 : const Color(0xFF94A3B8),
             fontWeight: FontWeight.normal,
             height: 1.0,

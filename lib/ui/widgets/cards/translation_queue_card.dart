@@ -6,12 +6,18 @@ class TranslationQueueCard extends StatelessWidget {
   final TranslationTask task;
   final int index;
   final int total;
+  final bool hasHistory;
+  final bool isExpanded;
+  final VoidCallback? onToggleExpand;
 
   const TranslationQueueCard({
     super.key, 
     required this.task,
     required this.index,
     required this.total,
+    this.hasHistory = false,
+    this.isExpanded = false,
+    this.onToggleExpand,
   });
 
   String _formatPhraseOrders(List<int>? orders) {
@@ -100,6 +106,26 @@ class TranslationQueueCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (hasHistory) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: onToggleExpand,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: isExpanded ? const Color(0xFFEFF6FF) : Colors.transparent,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: isExpanded ? const Color(0xFFDBEAFE) : const Color(0xFFE2E8F0)),
+                    ),
+                    child: Icon(
+                      isExpanded ? Icons.expand_less : Icons.expand_more,
+                      size: 18,
+                      color: isExpanded ? const Color(0xFF0A84FF) : const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 8),

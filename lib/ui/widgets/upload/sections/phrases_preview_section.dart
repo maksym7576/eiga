@@ -17,10 +17,7 @@ class PhrasesPreviewSection extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: _buildOptimizationControls(theme, state, notifier),
-    );
+    return _buildOptimizationControls(theme, state, notifier);
   }
 
   Widget _buildOptimizationControls(AdditionalWindowTheme theme, UploadState state, UploadNotifier notifier) {

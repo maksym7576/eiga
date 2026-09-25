@@ -3,6 +3,7 @@ import '../../styles/app_colors.dart';
 import 'reading_mode_sheet.dart';
 import 'subtitle_size_settings_sheet.dart';
 import '../dialogs/app_bottom_sheet.dart';
+import '../../screens/video/video_data_share_screen.dart';
 
 enum _SettingsView { main, readingType }
 
@@ -98,7 +99,7 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
             onTap: () => setState(() => _currentView = _SettingsView.readingType),
             child: _buildSettingsItem(
               icon: Icons.menu_book_rounded,
-              title: 'Reading Mode & Languages',
+              title: 'Reading Mode',
               subtitle: 'Original and translation (language, furigana, transcription)',
             ),
           ),
@@ -114,21 +115,9 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
             },
             child: _buildSettingsItem(
               icon: Icons.closed_caption_rounded,
-              title: 'Subtitle Display & Size',
+              title: 'Subtitle Display',
               subtitle: 'Font size, line height, contrast settings',
             ),
-          ),
-          const SizedBox(height: 8),
-          _buildSettingsItem(
-            icon: Icons.auto_awesome_rounded,
-            title: 'AI Translation History',
-            subtitle: 'Request log, saved explanations, and grammar',
-          ),
-          const SizedBox(height: 8),
-          _buildSettingsItem(
-            icon: Icons.schedule_rounded,
-            title: 'Subtitle Synchronization',
-            subtitle: 'Adjust timings and sync with audio/video',
           ),
           
           const SizedBox(height: 16),

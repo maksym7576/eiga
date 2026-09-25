@@ -446,6 +446,7 @@ class UploadNotifier extends Notifier<UploadState> {
   }
 
   Future<void> runQuickMatch(String episode) async {
+    if (state.isParsing || state.isEvaluatingBatch) return;
     final entry = _getActiveEntry();
     if (entry == null || state.videoPath == null) return;
     state = state.copyWith(isParsing: true, episode: episode);
@@ -469,6 +470,7 @@ class UploadNotifier extends Notifier<UploadState> {
   }
 
   Future<void> runAiBatchMatch(String episode) async {
+    if (state.isEvaluatingBatch || state.isParsing) return;
     final entry = _getActiveEntry();
     if (entry == null || state.videoPath == null) return;
     state = state.copyWith(episode: episode);
@@ -648,8 +650,36 @@ class UploadNotifier extends Notifier<UploadState> {
       final syncService = ref.read(audioSyncServiceProvider);
       await syncService.preheatVoiceMaps(state.videoPath!, durationS: state.videoDuration);
       final service = await ref.read(jimakuServiceProvider.future);
+      
+      int? jimakuId;
+      if (entry.linkUrl?.contains('jimaku.cc') == true) {
+        jimakuId = int.tryParse(entry.sourceId);
+      } else if (entry.anilistId != null) {
+        final jimakuEntries = await service.searchJumakuObjects(anilistId: entry.anilistId);
+        if (jimakuEntries.isNotEmpty) jimakuId = int.tryParse(jimakuEntries.first.sourceId);
+      }
+      
+      if (jimakuId == null) {
+        final results = await service.searchJumakuObjects(query: entry.originalTitle ?? entry.title);
+        if (results.isNotEmpty) jimakuId = int.tryParse(results.first.sourceId);
+      }
+
+      if (jimakuId == null) {
+        developer.log('UploadNotifier: AI Scan failed because entry could not be resolved to Jimaku ID.', name: 'UploadNotifier');
+        state = state.copyWith(isEvaluatingBatch: false, syncStatus: SyncMatchStatus.mismatch);
+        return;
+      }
+
       List<FileJimakuDTO> rawFiles = [];
-      try { rawFiles = await service.getFiles(int.parse(entry.sourceId), episode: int.tryParse(state.episode!)); } catch (_) { rawFiles = await service.getFiles(int.parse(entry.sourceId)); }
+      try { 
+        rawFiles = await service.getFiles(jimakuId, episode: int.tryParse(state.episode!)); 
+      } catch (_) { 
+        try {
+          rawFiles = await service.getFiles(jimakuId); 
+        } catch (e) {
+          developer.log('UploadNotifier: Failed to fetch files for Jimaku ID $jimakuId: $e', name: 'UploadNotifier');
+        }
+      }
       final targetEp = int.tryParse(state.episode!);
       final episodeFiles = rawFiles.where((f) { final ep = int.tryParse(parseSeasonEpisode(f.name).episode ?? ''); return ep != null && ep == targetEp; }).toList();
       if (episodeFiles.isEmpty) { state = state.copyWith(isEvaluatingBatch: false, syncStatus: SyncMatchStatus.mismatch); return; }
@@ -770,6 +800,25 @@ class UploadNotifier extends Notifier<UploadState> {
       final selectedAudioIndex = state.selectedAudioTrack != null ? state.audioTracks.indexOf(state.selectedAudioTrack!) : null;
       developer.log('Saving video: ${state.fileName}, selectedAudioTrack: ${state.selectedAudioTrack?.title}, resolved index: $selectedAudioIndex, total audio tracks: ${state.audioTracks.length}', name: 'UploadNotifier');
 
+      String? activeProvider;
+      if (ref.read(selectedEntryProvider(SearchSourceKeys.shikimori)) != null) {
+        activeProvider = 'shikimori';
+      } else if (ref.read(selectedEntryProvider(SearchSourceKeys.anilist)) != null) {
+        activeProvider = 'anilist';
+      } else if (ref.read(selectedEntryProvider(SearchSourceKeys.tvmaze)) != null) {
+        activeProvider = 'tvmaze';
+      } else if (ref.read(selectedEntryProvider(SearchSourceKeys.jimaku)) != null) {
+        activeProvider = 'jimaku';
+      } else if (entry?.shikimoriId != null || (entry?.linkUrl?.contains('shikimori') ?? false)) {
+        activeProvider = 'shikimori';
+      } else if (entry?.anilistId != null || (entry?.linkUrl?.contains('anilist') ?? false)) {
+        activeProvider = 'anilist';
+      } else if (entry?.jimakuId != null || (entry?.linkUrl?.contains('jimaku.cc') ?? false)) {
+        activeProvider = 'jimaku';
+      } else {
+        activeProvider = 'manual';
+      }
+
       final video = Video()
         ..videoPath = state.videoPath
         ..fileName = state.fileName
@@ -778,6 +827,8 @@ class UploadNotifier extends Notifier<UploadState> {
         ..originalLanguage = languages.original
         ..translatedLanguage = languages.target
         ..subtitleSource = state.subtitleSource.name
+        ..subtitleMethodUsed = state.subtitleMethod.name
+        ..metadataProvider = activeProvider
         ..appliedPaddingMs = state.appliedPaddingMs
         ..appliedFillGaps = state.appliedFillGaps
         ..pathSubtitle = (state.subtitleSource == SubtitleSource.none || state.subtitleSource == SubtitleSource.ai) ? null : state.subtitlePath

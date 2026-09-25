@@ -47,7 +47,7 @@ class SubtitleSourceSelector extends ConsumerWidget {
             switch (type) {
               case SubtitleSource.jimaku: return 'Jimaku Community';
               case SubtitleSource.none: return 'Manual / Off';
-              case SubtitleSource.local: return 'Pre-selected Local';
+              case SubtitleSource.local: return 'Manual File';
               case SubtitleSource.ai: return 'AI Generation';
             }
           },
@@ -55,7 +55,7 @@ class SubtitleSourceSelector extends ConsumerWidget {
             switch (type) {
               case SubtitleSource.jimaku: return 'Cloud subtitle database';
               case SubtitleSource.none: return isManualMetadata ? 'Attach subtitles from device' : 'Attach subtitles manually';
-              case SubtitleSource.local: return 'Use already picked file';
+              case SubtitleSource.local: return 'Using selected file';
               case SubtitleSource.ai: return 'Transcribe audio automatically';
             }
           },

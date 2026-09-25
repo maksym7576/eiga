@@ -28,58 +28,64 @@ const PhraseSchema = CollectionSchema(
       type: IsarType.stringList,
     ),
     r'isActive': PropertySchema(id: 2, name: r'isActive', type: IsarType.bool),
+    r'isSynced': PropertySchema(id: 3, name: r'isSynced', type: IsarType.bool),
+    r'lastSyncedAt': PropertySchema(
+      id: 4,
+      name: r'lastSyncedAt',
+      type: IsarType.dateTime,
+    ),
     r'linkGroups': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'linkGroups',
       type: IsarType.objectList,
 
       target: r'LinkGroup',
     ),
     r'originalPhrase': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'originalPhrase',
       type: IsarType.string,
     ),
     r'originalTokens': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'originalTokens',
       type: IsarType.objectList,
 
       target: r'TokenEntry',
     ),
     r'phraseOrder': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'phraseOrder',
       type: IsarType.long,
     ),
     r'stageKeys': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'stageKeys',
       type: IsarType.stringList,
     ),
     r'stageValues': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'stageValues',
       type: IsarType.stringList,
     ),
     r'startTime': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'startTime',
       type: IsarType.dateTime,
     ),
     r'translatedPhrase': PropertySchema(
-      id: 10,
+      id: 12,
       name: r'translatedPhrase',
       type: IsarType.string,
     ),
     r'translatedWords': PropertySchema(
-      id: 11,
+      id: 13,
       name: r'translatedWords',
       type: IsarType.objectList,
 
       target: r'TranslationTokenEntry',
     ),
-    r'videoId': PropertySchema(id: 12, name: r'videoId', type: IsarType.long),
+    r'videoId': PropertySchema(id: 14, name: r'videoId', type: IsarType.long),
   },
 
   estimateSize: _phraseEstimateSize,
@@ -275,31 +281,33 @@ void _phraseSerialize(
   writer.writeDateTime(offsets[0], object.endTime);
   writer.writeStringList(offsets[1], object.idiomSpansIsar);
   writer.writeBool(offsets[2], object.isActive);
+  writer.writeBool(offsets[3], object.isSynced);
+  writer.writeDateTime(offsets[4], object.lastSyncedAt);
   writer.writeObjectList<LinkGroup>(
-    offsets[3],
+    offsets[5],
     allOffsets,
     LinkGroupSchema.serialize,
     object.linkGroups,
   );
-  writer.writeString(offsets[4], object.originalPhrase);
+  writer.writeString(offsets[6], object.originalPhrase);
   writer.writeObjectList<TokenEntry>(
-    offsets[5],
+    offsets[7],
     allOffsets,
     TokenEntrySchema.serialize,
     object.originalTokens,
   );
-  writer.writeLong(offsets[6], object.phraseOrder);
-  writer.writeStringList(offsets[7], object.stageKeys);
-  writer.writeStringList(offsets[8], object.stageValues);
-  writer.writeDateTime(offsets[9], object.startTime);
-  writer.writeString(offsets[10], object.translatedPhrase);
+  writer.writeLong(offsets[8], object.phraseOrder);
+  writer.writeStringList(offsets[9], object.stageKeys);
+  writer.writeStringList(offsets[10], object.stageValues);
+  writer.writeDateTime(offsets[11], object.startTime);
+  writer.writeString(offsets[12], object.translatedPhrase);
   writer.writeObjectList<TranslationTokenEntry>(
-    offsets[11],
+    offsets[13],
     allOffsets,
     TranslationTokenEntrySchema.serialize,
     object.translatedWords,
   );
-  writer.writeLong(offsets[12], object.videoId);
+  writer.writeLong(offsets[14], object.videoId);
 }
 
 Phrase _phraseDeserialize(
@@ -312,33 +320,35 @@ Phrase _phraseDeserialize(
     endTime: reader.readDateTimeOrNull(offsets[0]),
     isActive: reader.readBoolOrNull(offsets[2]) ?? false,
     linkGroups: reader.readObjectList<LinkGroup>(
-      offsets[3],
+      offsets[5],
       LinkGroupSchema.deserialize,
       allOffsets,
       LinkGroup(),
     ),
-    originalPhrase: reader.readStringOrNull(offsets[4]),
+    originalPhrase: reader.readStringOrNull(offsets[6]),
     originalTokens: reader.readObjectList<TokenEntry>(
-      offsets[5],
+      offsets[7],
       TokenEntrySchema.deserialize,
       allOffsets,
       TokenEntry(),
     ),
-    phraseOrder: reader.readLongOrNull(offsets[6]),
-    startTime: reader.readDateTimeOrNull(offsets[9]),
-    translatedPhrase: reader.readStringOrNull(offsets[10]),
+    phraseOrder: reader.readLongOrNull(offsets[8]),
+    startTime: reader.readDateTimeOrNull(offsets[11]),
+    translatedPhrase: reader.readStringOrNull(offsets[12]),
     translatedWords: reader.readObjectList<TranslationTokenEntry>(
-      offsets[11],
+      offsets[13],
       TranslationTokenEntrySchema.deserialize,
       allOffsets,
       TranslationTokenEntry(),
     ),
-    videoId: reader.readLongOrNull(offsets[12]),
+    videoId: reader.readLongOrNull(offsets[14]),
   );
   object.id = id;
   object.idiomSpansIsar = reader.readStringList(offsets[1]) ?? [];
-  object.stageKeys = reader.readStringList(offsets[7]) ?? [];
-  object.stageValues = reader.readStringList(offsets[8]) ?? [];
+  object.isSynced = reader.readBool(offsets[3]);
+  object.lastSyncedAt = reader.readDateTimeOrNull(offsets[4]);
+  object.stageKeys = reader.readStringList(offsets[9]) ?? [];
+  object.stageValues = reader.readStringList(offsets[10]) ?? [];
   return object;
 }
 
@@ -356,6 +366,10 @@ P _phraseDeserializeProp<P>(
     case 2:
       return (reader.readBoolOrNull(offset) ?? false) as P;
     case 3:
+      return (reader.readBool(offset)) as P;
+    case 4:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 5:
       return (reader.readObjectList<LinkGroup>(
             offset,
             LinkGroupSchema.deserialize,
@@ -363,9 +377,9 @@ P _phraseDeserializeProp<P>(
             LinkGroup(),
           ))
           as P;
-    case 4:
+    case 6:
       return (reader.readStringOrNull(offset)) as P;
-    case 5:
+    case 7:
       return (reader.readObjectList<TokenEntry>(
             offset,
             TokenEntrySchema.deserialize,
@@ -373,17 +387,17 @@ P _phraseDeserializeProp<P>(
             TokenEntry(),
           ))
           as P;
-    case 6:
-      return (reader.readLongOrNull(offset)) as P;
-    case 7:
-      return (reader.readStringList(offset) ?? []) as P;
     case 8:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 9:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 10:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 11:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 12:
+      return (reader.readStringOrNull(offset)) as P;
+    case 13:
       return (reader.readObjectList<TranslationTokenEntry>(
             offset,
             TranslationTokenEntrySchema.deserialize,
@@ -391,7 +405,7 @@ P _phraseDeserializeProp<P>(
             TranslationTokenEntry(),
           ))
           as P;
-    case 12:
+    case 14:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1757,6 +1771,91 @@ extension PhraseQueryFilter on QueryBuilder<Phrase, Phrase, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> isSyncedEqualTo(
+    bool value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'isSynced', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> lastSyncedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'lastSyncedAt'),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> lastSyncedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'lastSyncedAt'),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> lastSyncedAtEqualTo(
+    DateTime? value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'lastSyncedAt', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> lastSyncedAtGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'lastSyncedAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> lastSyncedAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'lastSyncedAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterFilterCondition> lastSyncedAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'lastSyncedAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
   QueryBuilder<Phrase, Phrase, QAfterFilterCondition> linkGroupsIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -2974,6 +3073,30 @@ extension PhraseQuerySortBy on QueryBuilder<Phrase, Phrase, QSortBy> {
     });
   }
 
+  QueryBuilder<Phrase, Phrase, QAfterSortBy> sortByIsSynced() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSynced', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterSortBy> sortByIsSyncedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSynced', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterSortBy> sortByLastSyncedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterSortBy> sortByLastSyncedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncedAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<Phrase, Phrase, QAfterSortBy> sortByOriginalPhrase() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'originalPhrase', Sort.asc);
@@ -3072,6 +3195,30 @@ extension PhraseQuerySortThenBy on QueryBuilder<Phrase, Phrase, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Phrase, Phrase, QAfterSortBy> thenByIsSynced() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSynced', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterSortBy> thenByIsSyncedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSynced', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterSortBy> thenByLastSyncedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QAfterSortBy> thenByLastSyncedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncedAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<Phrase, Phrase, QAfterSortBy> thenByOriginalPhrase() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'originalPhrase', Sort.asc);
@@ -3152,6 +3299,18 @@ extension PhraseQueryWhereDistinct on QueryBuilder<Phrase, Phrase, QDistinct> {
     });
   }
 
+  QueryBuilder<Phrase, Phrase, QDistinct> distinctByIsSynced() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isSynced');
+    });
+  }
+
+  QueryBuilder<Phrase, Phrase, QDistinct> distinctByLastSyncedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastSyncedAt');
+    });
+  }
+
   QueryBuilder<Phrase, Phrase, QDistinct> distinctByOriginalPhrase({
     bool caseSensitive = true,
   }) {
@@ -3228,6 +3387,18 @@ extension PhraseQueryProperty on QueryBuilder<Phrase, Phrase, QQueryProperty> {
   QueryBuilder<Phrase, bool, QQueryOperations> isActiveProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isActive');
+    });
+  }
+
+  QueryBuilder<Phrase, bool, QQueryOperations> isSyncedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isSynced');
+    });
+  }
+
+  QueryBuilder<Phrase, DateTime?, QQueryOperations> lastSyncedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastSyncedAt');
     });
   }
 
@@ -5958,25 +6129,31 @@ const TranslationTokenEntrySchema = Schema(
   name: r'TranslationTokenEntry',
   id: -8365075102984640999,
   properties: {
-    r'blockId': PropertySchema(id: 0, name: r'blockId', type: IsarType.long),
+    r'attachMode': PropertySchema(
+      id: 0,
+      name: r'attachMode',
+      type: IsarType.byte,
+      enumMap: _TranslationTokenEntryattachModeEnumValueMap,
+    ),
+    r'blockId': PropertySchema(id: 1, name: r'blockId', type: IsarType.long),
     r'isInferred': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'isInferred',
       type: IsarType.bool,
     ),
     r'linkGroupId': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'linkGroupId',
       type: IsarType.long,
     ),
     r'sourceWordPositions': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'sourceWordPositions',
       type: IsarType.longList,
     ),
-    r'text': PropertySchema(id: 4, name: r'text', type: IsarType.string),
+    r'text': PropertySchema(id: 5, name: r'text', type: IsarType.string),
     r'translatedWordPosition': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'translatedWordPosition',
       type: IsarType.long,
     ),
@@ -6010,12 +6187,13 @@ void _translationTokenEntrySerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeLong(offsets[0], object.blockId);
-  writer.writeBool(offsets[1], object.isInferred);
-  writer.writeLong(offsets[2], object.linkGroupId);
-  writer.writeLongList(offsets[3], object.sourceWordPositions);
-  writer.writeString(offsets[4], object.text);
-  writer.writeLong(offsets[5], object.translatedWordPosition);
+  writer.writeByte(offsets[0], object.attachMode.index);
+  writer.writeLong(offsets[1], object.blockId);
+  writer.writeBool(offsets[2], object.isInferred);
+  writer.writeLong(offsets[3], object.linkGroupId);
+  writer.writeLongList(offsets[4], object.sourceWordPositions);
+  writer.writeString(offsets[5], object.text);
+  writer.writeLong(offsets[6], object.translatedWordPosition);
 }
 
 TranslationTokenEntry _translationTokenEntryDeserialize(
@@ -6025,12 +6203,17 @@ TranslationTokenEntry _translationTokenEntryDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = TranslationTokenEntry(
-    blockId: reader.readLongOrNull(offsets[0]),
-    isInferred: reader.readBoolOrNull(offsets[1]) ?? false,
-    linkGroupId: reader.readLongOrNull(offsets[2]),
-    sourceWordPositions: reader.readLongList(offsets[3]) ?? const [],
-    text: reader.readStringOrNull(offsets[4]),
-    translatedWordPosition: reader.readLongOrNull(offsets[5]),
+    attachMode:
+        _TranslationTokenEntryattachModeValueEnumMap[reader.readByteOrNull(
+          offsets[0],
+        )] ??
+        AttachMode.none,
+    blockId: reader.readLongOrNull(offsets[1]),
+    isInferred: reader.readBoolOrNull(offsets[2]) ?? false,
+    linkGroupId: reader.readLongOrNull(offsets[3]),
+    sourceWordPositions: reader.readLongList(offsets[4]) ?? const [],
+    text: reader.readStringOrNull(offsets[5]),
+    translatedWordPosition: reader.readLongOrNull(offsets[6]),
   );
   return object;
 }
@@ -6043,21 +6226,37 @@ P _translationTokenEntryDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readLongOrNull(offset)) as P;
+      return (_TranslationTokenEntryattachModeValueEnumMap[reader
+                  .readByteOrNull(offset)] ??
+              AttachMode.none)
+          as P;
     case 1:
-      return (reader.readBoolOrNull(offset) ?? false) as P;
-    case 2:
       return (reader.readLongOrNull(offset)) as P;
+    case 2:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 3:
-      return (reader.readLongList(offset) ?? const []) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 4:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongList(offset) ?? const []) as P;
     case 5:
+      return (reader.readStringOrNull(offset)) as P;
+    case 6:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
 }
+
+const _TranslationTokenEntryattachModeEnumValueMap = {
+  'merge': 0,
+  'modify': 1,
+  'none': 2,
+};
+const _TranslationTokenEntryattachModeValueEnumMap = {
+  0: AttachMode.merge,
+  1: AttachMode.modify,
+  2: AttachMode.none,
+};
 
 extension TranslationTokenEntryQueryFilter
     on
@@ -6066,6 +6265,77 @@ extension TranslationTokenEntryQueryFilter
           TranslationTokenEntry,
           QFilterCondition
         > {
+  QueryBuilder<
+    TranslationTokenEntry,
+    TranslationTokenEntry,
+    QAfterFilterCondition
+  >
+  attachModeEqualTo(AttachMode value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'attachMode', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<
+    TranslationTokenEntry,
+    TranslationTokenEntry,
+    QAfterFilterCondition
+  >
+  attachModeGreaterThan(AttachMode value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'attachMode',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    TranslationTokenEntry,
+    TranslationTokenEntry,
+    QAfterFilterCondition
+  >
+  attachModeLessThan(AttachMode value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'attachMode',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    TranslationTokenEntry,
+    TranslationTokenEntry,
+    QAfterFilterCondition
+  >
+  attachModeBetween(
+    AttachMode lower,
+    AttachMode upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'attachMode',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
   QueryBuilder<
     TranslationTokenEntry,
     TranslationTokenEntry,

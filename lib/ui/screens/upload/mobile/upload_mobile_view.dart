@@ -6,6 +6,7 @@ import 'package:eiga/providers/ui/upload_provider.dart';
 import 'package:eiga/providers/ui/language_provider.dart';
 import 'package:eiga/ui/styles/app_colors.dart';
 import 'package:eiga/ui/widgets/shared/app_action_button.dart';
+import 'package:eiga/providers/ui/player_provider.dart';
 import '../upload_sections.dart';
 
 /// Скелет Екрана завантаження у вигляді горизонтального прогрес-бару кроків.
@@ -27,6 +28,9 @@ class _UploadMobileViewState extends State<UploadMobileView> {
         final state = ref.watch(uploadProvider);
         final notifier = ref.read(uploadProvider.notifier);
         final languages = ref.watch(languageProvider);
+
+        // Тримаємо плеєр активним між кроками
+        ref.watch(playerProvider('preview'));
 
         // Фільтруємо список кроків відповідно до вибору джерела субтитрів
         final visibleSections = UploadScreenSection.values.where((s) => s.shouldInclude(state)).toList();

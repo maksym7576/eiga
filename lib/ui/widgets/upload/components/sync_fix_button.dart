@@ -46,11 +46,11 @@ class SyncFixButton extends HookConsumerWidget {
               await Future.delayed(const Duration(milliseconds: 500));
               notifier.applySyncFix(manualOffset: offset);
             },
-            icon: Icon(
-              isSuccess.value ? Icons.check_circle_outline_rounded : Icons.auto_fix_high_rounded, 
-              size: 18, 
-              color: Colors.white
-            ),
+            // icon: Icon(
+            //   isSuccess.value ? null : Icons.auto_fix_high_rounded,
+            //   size: 18,
+            //   color: Colors.white
+            // ),
             label: Text(
               isSuccess.value 
                   ? 'Applied Successfully!'

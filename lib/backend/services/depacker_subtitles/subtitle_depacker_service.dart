@@ -41,8 +41,10 @@ class SubtitleDepackerService {
     final removeAllSpaces = langConfig?.removeAllSpaces ?? false;
     final isAss = filePath.toLowerCase().endsWith('.ass');
 
+    Map<String, List<Phrase>> rawStreams;
+
     if (isAss) {
-      return compute(_parseAssMultiStreamInIsolate, _SubtitleParseInput(
+      rawStreams = await compute(_parseAssMultiStreamInIsolate, _SubtitleParseInput(
         content: fileContent,
         videoId: videoId,
         removeAllSpaces: removeAllSpaces,
@@ -55,8 +57,16 @@ class SubtitleDepackerService {
         removeAllSpaces: removeAllSpaces,
         isAss: false,
       ));
-      return {'Default SRT': phrases};
+      rawStreams = {'Default SRT': phrases};
     }
+
+    // Застосовуємо алгоритм розумного мержингу та очищення до кожного потоку субтитрів
+    final Map<String, List<Phrase>> mergedStreams = {};
+    rawStreams.forEach((streamName, phrasesList) {
+      mergedStreams[streamName] = mergePhraseCues(phrasesList);
+    });
+
+    return mergedStreams;
   }
 
   static Map<String, List<Phrase>> _parseAssMultiStreamInIsolate(_SubtitleParseInput input) {
@@ -84,12 +94,15 @@ class SubtitleDepackerService {
       final langConfig = LanguageHub.getByName(video.originalLanguage ?? '');
       final removeAllSpaces = langConfig?.removeAllSpaces ?? false;
 
-      phrases = await compute(_parseSubtitlesInIsolate, _SubtitleParseInput(
+      final parsedRaw = await compute(_parseSubtitlesInIsolate, _SubtitleParseInput(
         content: content,
         videoId: video.id,
         removeAllSpaces: removeAllSpaces,
         isAss: video.pathSubtitle!.toLowerCase().endsWith('.ass'),
       ));
+      
+      // Застосовуємо мержинг при імпорті в базу даних
+      phrases = mergePhraseCues(parsedRaw);
     }
 
     await phraseService.addPhrasesList(phrases);
@@ -116,6 +129,87 @@ class SubtitleDepackerService {
       }
     }
   }
+
+  /// Допоміжні методи для розумного очищення та мержингу фраз
+  static final RegExp _bracketNoise = RegExp(r'[([\{（［｛].*?[)\]\}）］｝]', dotAll: true);
+
+  static String _normalize(String raw) {
+    return raw
+        .replaceAll(_bracketNoise, '')
+        .replaceAll(RegExp(r'\\N', caseSensitive: false), ' ')
+        .replaceAll(RegExp(r'[\r\n]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  static List<Phrase> mergePhraseCues(List<Phrase> phrases) {
+    if (phrases.isEmpty) return [];
+
+    final List<Phrase> result = [];
+
+    Phrase cur = phrases.first;
+    String curClean = _normalize(cur.originalPhrase ?? '');
+
+    void flush() {
+      if (curClean.isNotEmpty) {
+        result.add(Phrase(
+          videoId: cur.videoId,
+          phraseOrder: result.length + 1,
+          originalPhrase: curClean,
+          translatedPhrase: cur.translatedPhrase,
+          startTime: cur.startTime,
+          endTime: cur.endTime,
+          isActive: cur.isActive,
+          originalTokens: cur.originalTokens,
+          translatedWords: cur.translatedWords,
+          linkGroups: cur.linkGroups,
+          idiomSpans: cur.idiomSpans,
+          stageStatuses: cur.stageStatuses,
+        ));
+      }
+    }
+
+    for (int i = 1; i < phrases.length; i++) {
+      final next = phrases[i];
+      final clean = _normalize(next.originalPhrase ?? '');
+
+      if (cur.endTime == null || next.startTime == null) {
+        flush();
+        cur = next;
+        curClean = clean;
+        continue;
+      }
+
+      final bool isDuplicate = clean == curClean;
+      final bool isExtension = clean.isNotEmpty && curClean.isNotEmpty &&
+          (clean.startsWith(curClean) || curClean.startsWith(clean));
+
+      final bool isAdjacent = (next.startTime!.difference(cur.endTime!)).inMilliseconds.abs() <= 400;
+
+      if (isAdjacent && (isDuplicate || isExtension)) {
+        if (next.endTime != null && (cur.endTime == null || next.endTime!.isAfter(cur.endTime!))) {
+          cur.endTime = next.endTime;
+        }
+        if (next.startTime != null && (cur.startTime == null || next.startTime!.isBefore(cur.startTime!))) {
+          cur.startTime = next.startTime;
+        }
+        if (clean.length > curClean.length) curClean = clean;
+      } else {
+        flush();
+        cur = next;
+        curClean = clean;
+      }
+    }
+    flush();
+
+    // Сортуємо фінальний результат за часом, щоб уникнути багів з "стрибаючими" таймінгами
+    result.sort((a, b) {
+      if (a.startTime == null || b.startTime == null) return 0;
+      return a.startTime!.compareTo(b.startTime!);
+    });
+
+    return result;
+  }
 }
 
 class _SubtitleParseInput {
@@ -131,4 +225,3 @@ class _SubtitleParseInput {
     required this.isAss,
   });
 }
-

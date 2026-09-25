@@ -64,8 +64,8 @@ class _VideoLibraryCardContent extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     
     final dateStr = video.createdAt != null 
-        ? DateFormat('dd.MM.yyyy').format(video.createdAt!) 
-        : '--.--.----';
+        ? DateFormat('dd.MM HH:mm').format(video.createdAt!) 
+        : '--.-- --:--';
 
     final langCodes = ref.watch(languageCodesProvider);
     final originalCode = langCodes[video.originalLanguage] ?? video.originalLanguage?.substring(0, 2) ?? '??';
@@ -528,6 +528,45 @@ class _VideoCardMenu extends ConsumerWidget {
               );
             }
           }
+        } else if (value == 'details') {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: Theme.of(context).primaryColor),
+                  const SizedBox(width: 12),
+                  const Text('Video Internal Data', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              content: SizedBox(
+                width: 480,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildDetailRow('File Name', video.fileName ?? 'Unknown'),
+                      _buildDetailRow('Metadata Source', _formatLabel(video.metadataProvider ?? 'manual')),
+                      _buildDetailRow('Subtitle Source', _formatLabel(video.subtitleSource ?? 'none')),
+                      _buildDetailRow('Subtitle Method', _formatLabel(video.subtitleMethodUsed ?? 'manual')),
+                      _buildDetailRow('Languages', '${video.originalLanguage ?? '??'} → ${video.translatedLanguage ?? '??'}'),
+                      _buildDetailRow('Season / Episode', 'S${video.season ?? '1'} • Ep ${video.episode ?? '1'}'),
+                      _buildDetailRow('Audio Stream Index', video.selectedAudioTrackIndex?.toString() ?? 'Default'),
+                      _buildDetailRow('Is Subtitle Ready', (video.isSubtitleReady ?? false) ? 'YES' : 'NO'),
+                      _buildDetailRow('Created At', video.createdAt?.toLocal().toString().substring(0, 19) ?? 'Unknown'),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Close', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          );
         } else if (value == 'delete') {
           final confirmed = await showDialog<bool>(
             context: context,
@@ -632,6 +671,16 @@ class _VideoCardMenu extends ConsumerWidget {
 
         const PopupMenuDivider(),
         const PopupMenuItem(
+          value: 'details',
+          child: Row(
+            children: [
+              Icon(Icons.info_outline_rounded, size: 18, color: Colors.blueGrey),
+              SizedBox(width: 12),
+              Text('Video Details', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.blueGrey)),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
           value: 'delete',
           child: Row(
             children: [
@@ -642,6 +691,40 @@ class _VideoCardMenu extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  String _formatLabel(String text) {
+    if (text.isEmpty) return 'Unknown';
+    return text.replaceAll('_', ' ').split(' ').map((s) {
+      if (s.isEmpty) return '';
+      return s[0].toUpperCase() + s.substring(1).toLowerCase();
+    }).join(' ');
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.end,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

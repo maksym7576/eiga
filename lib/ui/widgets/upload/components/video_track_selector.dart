@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
 import 'package:eiga/ui/styles/app_colors.dart';
+import 'package:eiga/config/languages/language_hub.dart';
+import '../sheets/language_preview_sheet.dart';
 
 class VideoTrackSelector extends ConsumerWidget {
   const VideoTrackSelector({super.key});
@@ -20,7 +22,7 @@ class VideoTrackSelector extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (state.audioTracks.isNotEmpty) ...[
-          const _SectionHeader(title: 'Audio Tracks'),
+          const _SectionHeader(title: 'Audio Tracks', icon: Icons.audiotrack_rounded),
           const SizedBox(height: 12),
           ListView.separated(
             shrinkWrap: true,
@@ -43,7 +45,7 @@ class VideoTrackSelector extends ConsumerWidget {
         ],
 
         if (state.subtitleTracks.isNotEmpty) ...[
-          const _SectionHeader(title: 'Embedded Subtitles'),
+          const _SectionHeader(title: 'Embedded Subtitles', icon: Icons.subtitles_rounded),
           const SizedBox(height: 12),
           ListView.separated(
             shrinkWrap: true,
@@ -60,32 +62,44 @@ class VideoTrackSelector extends ConsumerWidget {
                 isOriginal: isOriginal,
                 isTranslation: isTranslation,
                 onOriginalTap: () async {
-                  if (isOriginal) {
-                    notifier.selectOriginalSubtitle(null);
-                  } else {
-                    // Try auto-select first, if fails, show picker
-                    await notifier.selectOriginalSubtitle(track);
-                    if (ref.read(languageProvider).original == null) {
-                      final lang = await _showLanguagePicker(context, ref, 'Select Original Language', track.language);
-                      if (lang != null) {
-                        notifier.selectOriginalSubtitle(track, language: lang);
-                      }
-                    }
+                  await notifier.selectOriginalSubtitle(track);
+                  if (context.mounted) {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => const LanguagePreviewWidget(
+                        initialType: LanguageType.original,
+                      ),
+                    );
                   }
                 },
                 onTranslationTap: () async {
-                  if (isTranslation) {
-                    notifier.selectTranslationSubtitle(null);
-                  } else {
-                    // Try auto-select first
-                    await notifier.selectTranslationSubtitle(track);
-                    if (ref.read(languageProvider).target == null) {
-                      final lang = await _showLanguagePicker(context, ref, 'Select Translation Language', track.language);
-                      if (lang != null) {
-                        notifier.selectTranslationSubtitle(track, language: lang);
-                      }
-                    }
+                  await notifier.selectTranslationSubtitle(track);
+                  if (context.mounted) {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => const LanguagePreviewWidget(
+                        initialType: LanguageType.translation,
+                      ),
+                    );
                   }
+                },
+                onClear: () {
+                  if (isOriginal) notifier.selectOriginalSubtitle(null);
+                  if (isTranslation) notifier.selectTranslationSubtitle(null);
+                },
+                onConfigureLanguage: (type) {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) => LanguagePreviewWidget(
+                      initialType: type,
+                    ),
+                  );
                 },
               );
             },
@@ -94,52 +108,29 @@ class VideoTrackSelector extends ConsumerWidget {
       ],
     );
   }
-
-  Future<String?> _showLanguagePicker(BuildContext context, WidgetRef ref, String title, String? initialHint) async {
-    final languages = ref.read(allLanguagesProvider);
-    String? selected;
-
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: languages.length,
-            itemBuilder: (context, index) {
-              final lang = languages[index];
-              return ListTile(
-                title: Text(lang.name),
-                subtitle: Text(lang.subtitle),
-                onTap: () => Navigator.pop(context, lang.name),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        ],
-      ),
-    );
-  }
 }
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-  const _SectionHeader({required this.title});
+  final IconData icon;
+  const _SectionHeader({required this.title, required this.icon});
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w900,
-        color: AppColors.slate900,
-        letterSpacing: -0.2,
-      ),
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.slate800),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            color: AppColors.slate900,
+            letterSpacing: -0.2,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -162,18 +153,41 @@ class _TrackTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.brandBlue.withValues(alpha: 0.05) : Colors.white,
+          color: isSelected ? AppColors.brandBlue.withValues(alpha: 0.04) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? AppColors.brandBlue : AppColors.slate200,
-            width: isSelected ? 1.5 : 1.0,
+            width: isSelected ? 1.6 : 1.0,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.brandBlue.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
         ),
         child: Row(
           children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.brandBlue.withValues(alpha: 0.1) : AppColors.slate100,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.volume_up_rounded,
+                size: 16,
+                color: isSelected ? AppColors.brandBlue : AppColors.slate600,
+              ),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,26 +197,36 @@ class _TrackTile extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                      color: isSelected ? AppColors.brandBlue : AppColors.slate700,
+                      color: isSelected ? AppColors.brandBlue : AppColors.slate800,
                     ),
                   ),
-                  if (subtitle != null) ...[
+                  if (subtitle != null && subtitle!.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
-                      subtitle!,
+                      subtitle!.toUpperCase(),
                       style: TextStyle(
-                        fontSize: 12,
-                        color: isSelected ? AppColors.brandBlue.withValues(alpha: 0.7) : AppColors.slate500,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                        color: isSelected ? AppColors.brandBlue.withValues(alpha: 0.6) : AppColors.slate400,
                       ),
                     ),
                   ],
                 ],
               ),
             ),
-            Icon(
-              isSelected ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
-              color: isSelected ? AppColors.brandBlue : AppColors.slate300,
-              size: 22,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? AppColors.brandBlue : AppColors.slate300,
+                  width: isSelected ? 6 : 2,
+                ),
+                color: isSelected ? Colors.white : Colors.transparent,
+              ),
             ),
           ],
         ),
@@ -217,6 +241,8 @@ class _SubtitleTrackTile extends ConsumerWidget {
   final bool isTranslation;
   final VoidCallback onOriginalTap;
   final VoidCallback onTranslationTap;
+  final VoidCallback onClear;
+  final Function(LanguageType) onConfigureLanguage;
 
   const _SubtitleTrackTile({
     required this.track,
@@ -224,6 +250,8 @@ class _SubtitleTrackTile extends ConsumerWidget {
     required this.isTranslation,
     required this.onOriginalTap,
     required this.onTranslationTap,
+    required this.onClear,
+    required this.onConfigureLanguage,
   });
 
   @override
@@ -231,59 +259,92 @@ class _SubtitleTrackTile extends ConsumerWidget {
     final bool anySelected = isOriginal || isTranslation;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: anySelected ? AppColors.brandBlue.withValues(alpha: 0.05) : Colors.white,
+        color: anySelected ? AppColors.brandBlue.withValues(alpha: 0.04) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: anySelected ? AppColors.brandBlue : AppColors.slate200,
-          width: anySelected ? 1.5 : 1.0,
+          width: anySelected ? 1.6 : 1.0,
         ),
+        boxShadow: anySelected
+            ? [
+                BoxShadow(
+                  color: AppColors.brandBlue.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ]
+            : null,
       ),
       child: Row(
         children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: anySelected ? AppColors.brandBlue.withValues(alpha: 0.1) : AppColors.slate100,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              Icons.subtitles_outlined,
+              size: 16,
+              color: anySelected ? AppColors.brandBlue : AppColors.slate600,
+            ),
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  track.title ?? 'Subtitle Track ${track.index}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: anySelected ? FontWeight.w800 : FontWeight.w600,
-                    color: anySelected ? AppColors.brandBlue : AppColors.slate700,
-                  ),
-                ),
-                if (track.language != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    track.language!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: anySelected ? AppColors.brandBlue.withValues(alpha: 0.7) : AppColors.slate500,
-                    ),
-                  ),
-                ],
-                if (anySelected && ((isOriginal && ref.watch(languageProvider).original == null) || (isTranslation && ref.watch(languageProvider).target == null))) ...[
-                  const SizedBox(height: 4),
-                  GestureDetector(
-                    onTap: isOriginal ? onOriginalTap : onTranslationTap,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.warningAmberBg,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.warning_amber_rounded, size: 10, color: AppColors.warningAmberText),
-                          SizedBox(width: 4),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: isOriginal 
+                        ? () => onConfigureLanguage(LanguageType.original)
+                        : isTranslation 
+                            ? () => onConfigureLanguage(LanguageType.translation)
+                            : null,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          track.title ?? 'Subtitle Track ${track.index}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: anySelected ? FontWeight.w800 : FontWeight.w600,
+                            color: anySelected ? AppColors.brandBlue : AppColors.slate800,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (track.language != null && track.language!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
                           Text(
-                            'SELECT LANGUAGE',
-                            style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: AppColors.warningAmberText),
+                            track.language!.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                              color: anySelected ? AppColors.brandBlue.withValues(alpha: 0.6) : AppColors.slate400,
+                            ),
                           ),
                         ],
+                      ],
+                    ),
+                  ),
+                ),
+                if (anySelected) ...[
+                  const SizedBox(width: 8),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: onClear,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.slate100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close_rounded, size: 16, color: AppColors.slate500),
                       ),
                     ),
                   ),
@@ -291,7 +352,7 @@ class _SubtitleTrackTile extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           _StatusPill(
             label: 'Original',
             isActive: isOriginal,
@@ -326,30 +387,30 @@ class _StatusPill extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: isActive ? AppColors.brandBlue : Colors.white,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isActive ? AppColors.brandBlue : AppColors.slate300,
             width: 1.2,
           ),
           boxShadow: isActive ? [
             BoxShadow(
-              color: AppColors.brandBlue.withValues(alpha: 0.25),
+              color: AppColors.brandBlue.withValues(alpha: 0.2),
               blurRadius: 6,
               offset: const Offset(0, 3),
             )
           ] : null,
         ),
-        child: Column(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               label,
               style: TextStyle(
                 fontSize: 11,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
                 color: isActive ? Colors.white : AppColors.slate600,
               ),
             ),

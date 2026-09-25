@@ -1,9 +1,13 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
+import 'package:eiga/backend/services/algorithms/sync_scoring_algorithm.dart';
 import '../../../styles/additional_window_theme.dart';
+import '../../../styles/app_colors.dart';
 import '../components/sync_technical_details.dart';
+import '../components/subtitle_sync_plaque.dart';
 
 class SyncVersionSelector extends HookConsumerWidget {
   final ValueNotifier<bool>? isExpanded;
@@ -25,7 +29,6 @@ class SyncVersionSelector extends HookConsumerWidget {
 
     if (state.analyzedVersions.isEmpty) return const SizedBox.shrink();
 
-    // Сортування версій за впевненістю (accuracy)
     final sortedVersions = List<AnalyzedSubtitle>.from(state.analyzedVersions)
       ..sort((a, b) => b.confidence.compareTo(a.confidence));
 
@@ -89,212 +92,53 @@ class SyncVersionSelector extends HookConsumerWidget {
           ),
           const SizedBox(height: 16),
   
-          // 2. Main Unified Card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
+          // 2. Version List (Plaques)
+          AnimatedSize(
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeInOutQuart,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Inline Version List Box
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 350),
-                  curve: Curves.easeInOutQuart,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Column(
-                      children: List.generate(
-                        effectiveExpanded.value ? sortedVersions.length : 1,
-                        (index) {
-                          final version = effectiveExpanded.value ? sortedVersions[index] : selectedVersion;
-                          final isSelected = version.fileName == selectedVersion.fileName;
-                          final isBest = version.fileName == bestVersion.fileName;
-                          final isLast = index == (effectiveExpanded.value ? sortedVersions.length - 1 : 0);
-  
-                          return Column(
-                            children: [
-                              _VersionRow(
-                                version: version,
-                                isSelected: isSelected,
-                                isBest: isBest,
-                                onTap: () {
-                                  notifier.selectVersion(version);
-                                  // Закриваємо список при виборі
-                                  effectiveExpanded.value = false;
-                                },
-                              ),
-                              if (!isLast) const Divider(height: 1, color: Color(0xFFE2E8F0), indent: 16, endIndent: 16),
-                            ],
-                          );
+                if (!effectiveExpanded.value)
+                  SubtitleSyncPlaque(
+                    version: selectedVersion,
+                    isSelected: true,
+                    theme: theme,
+                    onTap: () => effectiveExpanded.value = true,
+                  )
+                else
+                  Column(
+                    children: sortedVersions.map((v) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: SubtitleSyncPlaque(
+                        version: v,
+                        isSelected: v.fileName == selectedVersion.fileName,
+                        theme: theme,
+                        onTap: () {
+                          notifier.selectVersion(v);
+                          effectiveExpanded.value = false;
                         },
                       ),
-                    ),
+                    )).toList(),
                   ),
-                ),
-  
-                // Technical Metrics List
-                if (showTechDetails) ...[
-                  const SizedBox(height: 24),
-                  ...buildTechDetails(
-                    context,
-                    state,
-                    theme,
-                    notifier,
-                    effectiveExpanded,
-                    currentOffset: state.suggestedOffset ?? selectedVersion.offset,
-                  ),
-                ],
               ],
             ),
           ),
+
+          // 3. Technical Metrics List
+          if (showTechDetails) ...[
+            const SizedBox(height: 12),
+            ...buildTechDetails(
+              context,
+              state,
+              theme,
+              notifier,
+              effectiveExpanded,
+              currentOffset: state.suggestedOffset ?? selectedVersion.offset,
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _VersionRow extends StatelessWidget {
-  final AnalyzedSubtitle version;
-  final bool isSelected;
-  final bool isBest;
-  final VoidCallback onTap;
-
-  const _VersionRow({
-    required this.version,
-    required this.isSelected,
-    required this.isBest,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final offset = version.offset?.inMilliseconds ?? 0;
-    final accuracy = (version.confidence * 100).toInt();
-
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Radio-like indicator
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFCBD5E1),
-                    width: isSelected ? 6 : 2,
-                  ),
-                  color: isSelected ? Colors.white : Colors.transparent,
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            // Version Name & Stats
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          version.fileName,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                            color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF475569),
-                            height: 1.2,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (isBest) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFECFDF5),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.2)),
-                          ),
-                          child: const Text(
-                            'Optimal',
-                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.auto_graph_rounded, size: 12, color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF94A3B8)),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$accuracy% accuracy',
-                        style: TextStyle(
-                          fontSize: 12, 
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600, 
-                          color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF64748B),
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFFEFF6FF) : const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: isSelected ? const Color(0xFF2563EB).withValues(alpha: 0.2) : const Color(0xFFE2E8F0),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.history_rounded, size: 10, color: isSelected ? const Color(0xFF1E40AF) : const Color(0xFF64748B)),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${offset >= 0 ? '+' : ''}${offset}ms',
-                              style: TextStyle(
-                                fontSize: 11, 
-                                fontWeight: FontWeight.w900, 
-                                color: isSelected ? const Color(0xFF1E40AF) : const Color(0xFF475569), 
-                                fontFamily: 'monospace',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

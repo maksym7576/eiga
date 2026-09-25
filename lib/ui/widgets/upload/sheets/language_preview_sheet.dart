@@ -8,14 +8,22 @@ import '../../../styles/app_colors.dart';
 import '../../cards/language_widget.dart';
 
 class LanguagePreviewWidget extends ConsumerStatefulWidget {
-  const LanguagePreviewWidget({super.key});
+  final LanguageType? initialType;
+
+  const LanguagePreviewWidget({super.key, this.initialType});
 
   @override
   ConsumerState<LanguagePreviewWidget> createState() => _LanguagePreviewWidgetState();
 }
 
 class _LanguagePreviewWidgetState extends ConsumerState<LanguagePreviewWidget> {
-  LanguageType _activeTypeNow = LanguageType.original;
+  late LanguageType _activeTypeNow;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeTypeNow = widget.initialType ?? LanguageType.original;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +32,16 @@ class _LanguagePreviewWidgetState extends ConsumerState<LanguagePreviewWidget> {
 
     final sorted = languagesAsync.toList()
       ..sort((a, b) => a.name.compareTo(b.name));
+
+    // Якщо передано конкретний тип, то це цільовий вибір для одного треку
+    final bool isSingleSelectionMode = widget.initialType != null;
+
+    String subtitleText = 'Choose source or target language';
+    if (isSingleSelectionMode) {
+      subtitleText = widget.initialType == LanguageType.original 
+          ? 'Select Original language for this track' 
+          : 'Select Translation language for this track';
+    }
 
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
@@ -63,8 +81,8 @@ class _LanguagePreviewWidgetState extends ConsumerState<LanguagePreviewWidget> {
                         ),
                       ),
                       Text(
-                        'Choose source or target language',
-                        style: TextStyle(
+                        subtitleText,
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: AppColors.slate500,
@@ -83,23 +101,28 @@ class _LanguagePreviewWidgetState extends ConsumerState<LanguagePreviewWidget> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.slate100,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: [
-                    _buildTypeTab('Source', LanguageType.original),
-                    _buildTypeTab('Target', LanguageType.translation),
-                  ],
+            
+            // Показуємо таби ЛИШЕ якщо тип НЕ був наперед визначений (загальний режим)
+            if (!isSingleSelectionMode) ...[
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.slate100,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildTypeTab('Source', LanguageType.original),
+                      _buildTypeTab('Target', LanguageType.translation),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
+            
             const SizedBox(height: 20),
             Expanded(
               child: ListView.separated(

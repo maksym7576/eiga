@@ -243,14 +243,17 @@ class CloudSubtitleSource implements SearchSource<UnifiedMetadataDTO, JimakuFile
     if (targetEp == null || targetEp.trim().isEmpty) return null;
     final service = await ref.read(jimakuServiceProvider.future);
     int? jimakuId;
-    if (entry.linkUrl?.contains('jimaku.cc') == true)
+    if (entry.linkUrl?.contains('jimaku.cc') == true) {
       jimakuId = int.tryParse(entry.sourceId);
-    else if (entry.anilistId != null) {
+    } else if (entry.anilistId != null) {
       final jimakuEntries = await service.searchJumakuObjects(anilistId: entry.anilistId);
       if (jimakuEntries.isNotEmpty) jimakuId = int.tryParse(jimakuEntries.first.sourceId);
     }
-    if (jimakuId == null) {
-      final results = await service.searchJumakuObjects(query: entry.title);
+    
+    // If still null, try using external IDs mapping or cross-searching from Shikimori/TVMaze
+    if (jimakuId == null && entry.sourceId.isNotEmpty) {
+      // If it's a Shikimori or other service entry, query Jimaku by exact string or structural tokens
+      final results = await service.searchJumakuObjects(query: entry.originalTitle ?? entry.title);
       if (results.isNotEmpty) jimakuId = int.tryParse(results.first.sourceId);
     }
     if (jimakuId == null) return null;

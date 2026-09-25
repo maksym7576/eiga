@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../backend/database/schemas/phrase.dart';
-import '../../../backend/database/schemas/user_word_status.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
+import 'package:eiga/providers/ui/subtitle_settings_provider.dart';
 import 'components/phrase_original_content.dart';
 import 'components/translation_styled_content.dart';
 
@@ -38,32 +38,45 @@ class SubtitleTextContent extends HookConsumerWidget {
     final selectedPhraseId = ref.watch(selectedPhraseIdProvider(playerScope));
     final bool isThisPhraseSelected = selectedPhraseId == phrase.id;
 
-    final highlightedWordIds = isThisPhraseSelected ? ref.watch(highlightedWordIdsProvider(playerScope)) : const <int>{};
-    final highlightedTranslationIds = isThisPhraseSelected ? ref.watch(highlightedTranslationIdsProvider(playerScope)) : const <int>{};
-    
-    final anchorType = isThisPhraseSelected ? ref.watch(selectionAnchorTypeProvider(playerScope)) : null;
-    final clickedWordId = isThisPhraseSelected ? ref.watch(clickedWordIdProvider(playerScope)) : null;
-    final clickedTranslationId = isThisPhraseSelected ? ref.watch(clickedTranslationWordIdProvider(playerScope)) : null;
+    final highlightedWordIds = isThisPhraseSelected
+        ? ref.watch(highlightedWordIdsProvider(playerScope))
+        : const <int>{};
+    final highlightedTranslationIds = isThisPhraseSelected
+        ? ref.watch(highlightedTranslationIdsProvider(playerScope))
+        : const <int>{};
+
+    final anchorType =
+    isThisPhraseSelected ? ref.watch(selectionAnchorTypeProvider(playerScope)) : null;
+    final clickedWordId =
+    isThisPhraseSelected ? ref.watch(clickedWordIdProvider(playerScope)) : null;
+    final clickedTranslationId =
+    isThisPhraseSelected ? ref.watch(clickedTranslationWordIdProvider(playerScope)) : null;
     final isLocked = ref.watch(playerProvider(playerScope).select((s) => s.isLocked));
-    final selectionLayerLink = isThisPhraseSelected ? ref.watch(selectionLayerLinkProvider(playerScope)) : null;
+    final selectionLayerLink =
+    isThisPhraseSelected ? ref.watch(selectionLayerLinkProvider(playerScope)) : null;
 
     final statusMap = ref.watch(lemmaToStatusMapProvider).value ?? {};
-    final index = PhraseLinkIndex(phrase.originalTokens ?? [], phrase.translatedWords ?? [], phrase.linkGroups);
+    final index =
+    PhraseLinkIndex(phrase.originalTokens ?? [], phrase.translatedWords ?? [], phrase.linkGroups);
 
-    final hiddenIds = ref.watch(dimmedWordIdsProvider(playerScope)).isEmpty 
-        ? {'words': <int>{}, 'translations': <int>{}} 
+    final hiddenIds = ref.watch(dimmedWordIdsProvider(playerScope)).isEmpty
+        ? {'words': <int>{}, 'translations': <int>{}}
         : {
-            'words': ref.watch(dimmedWordIdsProvider(playerScope)),
-            'translations': ref.watch(dimmedTranslationIdsProvider(playerScope)),
-          };
+      'words': ref.watch(dimmedWordIdsProvider(playerScope)),
+      'translations': ref.watch(dimmedTranslationIdsProvider(playerScope)),
+    };
 
-    const double spacing = 6.0;
+    final settings = ref.watch(subtitleSettingsProvider);
+    final modeSettings = isFullscreen ? settings.fullscreen : settings.windowed;
+
+    // Відступ між оригіналом і перекладом повністю з налаштувань (0 → без відступу).
+    final double translationSpacing =
+        modeSettings.originalToTranslationSpacing == 0.0 ? 0.0 : baseFontSize * 0.4 * modeSettings.originalToTranslationSpacing;
 
     return RepaintBoundary(
       child: Column(
-        crossAxisAlignment: textAlign == TextAlign.center 
-            ? CrossAxisAlignment.center 
-            : CrossAxisAlignment.start,
+        crossAxisAlignment:
+        textAlign == TextAlign.center ? CrossAxisAlignment.center : CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           PhraseOriginalContent(
@@ -86,8 +99,10 @@ class SubtitleTextContent extends HookConsumerWidget {
             hiddenWordIds: hiddenIds['words']!,
             playerScope: playerScope,
           ),
-          if (showTranslation) ...[
-            SizedBox(height: spacing),
+          // У вікні завантаження (прев'ю) ми не показуємо вбудований переклад,
+          // бо він рендериться окремим рядком у FullscreenSubtitle
+          if (showTranslation && playerScope != 'preview') ...[
+            if (translationSpacing > 0) SizedBox(height: translationSpacing),
             TranslationStyledContent(
               phrase: phrase,
               index: index,

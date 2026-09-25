@@ -14,7 +14,7 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
       context: context,
       barrierDismissible: true,
       barrierLabel: 'SubtitleSettingsSidePanel',
-      barrierColor: Colors.transparent, // Transparent barrier to see the video
+      barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, anim1, anim2) {
         return Align(
@@ -45,7 +45,6 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
     final safePadding = MediaQuery.of(context).padding;
     final orientation = MediaQuery.of(context).orientation;
 
-    // Auto-close when rotating back to portrait
     if (orientation == Orientation.portrait) {
       Future.microtask(() {
         if (context.mounted) Navigator.of(context).maybePop();
@@ -56,13 +55,19 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
     return Material(
       color: Colors.transparent,
       child: Container(
-        width: 280,
+        width: 300,
         height: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.75),
-          border: const Border(
-            left: BorderSide(color: Colors.white12, width: 1),
-          ),
+          color: const Color(0xFF0F172A).withValues(alpha: 0.92),
+          borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: 20,
+              offset: const Offset(-5, 0),
+            ),
+          ],
         ),
         child: Column(
           children: [
@@ -77,288 +82,274 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Subtitle Styles',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  const Row(
+                    children: [
+                      Icon(Icons.tune_rounded, color: AppColors.brandBlue, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Subtitle Settings',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.06),
+                      padding: const EdgeInsets.all(6),
+                    ),
                   ),
                 ],
               ),
             ),
+            const Divider(color: Colors.white12, height: 1),
 
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // FS Text Size
-                    _buildSection(
-                      title: 'Full Screen Size',
-                      value: '${settings.fullscreen.fontSize.toInt()}',
-                      child: SliderTheme(
-                        data: _sliderTheme(context),
-                        child: () {
-                          const minVal = 4.0;
-                          const maxVal = 60.0;
-                          return Slider(
-                            value: settings.fullscreen.fontSize.clamp(minVal, maxVal),
-                            min: minVal,
-                            max: maxVal,
+                    // --- SECTION 1: SIZING & POSITION ---
+                    _buildGroupHeader('Layout & Size'),
+                    const SizedBox(height: 10),
+                    _buildCard([
+                      _buildSection(
+                        title: 'Font Size',
+                        value: '${settings.fullscreen.fontSize.toInt()}px',
+                        child: SliderTheme(
+                          data: _sliderTheme(context),
+                          child: Slider(
+                            value: settings.fullscreen.fontSize.clamp(4.0, 60.0),
+                            min: 4.0,
+                            max: 60.0,
                             onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setFontSizeFullscreen(val),
-                          );
-                        }(),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Letter Spacing (Split)
-                    _buildSection(
-                      title: 'Original Spacing',
-                      value: settings.fullscreen.originalLetterSpacing.toStringAsFixed(1),
-                      child: SliderTheme(
-                        data: _sliderTheme(context),
-                        child: Slider(
-                          value: settings.fullscreen.originalLetterSpacing,
-                          min: 0.0,
-                          max: 10.0,
-                          onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setOriginalLetterSpacingFs(val),
+                          ),
                         ),
                       ),
-                    ),
-
-                    _buildSection(
-                      title: 'Translation Spacing',
-                      value: settings.fullscreen.translationLetterSpacing.toStringAsFixed(1),
-                      child: SliderTheme(
-                        data: _sliderTheme(context),
-                        child: Slider(
-                          value: settings.fullscreen.translationLetterSpacing,
-                          min: 0.0,
-                          max: 10.0,
-                          onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setTranslationLetterSpacingFs(val),
+                      const SizedBox(height: 12),
+                      _buildSection(
+                        title: 'Vertical Position',
+                        value: settings.verticalOffset.toStringAsFixed(2),
+                        child: SliderTheme(
+                          data: _sliderTheme(context),
+                          child: Slider(
+                            value: settings.verticalOffset.clamp(0.0, 1.0),
+                            min: 0.0,
+                            max: 1.0,
+                            onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setVerticalOffset(val),
+                          ),
                         ),
                       ),
-                    ),
+                    ]),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
-                    // Font Weight
-                    _buildSection(
-                      title: 'Word Thickness',
-                      value: '${(settings.fullscreen.fontWeight * 100).toInt()}%',
-                      child: SliderTheme(
-                        data: _sliderTheme(context),
-                        child: Slider(
-                          value: settings.fullscreen.fontWeight,
-                          min: 0.0,
-                          max: 1.0,
-                          onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setFontWeightFs(val),
+                    // --- SECTION 2: GAPS & SPACING ---
+                    _buildGroupHeader('Spacing & Gaps'),
+                    const SizedBox(height: 10),
+                    _buildCard([
+                      _buildSection(
+                        title: 'Original - Translation Gap',
+                        value: settings.fullscreen.originalToTranslationSpacing.toStringAsFixed(2),
+                        child: SliderTheme(
+                          data: _sliderTheme(context),
+                          child: Slider(
+                            value: settings.fullscreen.originalToTranslationSpacing.clamp(0.0, 3.0),
+                            min: 0.0,
+                            max: 3.0,
+                            onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setOriginalToTranslationSpacingFs(val),
+                          ),
                         ),
                       ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Outline (Split)
-                    _buildSection(
-                      title: 'Original Outline',
-                      value: settings.fullscreen.originalOutlineWidth.toStringAsFixed(1),
-                      child: SliderTheme(
-                        data: _sliderTheme(context),
-                        child: Slider(
-                          value: settings.fullscreen.originalOutlineWidth,
-                          min: 0.5,
-                          max: 4.0,
-                          onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setOriginalOutlineWidthFs(val),
+                      const SizedBox(height: 12),
+                      _buildSection(
+                        title: 'Original - Furigana Gap',
+                        value: settings.fullscreen.originalToAdditionalSpacing.toStringAsFixed(2),
+                        child: SliderTheme(
+                          data: _sliderTheme(context),
+                          child: Slider(
+                            value: settings.fullscreen.originalToAdditionalSpacing.clamp(0.0, 3.0),
+                            min: 0.0,
+                            max: 3.0,
+                            onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setOriginalToAdditionalSpacingFs(val),
+                          ),
                         ),
                       ),
-                    ),
-
-                    _buildSection(
-                      title: 'Translation Outline',
-                      value: settings.fullscreen.translationOutlineWidth.toStringAsFixed(1),
-                      child: SliderTheme(
-                        data: _sliderTheme(context),
-                        child: Slider(
-                          value: settings.fullscreen.translationOutlineWidth,
-                          min: 0.5,
-                          max: 4.0,
-                          onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setTranslationOutlineWidthFs(val),
+                      const SizedBox(height: 12),
+                      _buildSection(
+                        title: 'Original Letter Spacing',
+                        value: settings.fullscreen.originalLetterSpacing.toStringAsFixed(1),
+                        child: SliderTheme(
+                          data: _sliderTheme(context),
+                          child: Slider(
+                            value: settings.fullscreen.originalLetterSpacing.clamp(0.0, 10.0),
+                            min: 0.0,
+                            max: 10.0,
+                            onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setOriginalLetterSpacingFs(val),
+                          ),
                         ),
                       ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Backdrop
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Background',
-                          style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                      const SizedBox(height: 12),
+                      _buildSection(
+                        title: 'Translation Letter Spacing',
+                        value: settings.fullscreen.translationLetterSpacing.toStringAsFixed(1),
+                        child: SliderTheme(
+                          data: _sliderTheme(context),
+                          child: Slider(
+                            value: settings.fullscreen.translationLetterSpacing.clamp(0.0, 10.0),
+                            min: 0.0,
+                            max: 10.0,
+                            onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setTranslationLetterSpacingFs(val),
+                          ),
                         ),
-                        Switch.adaptive(
-                          value: settings.showBackdrop,
-                          onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setShowBackdrop(val),
-                          activeTrackColor: AppColors.brandBlue,
+                      ),
+                    ]),
+
+                    const SizedBox(height: 20),
+
+                    // --- SECTION 3: STYLING & OUTLINE ---
+                    _buildGroupHeader('Styling & Strokes'),
+                    const SizedBox(height: 10),
+                    _buildCard([
+                      _buildSection(
+                        title: 'Word Thickness',
+                        value: settings.fullscreen.fontWeight.toStringAsFixed(2),
+                        child: SliderTheme(
+                          data: _sliderTheme(context),
+                          child: Slider(
+                            value: settings.fullscreen.fontWeight.clamp(0.0, 1.0),
+                            min: 0.0,
+                            max: 1.0,
+                            onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setFontWeightFs(val),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildSection(
+                        title: 'Global Outline Width (All Subtitles)',
+                        value: settings.fullscreen.globalOutlineWidth.toStringAsFixed(1),
+                        child: SliderTheme(
+                          data: _sliderTheme(context),
+                          child: Slider(
+                            value: settings.fullscreen.globalOutlineWidth.clamp(0.0, 3.0),
+                            min: 0.0,
+                            max: 3.0,
+                            onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setGlobalOutlineWidthFs(val),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildSection(
+                        title: 'Original Outline Width',
+                        value: settings.fullscreen.originalOutlineWidth.toStringAsFixed(1),
+                        child: SliderTheme(
+                          data: _sliderTheme(context),
+                          child: Slider(
+                            value: settings.fullscreen.originalOutlineWidth.clamp(0.5, 4.0),
+                            min: 0.5,
+                            max: 4.0,
+                            onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setOriginalOutlineWidthFs(val),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildSection(
+                        title: 'Translation Outline Width',
+                        value: settings.fullscreen.translationOutlineWidth.toStringAsFixed(1),
+                        child: SliderTheme(
+                          data: _sliderTheme(context),
+                          child: Slider(
+                            value: settings.fullscreen.translationOutlineWidth.clamp(0.5, 4.0),
+                            min: 0.5,
+                            max: 4.0,
+                            onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setTranslationOutlineWidthFs(val),
+                          ),
+                        ),
+                      ),
+                    ]),
+
+                    const SizedBox(height: 20),
+
+                    // --- SECTION 4: BACKGROUND / BACKDROP ---
+                    _buildGroupHeader('Background Backdrop'),
+                    const SizedBox(height: 10),
+                    _buildCard([
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Show Backdrop',
+                            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                          ),
+                          Switch.adaptive(
+                            value: settings.showBackdrop,
+                            onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setShowBackdrop(val),
+                            activeColor: AppColors.brandBlue,
+                          ),
+                        ],
+                      ),
+                      if (settings.showBackdrop) ...[
+                        const SizedBox(height: 12),
+                        _buildSection(
+                          title: 'Opacity',
+                          value: settings.backdropOpacity.toStringAsFixed(2),
+                          child: SliderTheme(
+                            data: _sliderTheme(context),
+                            child: Slider(
+                              value: settings.backdropOpacity.clamp(0.0, 1.0),
+                              min: 0.0,
+                              max: 1.0,
+                              onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setBackdropOpacity(val),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildSection(
+                          title: 'Padding',
+                          value: '${settings.backdropPadding.toInt()}px',
+                          child: SliderTheme(
+                            data: _sliderTheme(context),
+                            child: Slider(
+                              value: settings.backdropPadding.clamp(0.0, 40.0),
+                              min: 0.0,
+                              max: 40.0,
+                              onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setBackdropPadding(val),
+                            ),
+                          ),
                         ),
                       ],
-                    ),
+                    ]),
 
-                    if (settings.showBackdrop) ...[
-                      const SizedBox(height: 8),
-                      _buildSection(
-                        title: 'Opacity',
-                        value: '${(settings.backdropOpacity * 100).toInt()}%',
-                        child: SliderTheme(
-                          data: _sliderTheme(context),
-                          child: Slider(
-                            value: settings.backdropOpacity,
-                            min: 0,
-                            max: 1,
-                            onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setBackdropOpacity(val),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSection(
-                        title: 'Padding (Size)',
-                        value: '${settings.backdropPadding.toInt()}',
-                        child: SliderTheme(
-                          data: _sliderTheme(context),
-                          child: Slider(
-                            value: settings.backdropPadding,
-                            min: 0,
-                            max: 40,
-                            onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setBackdropPadding(val),
-                          ),
-                        ),
-                      ),
-                    ],
+                    const SizedBox(height: 20),
 
-                    const SizedBox(height: 32),
+                    // --- SECTION 5: ADVANCED SCALING (Collapsible) ---
+                    _buildAdvancedScalingSection(context, ref, settings),
 
-                    // Position
-                    _buildSection(
-                      title: 'Vertical Position',
-                      value: '${(settings.verticalOffset * 100).toInt()}%',
-                      child: SliderTheme(
-                        data: _sliderTheme(context),
-                        child: Slider(
-                          value: settings.verticalOffset.clamp(0.0, 1.0),
-                          min: 0.0,
-                          max: 1.0,
-                          onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setVerticalOffset(val),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-                    const Divider(color: Colors.white12),
-                    const SizedBox(height: 12),
-
-                    // Expandable Advanced Options
-                    (() {
-                      final isExpanded = useState(false);
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          InkWell(
-                            onTap: () => isExpanded.value = !isExpanded.value,
-                            borderRadius: BorderRadius.circular(8),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Text(
-                                    'Advanced Scaling',
-                                    style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w900),
-                                  ),
-                                  Icon(
-                                    isExpanded.value ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                                    color: Colors.white70,
-                                    size: 18,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          if (isExpanded.value) ...[
-                            const SizedBox(height: 16),
-                            // Original Scale Factor
-                            _buildSection(
-                              title: 'Original Text Scale',
-                              value: '${(settings.fullscreen.originalScale * 100).toInt()}%',
-                              child: SliderTheme(
-                                data: _sliderTheme(context),
-                                child: Slider(
-                                  value: settings.fullscreen.originalScale,
-                                  min: 0.5,
-                                  max: 2.5,
-                                  onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setOriginalScaleFs(val),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            // Translation Scale Factor
-                            _buildSection(
-                              title: 'Translation Scale',
-                              value: '${(settings.fullscreen.translationScale * 100).toInt()}%',
-                              child: SliderTheme(
-                                data: _sliderTheme(context),
-                                child: Slider(
-                                  value: settings.fullscreen.translationScale,
-                                  min: 0.5,
-                                  max: 2.5,
-                                  onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setTranslationScaleFs(val),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            // Additional Scale Factor
-                            _buildSection(
-                              title: 'Additional (Furigana) Scale',
-                              value: '${(settings.fullscreen.additionalScale * 100).toInt()}%',
-                              child: SliderTheme(
-                                data: _sliderTheme(context),
-                                child: Slider(
-                                  value: settings.fullscreen.additionalScale,
-                                  min: 0.5,
-                                  max: 2.5,
-                                  onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setAdditionalScaleFs(val),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      );
-                    })(),
-
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 28),
 
                     // Reset Button
                     SizedBox(
                       width: double.infinity,
-                      child: OutlinedButton(
+                      child: ElevatedButton.icon(
                         onPressed: () => ref.read(subtitleSettingsProvider.notifier).reset(),
-                        style: OutlinedButton.styleFrom(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.08),
                           foregroundColor: Colors.white70,
-                          side: const BorderSide(color: Colors.white24),
+                          elevation: 0,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+                          ),
                         ),
-                        child: const Text('Reset to Defaults', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        label: const Text('Reset to Defaults', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                       ),
                     ),
                   ],
@@ -371,6 +362,131 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
     );
   }
 
+  Widget _buildGroupHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4.0),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          color: AppColors.brandBlue.withValues(alpha: 0.9),
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard(List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildAdvancedScalingSection(BuildContext context, WidgetRef ref, SubtitleSettings settings) {
+    final isExpanded = useState(false);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => isExpanded.value = !isExpanded.value,
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.aspect_ratio_rounded, color: Colors.white70, size: 18),
+                      SizedBox(width: 8),
+                      Text(
+                        'Advanced Scaling',
+                        style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                  Icon(
+                    isExpanded.value ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                    color: Colors.white70,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isExpanded.value) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Column(
+                children: [
+                  const Divider(color: Colors.white12, height: 16),
+                  _buildSection(
+                    title: 'Original Text Scale (includes Furigana)',
+                    value: '${(settings.fullscreen.originalScale * 100).toInt()}%',
+                    child: SliderTheme(
+                      data: _sliderTheme(context),
+                      child: Slider(
+                        value: settings.fullscreen.originalScale.clamp(0.5, 2.5),
+                        min: 0.5,
+                        max: 2.5,
+                        onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setOriginalScaleFs(val),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSection(
+                    title: 'Furigana Scale',
+                    value: '${(settings.fullscreen.additionalScale * 100).toInt()}%',
+                    child: SliderTheme(
+                      data: _sliderTheme(context),
+                      child: Slider(
+                        value: settings.fullscreen.additionalScale.clamp(0.5, 2.5),
+                        min: 0.5,
+                        max: 2.5,
+                        onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setAdditionalScaleFs(val),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSection(
+                    title: 'Translation Scale',
+                    value: '${(settings.fullscreen.translationScale * 100).toInt()}%',
+                    child: SliderTheme(
+                      data: _sliderTheme(context),
+                      child: Slider(
+                        value: settings.fullscreen.translationScale.clamp(0.5, 2.5),
+                        min: 0.5,
+                        max: 2.5,
+                        onChanged: (val) => ref.read(subtitleSettingsProvider.notifier).setTranslationScaleFs(val),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildSection({required String title, required String value, required Widget child}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -378,11 +494,11 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(title, style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
-            Text(value, style: const TextStyle(color: AppColors.brandBlue, fontSize: 12, fontWeight: FontWeight.bold)),
+            Text(title, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+            Text(value, style: const TextStyle(color: AppColors.brandBlue, fontSize: 12, fontWeight: FontWeight.w700)),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         child,
       ],
     );
@@ -390,12 +506,12 @@ class SubtitleSettingsSidePanel extends HookConsumerWidget {
 
   SliderThemeData _sliderTheme(BuildContext context) {
     return SliderTheme.of(context).copyWith(
-      trackHeight: 3,
-      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
       activeTrackColor: AppColors.brandBlue,
-      inactiveTrackColor: Colors.white12,
+      inactiveTrackColor: Colors.white24,
       thumbColor: Colors.white,
+      trackHeight: 3.0,
+      overlayColor: AppColors.brandBlue.withValues(alpha: 0.2),
+      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
     );
   }
 }

@@ -6,6 +6,7 @@ import '../../../styles/additional_window_theme.dart';
 import '../../../styles/app_colors.dart';
 
 import 'sync_fix_button.dart';
+import 'sync_timeline_progress.dart';
 
 List<Widget> buildTechDetails(
     BuildContext context,
@@ -18,7 +19,8 @@ List<Widget> buildTechDetails(
     }) {
   final confidence = state.syncConfidence > 0 ? state.syncConfidence : (state.activeSelection?.confidence ?? 0.0);
   
-  if (confidence == 0 && !state.isCheckingSync) {
+  // Показуємо інфо-бокс лише якщо ще не було спроби аналізу
+  if (state.syncStatus == SyncMatchStatus.idle && !state.isCheckingSync) {
     return [
       const SizedBox(height: 12),
       Container(
@@ -45,110 +47,61 @@ List<Widget> buildTechDetails(
   }
 
   return [
+    const SizedBox(height: 16),
     if (showHeader) ...[
       _buildStatusHeader(state, theme, confidence),
-      const SizedBox(height: 24),
+      const SizedBox(height: 16),
     ],
-    metricRow(
-      'Audio Recognition',
-      'AI voice activity confidence',
-      state.syncPnr,
-      15.0,
-      '${state.syncPnr.toStringAsFixed(1)} PNR',
-      theme,
-      Icons.settings_voice_rounded,
-    ),
-    const SizedBox(height: 18),
-    metricRow(
-      'Match Precision',
-      'Phonetic alignment accuracy',
-      state.syncUniqueness,
-      0.8,
-      '${(state.syncUniqueness * 100).toInt()}% score',
-      theme,
-      Icons.biotech_rounded,
-    ),
-    const SizedBox(height: 18),
-    metricRow(
-      'Verified Segments',
-      'Confirmed timing points',
-      state.syncConsensus.toDouble(),
-      max(3.0, state.syncTotalSegments.toDouble()),
-      '${state.syncConsensus} / ${max(3, state.syncTotalSegments)} pts',
-      theme,
-      Icons.rule_rounded,
-    ),
+    // Видалили _buildGeneralScoreCard, бо тепер версія сама виглядає як ця картка
+    // 1. Audio Recognition
+    if (state.syncPnr > 1.0) ...[
+      metricRow(
+        'Audio Recognition',
+        'AI voice activity confidence',
+        state.syncPnr,
+        15.0,
+        '${state.syncPnr.toStringAsFixed(1)} PNR',
+        theme,
+        Icons.settings_voice_rounded,
+      ),
+      const SizedBox(height: 16),
+    ],
+
+    // 2. Match Precision
+    if (state.syncUniqueness > 0.05) ...[
+      metricRow(
+        'Match Precision',
+        'Phonetic alignment accuracy',
+        state.syncUniqueness,
+        0.8,
+        '${(state.syncUniqueness * 100).toInt()}% score',
+        theme,
+        Icons.biotech_rounded,
+      ),
+      const SizedBox(height: 16),
+    ],
+
+    // 3. Interactive Timeline (Replaces Verified Segments)
+    if (state.syncCheckpoints.isNotEmpty) ...[
+      SyncTimelineProgress(state: state),
+      const SizedBox(height: 16),
+    ],
     
     AnimatedSwitcher(
       duration: const Duration(milliseconds: 400),
       child: (currentOffset != null && currentOffset != Duration.zero)
           ? Padding(
               key: ValueKey(currentOffset.inMilliseconds),
-              padding: const EdgeInsets.only(top: 24),
+              padding: const EdgeInsets.only(top: 8),
               child: SyncFixButton(offset: currentOffset),
             )
           : const SizedBox.shrink(),
     ),
-
-    const SizedBox(height: 12),
-    Material(
-      color: Colors.transparent,
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          tilePadding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2563EB).withValues(alpha: 0.05),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.analytics_outlined, size: 16, color: Color(0xFF2563EB)),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Detailed Checkpoints',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
-              ),
-            ],
-          ),
-          trailing: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Color(0xFF94A3B8)),
-          children: [
-            if (state.syncCheckpoints.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Center(
-                  child: Text(
-                    state.isCheckingSync ? 'Analyzing segments...' : 'No checkpoints generated yet',
-                    style: TextStyle(fontSize: 11, color: theme.mutedText, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              )
-            else
-              Container(
-                margin: const EdgeInsets.only(top: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFF1F5F9)),
-                ),
-                child: Column(
-                  children: state.syncCheckpoints.map((cp) => Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: buildCheckpointItem(cp, theme),
-                  )).toList(),
-                ),
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    ),
   ];
 }
+
+// Видалили старий ExpansionTile та _buildGeneralScoreCard (бо він тепер у плашці)
+
 
 
 Widget _buildStatusHeader(UploadState state, AdditionalWindowTheme theme, double confidence) {
@@ -281,6 +234,78 @@ Widget buildCheckpointItem(SyncCheckpoint cp, AdditionalWindowTheme theme) {
   );
 }
 
+Widget _buildGeneralScoreCard(double confidence, AdditionalWindowTheme theme) {
+  final percentage = (confidence * 100).toInt();
+  Color color = AppColors.warningText;
+  String label = 'Poor';
+  
+  if (percentage >= 80) {
+    color = const Color(0xFF10B981);
+    label = 'Excellent';
+  } else if (percentage >= 50) {
+    color = AppColors.brandBlue;
+    label = 'Good';
+  } else if (percentage >= 30) {
+    color = AppColors.warningAmberText;
+    label = 'Fair';
+  }
+
+  return Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [color.withValues(alpha: 0.08), color.withValues(alpha: 0.02)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
+    ),
+    child: Row(
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox(
+              width: 54,
+              height: 54,
+              child: CircularProgressIndicator(
+                value: confidence,
+                strokeWidth: 6,
+                backgroundColor: color.withValues(alpha: 0.1),
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+                strokeCap: StrokeCap.round,
+              ),
+            ),
+            Text(
+              '$percentage%',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color),
+            ),
+          ],
+        ),
+        const SizedBox(width: 20),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Overall Confidence',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.slate500),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: color, letterSpacing: -0.5),
+              ),
+            ],
+          ),
+        ),
+        Icon(Icons.verified_rounded, color: color.withValues(alpha: 0.2), size: 32),
+      ],
+    ),
+  );
+}
+
 Widget metricRow(
     String label,
     String subtitle,
@@ -288,8 +313,9 @@ Widget metricRow(
     double target,
     String valueText,
     AdditionalWindowTheme theme,
-    IconData icon,
-    ) {
+    IconData icon, {
+      Widget? additionalContent,
+    }) {
   final progress = (current / target).clamp(0.0, 1.0);
   final badgeText = '${(progress * 100).toInt()}%';
 
@@ -308,10 +334,10 @@ Widget metricRow(
                   margin: const EdgeInsets.only(top: 2),
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
+                    color: AppColors.brandBlue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(icon, size: 14, color: const Color(0xFF64748B)),
+                  child: Icon(icon, size: 14, color: AppColors.brandBlue),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -354,7 +380,7 @@ Widget metricRow(
         height: 6,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
+          color: AppColors.brandBlue.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(10),
         ),
         child: FractionallySizedBox(
@@ -370,6 +396,7 @@ Widget metricRow(
           ),
         ),
       ),
+      if (additionalContent != null) additionalContent,
     ],
   );
 }

@@ -1,33 +1,14 @@
-# Walkthrough - UI Refresh & Navigation Improvements
+# Walkthrough - Subtitle Settings & Spacing Refinement
 
-I have updated the AppBar design, refactored the "How to Use" guide, and moved the full library view to a dedicated screen.
+Implemented all requested enhancements for subtitle settings:
 
-## Changes Made
+1. **Windowed Subtitle Default Font Size:**
+   - Increased default font size from `12.0` to `16.0` in [app_config.dart](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/config/app_config.dart) for improved readability.
 
-### 1. AppBar Refresh
-- **Logo Style**: Updated the `logoStyle` in `AppAppBarTheme` to use `AppColors.brandBlue` for better brand consistency.
-- **Icons**: Changed the settings navigation icon from a hamburger menu to a gear icon (`Icons.settings_rounded`) in `AppAppBar`.
-- **Progress Refactoring**: Created `TranslationProgressBar` in the `animations/` folder and updated `AppAppBar` to use it, replacing the old banner.
+2. **Proportional Spacing Between Original and Translation (Fullscreen):**
+   - Added `originalToTranslationSpacing` property to `ModeSubtitleSettings` and preference persistence in [app_config.dart](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/config/app_config.dart).
+   - Added a slider in [subtitle_settings_side_panel.dart](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/ui/widgets/player/subtitle_settings_side_panel.dart) to adjust it, allowing it to go down to `0.0` ("в притик").
 
-### 2. Main Screen & Guide
-- **Repositioning**: The "How to Use" guide was moved from the bottom of the `MainScreen` to a primary position directly below the "Add Video" button.
-- **English Localization**: Updated the manual steps to English, describing the video upload process:
-    1. Tap the "Add Video" button.
-    2. Add your video file.
-    3. Select source (Local or Jimaku).
-    4. Choose metadata provider (Shikimori, AniList, etc.).
-    5. Enter the video title.
-    6. Select the language to finish.
-
-### 3. Library Navigation
-- **Dedicated Screen**: Created `LibraryScreen` to display the full grid of videos.
-- **Navigation**: Updated the "See All" button in the Library section of `MainScreen` to navigate to `/library` instead of opening a bottom sheet.
-
-## Bug Fixes
-- **LibraryScreen**: Fixed a compilation error caused by a missing import for `allVideosProvider`. Added `import 'package:eiga/providers/ui/main_hub_providers.dart';` to the file.
-
-## Verification
-
-- **AppBar**: Verified the new logo color and gear icon.
-- **Guide**: Confirmed the "How to Use" section is visible under the "Add Video" button with the new English text.
-- **Navigation**: Verified that clicking "See All" correctly opens the new full-screen library view.
+3. **Proportional Spacing Between Original and Additional (Fullscreen):**
+   - Added `originalToAdditionalSpacing` property with corresponding persistence, state management, and side panel slider controls.
+   - Applied proportional gap scaling in [subtitle_text_content.dart](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/ui/widgets/subtitles/subtitle_text_content.dart).

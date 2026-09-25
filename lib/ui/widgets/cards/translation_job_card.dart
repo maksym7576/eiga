@@ -31,6 +31,9 @@ class TranslationJobCard extends HookConsumerWidget {
   final int index;
   final int total;
   final bool isCompact;
+  final bool hasHistory;
+  final bool isExpanded;
+  final VoidCallback? onToggleExpand;
 
   const TranslationJobCard({
     super.key,
@@ -38,6 +41,9 @@ class TranslationJobCard extends HookConsumerWidget {
     required this.index,
     required this.total,
     this.isCompact = false,
+    this.hasHistory = false,
+    this.isExpanded = false,
+    this.onToggleExpand,
   });
 
   String _formatPhraseOrders(List<int>? orders) {
@@ -92,7 +98,16 @@ class TranslationJobCard extends HookConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          _Header(job: job, isActive: isActive, isError: isError, ref: ref, formattedOrders: _formatPhraseOrders(job.phraseOrders)),
+          _Header(
+            job: job, 
+            isActive: isActive, 
+            isError: isError, 
+            ref: ref, 
+            formattedOrders: _formatPhraseOrders(job.phraseOrders),
+            hasHistory: hasHistory,
+            isExpanded: isExpanded,
+            onToggleExpand: onToggleExpand,
+          ),
           if (job.pipelineId == 'ai_transcription_v1' && job.phase != null) ...[
             const SizedBox(height: 12),
             Text(
@@ -134,8 +149,20 @@ class _Header extends StatelessWidget {
   final bool isError;
   final WidgetRef ref;
   final String formattedOrders;
+  final bool hasHistory;
+  final bool isExpanded;
+  final VoidCallback? onToggleExpand;
 
-  const _Header({required this.job, required this.isActive, required this.isError, required this.ref, required this.formattedOrders});
+  const _Header({
+    required this.job,
+    required this.isActive,
+    required this.isError,
+    required this.ref,
+    required this.formattedOrders,
+    this.hasHistory = false,
+    this.isExpanded = false,
+    this.onToggleExpand,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -190,10 +217,34 @@ class _Header extends StatelessWidget {
                 ],
               ),
             ),
-            if (isActive)
-              _StopButton(onTap: () => ref.read(translationBackgroundManagerProvider).cancelTask(job.videoId))
-            else
-              _StatusBadge(isError: isError),
+            Row(
+              children: [
+                if (isActive)
+                  _StopButton(onTap: () => ref.read(translationBackgroundManagerProvider).cancelTask(job.videoId))
+                else
+                  _StatusBadge(isError: isError),
+                if (hasHistory) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: onToggleExpand,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: isExpanded ? _C.accentBg : Colors.transparent,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: isExpanded ? _C.accentBorder : _C.greyLine.withValues(alpha: 0.5)),
+                      ),
+                      child: Icon(
+                        isExpanded ? Icons.expand_less : Icons.expand_more,
+                        size: 18,
+                        color: isExpanded ? _C.accent : _C.grey,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ],
         ),
         const SizedBox(height: 6),

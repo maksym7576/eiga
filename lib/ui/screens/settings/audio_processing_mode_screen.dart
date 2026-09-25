@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../styles/additional_window_theme.dart';
 import '../../styles/app_colors.dart';
 
-class ProcessingModeScreen extends StatelessWidget {
-  const ProcessingModeScreen({super.key});
+class AudioProcessingModeScreen extends StatelessWidget {
+  const AudioProcessingModeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +12,7 @@ class ProcessingModeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.backgroundColor,
       appBar: AppBar(
-        title: const Text('Processing Mode', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        title: const Text('Audio Processing Mode', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         backgroundColor: theme.backgroundColor.withValues(alpha: 0.9),
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -36,15 +36,7 @@ class ProcessingModeScreen extends StatelessWidget {
               children: [
                 _buildModeHeader(context),
                 const SizedBox(height: 32),
-                _buildStageItem(context, 1, 'Research', 'AI analyzes the context (anime title, season, episode) to provide accurate translations.'),
-                _buildConnector(context),
-                _buildStageItem(context, 2, 'Translation', 'Clean literary translation based on context and running glossary.'),
-                _buildConnector(context),
-                _buildStageItem(context, 3, 'Tokenization', 'Splitting text into individual words using Local logic or AI.'),
-                _buildConnector(context),
-                _buildStageItem(context, 4, 'Morphology', 'Linguistic analysis, base forms, and semantic alignment.'),
-                _buildConnector(context),
-                _buildStageItem(context, 5, 'Grammar Roles & Diagram', 'Deep syntactic breakdown, part-of-speech tagging, and structural relationship mapping.'),
+                _buildStageItem(context, 1, 'Audio Submission & Voice Detection', 'The audio track is captured, analyzed via VAD (Voice Activity Detection), segmented, and sent directly to specialized AI transcription models to generate highly precise subtitle timestamps.'),
               ],
             ),
           ),
@@ -59,14 +51,14 @@ class ProcessingModeScreen extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColors.brandBlue, Color(0xFF5A82FF)],
+          colors: [Color(0xFFE65100), Color(0xFFFF9800)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppColors.brandBlue.withValues(alpha: 0.25),
+            color: const Color(0xFFE65100).withValues(alpha: 0.25),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -74,19 +66,19 @@ class ProcessingModeScreen extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 32),
+          Icon(Icons.mic_none_rounded, color: Colors.white, size: 32),
           SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '5-Stage Advanced',
+                  '1-Stage Audio Pipeline',
                   style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5),
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Maximum quality and depth of analysis.',
+                  'Direct voice stream to text processing.',
                   style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
@@ -106,14 +98,14 @@ class ProcessingModeScreen extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: theme.primaryAccent.withValues(alpha: 0.1),
+            color: Colors.orange.withValues(alpha: 0.1),
             shape: BoxShape.circle,
-            border: Border.all(color: theme.primaryAccent.withValues(alpha: 0.2), width: 1),
+            border: Border.all(color: Colors.orange.withValues(alpha: 0.2), width: 1),
           ),
-          child: Center(
+          child: const Center(
             child: Text(
-              '$index',
-              style: TextStyle(color: theme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 13),
+              '1',
+              style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13),
             ),
           ),
         ),
@@ -129,22 +121,6 @@ class ProcessingModeScreen extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildConnector(BuildContext context) {
-    final theme = AdditionalWindowTheme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(left: 15),
-      height: 24,
-      width: 2,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [theme.primaryAccent.withValues(alpha: 0.4), theme.primaryAccent.withValues(alpha: 0.1)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
     );
   }
 }

@@ -27,23 +27,16 @@ class _LanguageSelectionSectionState extends ConsumerState<LanguageSelectionSect
       
       // Автовизначення мови (якщо ще не встановлена), шукаємо в назві файлу або субтитрів
       if (languageState.original == null) {
-        final sampleText = '${uploadState.fileName ?? ''} ${uploadState.subtitleFileName ?? ''}';
+        final sampleText = '${uploadState.fileName ?? ''} ${uploadState.subtitleFileName ?? ''}'.toLowerCase();
+        final words = sampleText.split(RegExp(r'[^a-zA-Z]'));
         for (var lang in LanguageHub.all) {
-          if (sampleText.toLowerCase().contains(lang.name.toLowerCase()) || sampleText.toLowerCase().contains(lang.code.toLowerCase())) {
+          final lName = lang.name.toLowerCase();
+          final lCode = lang.code.toLowerCase();
+          if (words.contains(lName) || words.contains(lCode)) {
             ref.read(languageProvider.notifier).setOriginal(lang.name);
             break;
           }
         }
-      }
-
-      // Якщо мову не вдалося задетектувати автоматично, відкриваємо нижній діалог вибору (BottomSheet)
-      if (ref.read(languageProvider).original == null) {
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (context) => const LanguagePreviewWidget(),
-        );
       }
     });
   }
