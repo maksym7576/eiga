@@ -57,161 +57,169 @@ const VideoSchema = CollectionSchema(
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
-    r'description': PropertySchema(
+    r'creationSource': PropertySchema(
       id: 8,
+      name: r'creationSource',
+      type: IsarType.string,
+    ),
+    r'description': PropertySchema(
+      id: 9,
       name: r'description',
       type: IsarType.string,
     ),
-    r'episode': PropertySchema(id: 9, name: r'episode', type: IsarType.string),
+    r'episode': PropertySchema(id: 10, name: r'episode', type: IsarType.string),
     r'fileName': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'fileName',
       type: IsarType.string,
     ),
     r'genres': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'genres',
       type: IsarType.stringList,
     ),
-    r'imdbId': PropertySchema(id: 12, name: r'imdbId', type: IsarType.string),
-    r'isAdult': PropertySchema(id: 13, name: r'isAdult', type: IsarType.bool),
-    r'isAnime': PropertySchema(id: 14, name: r'isAnime', type: IsarType.bool),
-    r'isCached': PropertySchema(id: 15, name: r'isCached', type: IsarType.bool),
-    r'isMovie': PropertySchema(id: 16, name: r'isMovie', type: IsarType.bool),
+    r'imdbId': PropertySchema(id: 13, name: r'imdbId', type: IsarType.string),
+    r'isAdult': PropertySchema(id: 14, name: r'isAdult', type: IsarType.bool),
+    r'isAnime': PropertySchema(id: 15, name: r'isAnime', type: IsarType.bool),
+    r'isCached': PropertySchema(id: 16, name: r'isCached', type: IsarType.bool),
+    r'isMovie': PropertySchema(id: 17, name: r'isMovie', type: IsarType.bool),
     r'isResearchDone': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'isResearchDone',
       type: IsarType.bool,
     ),
     r'isSubtitleReady': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'isSubtitleReady',
       type: IsarType.bool,
     ),
-    r'isSynced': PropertySchema(id: 19, name: r'isSynced', type: IsarType.bool),
+    r'isSynced': PropertySchema(id: 20, name: r'isSynced', type: IsarType.bool),
     r'isUnverified': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'isUnverified',
       type: IsarType.bool,
     ),
     r'lastPositionMs': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'lastPositionMs',
       type: IsarType.long,
     ),
     r'lastSyncedAt': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'lastSyncedAt',
       type: IsarType.dateTime,
     ),
-    r'malId': PropertySchema(id: 23, name: r'malId', type: IsarType.long),
+    r'malId': PropertySchema(id: 24, name: r'malId', type: IsarType.long),
     r'metadataProvider': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'metadataProvider',
       type: IsarType.string,
     ),
     r'nameJumaku': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'nameJumaku',
       type: IsarType.string,
     ),
     r'originalLanguage': PropertySchema(
-      id: 26,
+      id: 27,
       name: r'originalLanguage',
       type: IsarType.string,
     ),
     r'originalName': PropertySchema(
-      id: 27,
+      id: 28,
       name: r'originalName',
       type: IsarType.string,
     ),
     r'pathSubtitle': PropertySchema(
-      id: 28,
+      id: 29,
       name: r'pathSubtitle',
       type: IsarType.string,
     ),
     r'pipelineIndetificator': PropertySchema(
-      id: 29,
+      id: 30,
       name: r'pipelineIndetificator',
       type: IsarType.string,
     ),
     r'processingProgress': PropertySchema(
-      id: 30,
+      id: 31,
       name: r'processingProgress',
       type: IsarType.double,
     ),
     r'researchInformation': PropertySchema(
-      id: 31,
+      id: 32,
       name: r'researchInformation',
       type: IsarType.string,
     ),
-    r'score': PropertySchema(id: 32, name: r'score', type: IsarType.double),
-    r'season': PropertySchema(id: 33, name: r'season', type: IsarType.string),
+    r'score': PropertySchema(id: 33, name: r'score', type: IsarType.double),
+    r'season': PropertySchema(id: 34, name: r'season', type: IsarType.string),
     r'selectedAudioTrackIndex': PropertySchema(
-      id: 34,
+      id: 35,
       name: r'selectedAudioTrackIndex',
       type: IsarType.long,
     ),
     r'seriesName': PropertySchema(
-      id: 35,
+      id: 36,
       name: r'seriesName',
       type: IsarType.string,
     ),
     r'shikimoriId': PropertySchema(
-      id: 36,
+      id: 37,
       name: r'shikimoriId',
       type: IsarType.long,
     ),
-    r'status': PropertySchema(id: 37, name: r'status', type: IsarType.string),
+    r'source': PropertySchema(id: 38, name: r'source', type: IsarType.string),
+    r'status': PropertySchema(id: 39, name: r'status', type: IsarType.string),
     r'subtitleFileName': PropertySchema(
-      id: 38,
+      id: 40,
       name: r'subtitleFileName',
       type: IsarType.string,
     ),
     r'subtitleMethodUsed': PropertySchema(
-      id: 39,
+      id: 41,
       name: r'subtitleMethodUsed',
       type: IsarType.string,
     ),
     r'subtitleSource': PropertySchema(
-      id: 40,
+      id: 42,
       name: r'subtitleSource',
       type: IsarType.string,
     ),
     r'textFormat': PropertySchema(
-      id: 41,
+      id: 43,
       name: r'textFormat',
       type: IsarType.string,
     ),
     r'thetvdbId': PropertySchema(
-      id: 42,
+      id: 44,
       name: r'thetvdbId',
       type: IsarType.string,
     ),
-    r'tmdbId': PropertySchema(id: 43, name: r'tmdbId', type: IsarType.string),
+    r'title': PropertySchema(id: 45, name: r'title', type: IsarType.string),
+    r'tmdbId': PropertySchema(id: 46, name: r'tmdbId', type: IsarType.string),
     r'totalEpisodes': PropertySchema(
-      id: 44,
+      id: 47,
       name: r'totalEpisodes',
       type: IsarType.long,
     ),
     r'transcriptionResumeSeconds': PropertySchema(
-      id: 45,
+      id: 48,
       name: r'transcriptionResumeSeconds',
       type: IsarType.long,
     ),
     r'transcriptionStatus': PropertySchema(
-      id: 46,
+      id: 49,
       name: r'transcriptionStatus',
       type: IsarType.string,
     ),
     r'translatedLanguage': PropertySchema(
-      id: 47,
+      id: 50,
       name: r'translatedLanguage',
       type: IsarType.string,
     ),
-    r'tvmazeId': PropertySchema(id: 48, name: r'tvmazeId', type: IsarType.long),
+    r'tvmazeId': PropertySchema(id: 51, name: r'tvmazeId', type: IsarType.long),
+    r'url': PropertySchema(id: 52, name: r'url', type: IsarType.string),
     r'videoPath': PropertySchema(
-      id: 49,
+      id: 53,
       name: r'videoPath',
       type: IsarType.string,
     ),
@@ -222,7 +230,21 @@ const VideoSchema = CollectionSchema(
   deserialize: _videoDeserialize,
   deserializeProp: _videoDeserializeProp,
   idName: r'id',
-  indexes: {},
+  indexes: {
+    r'url': IndexSchema(
+      id: -5756857009679432345,
+      name: r'url',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'url',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+      ],
+    ),
+  },
   links: {},
   embeddedSchemas: {},
 
@@ -252,6 +274,12 @@ int _videoEstimateSize(
   }
   {
     final value = object.coverImagePath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.creationSource;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -347,6 +375,12 @@ int _videoEstimateSize(
     }
   }
   {
+    final value = object.source;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.status;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -383,6 +417,12 @@ int _videoEstimateSize(
     }
   }
   {
+    final value = object.title;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.tmdbId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -396,6 +436,12 @@ int _videoEstimateSize(
   }
   {
     final value = object.translatedLanguage;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.url;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -423,48 +469,52 @@ void _videoSerialize(
   writer.writeLong(offsets[5], object.colorThemeValue);
   writer.writeString(offsets[6], object.coverImagePath);
   writer.writeDateTime(offsets[7], object.createdAt);
-  writer.writeString(offsets[8], object.description);
-  writer.writeString(offsets[9], object.episode);
-  writer.writeString(offsets[10], object.fileName);
-  writer.writeStringList(offsets[11], object.genres);
-  writer.writeString(offsets[12], object.imdbId);
-  writer.writeBool(offsets[13], object.isAdult);
-  writer.writeBool(offsets[14], object.isAnime);
-  writer.writeBool(offsets[15], object.isCached);
-  writer.writeBool(offsets[16], object.isMovie);
-  writer.writeBool(offsets[17], object.isResearchDone);
-  writer.writeBool(offsets[18], object.isSubtitleReady);
-  writer.writeBool(offsets[19], object.isSynced);
-  writer.writeBool(offsets[20], object.isUnverified);
-  writer.writeLong(offsets[21], object.lastPositionMs);
-  writer.writeDateTime(offsets[22], object.lastSyncedAt);
-  writer.writeLong(offsets[23], object.malId);
-  writer.writeString(offsets[24], object.metadataProvider);
-  writer.writeString(offsets[25], object.nameJumaku);
-  writer.writeString(offsets[26], object.originalLanguage);
-  writer.writeString(offsets[27], object.originalName);
-  writer.writeString(offsets[28], object.pathSubtitle);
-  writer.writeString(offsets[29], object.pipelineIndetificator);
-  writer.writeDouble(offsets[30], object.processingProgress);
-  writer.writeString(offsets[31], object.researchInformation);
-  writer.writeDouble(offsets[32], object.score);
-  writer.writeString(offsets[33], object.season);
-  writer.writeLong(offsets[34], object.selectedAudioTrackIndex);
-  writer.writeString(offsets[35], object.seriesName);
-  writer.writeLong(offsets[36], object.shikimoriId);
-  writer.writeString(offsets[37], object.status);
-  writer.writeString(offsets[38], object.subtitleFileName);
-  writer.writeString(offsets[39], object.subtitleMethodUsed);
-  writer.writeString(offsets[40], object.subtitleSource);
-  writer.writeString(offsets[41], object.textFormat);
-  writer.writeString(offsets[42], object.thetvdbId);
-  writer.writeString(offsets[43], object.tmdbId);
-  writer.writeLong(offsets[44], object.totalEpisodes);
-  writer.writeLong(offsets[45], object.transcriptionResumeSeconds);
-  writer.writeString(offsets[46], object.transcriptionStatus);
-  writer.writeString(offsets[47], object.translatedLanguage);
-  writer.writeLong(offsets[48], object.tvmazeId);
-  writer.writeString(offsets[49], object.videoPath);
+  writer.writeString(offsets[8], object.creationSource);
+  writer.writeString(offsets[9], object.description);
+  writer.writeString(offsets[10], object.episode);
+  writer.writeString(offsets[11], object.fileName);
+  writer.writeStringList(offsets[12], object.genres);
+  writer.writeString(offsets[13], object.imdbId);
+  writer.writeBool(offsets[14], object.isAdult);
+  writer.writeBool(offsets[15], object.isAnime);
+  writer.writeBool(offsets[16], object.isCached);
+  writer.writeBool(offsets[17], object.isMovie);
+  writer.writeBool(offsets[18], object.isResearchDone);
+  writer.writeBool(offsets[19], object.isSubtitleReady);
+  writer.writeBool(offsets[20], object.isSynced);
+  writer.writeBool(offsets[21], object.isUnverified);
+  writer.writeLong(offsets[22], object.lastPositionMs);
+  writer.writeDateTime(offsets[23], object.lastSyncedAt);
+  writer.writeLong(offsets[24], object.malId);
+  writer.writeString(offsets[25], object.metadataProvider);
+  writer.writeString(offsets[26], object.nameJumaku);
+  writer.writeString(offsets[27], object.originalLanguage);
+  writer.writeString(offsets[28], object.originalName);
+  writer.writeString(offsets[29], object.pathSubtitle);
+  writer.writeString(offsets[30], object.pipelineIndetificator);
+  writer.writeDouble(offsets[31], object.processingProgress);
+  writer.writeString(offsets[32], object.researchInformation);
+  writer.writeDouble(offsets[33], object.score);
+  writer.writeString(offsets[34], object.season);
+  writer.writeLong(offsets[35], object.selectedAudioTrackIndex);
+  writer.writeString(offsets[36], object.seriesName);
+  writer.writeLong(offsets[37], object.shikimoriId);
+  writer.writeString(offsets[38], object.source);
+  writer.writeString(offsets[39], object.status);
+  writer.writeString(offsets[40], object.subtitleFileName);
+  writer.writeString(offsets[41], object.subtitleMethodUsed);
+  writer.writeString(offsets[42], object.subtitleSource);
+  writer.writeString(offsets[43], object.textFormat);
+  writer.writeString(offsets[44], object.thetvdbId);
+  writer.writeString(offsets[45], object.title);
+  writer.writeString(offsets[46], object.tmdbId);
+  writer.writeLong(offsets[47], object.totalEpisodes);
+  writer.writeLong(offsets[48], object.transcriptionResumeSeconds);
+  writer.writeString(offsets[49], object.transcriptionStatus);
+  writer.writeString(offsets[50], object.translatedLanguage);
+  writer.writeLong(offsets[51], object.tvmazeId);
+  writer.writeString(offsets[52], object.url);
+  writer.writeString(offsets[53], object.videoPath);
 }
 
 Video _videoDeserialize(
@@ -482,49 +532,53 @@ Video _videoDeserialize(
   object.colorThemeValue = reader.readLongOrNull(offsets[5]);
   object.coverImagePath = reader.readStringOrNull(offsets[6]);
   object.createdAt = reader.readDateTimeOrNull(offsets[7]);
-  object.description = reader.readStringOrNull(offsets[8]);
-  object.episode = reader.readStringOrNull(offsets[9]);
-  object.fileName = reader.readStringOrNull(offsets[10]);
-  object.genres = reader.readStringList(offsets[11]);
+  object.creationSource = reader.readStringOrNull(offsets[8]);
+  object.description = reader.readStringOrNull(offsets[9]);
+  object.episode = reader.readStringOrNull(offsets[10]);
+  object.fileName = reader.readStringOrNull(offsets[11]);
+  object.genres = reader.readStringList(offsets[12]);
   object.id = id;
-  object.imdbId = reader.readStringOrNull(offsets[12]);
-  object.isAdult = reader.readBoolOrNull(offsets[13]);
-  object.isAnime = reader.readBoolOrNull(offsets[14]);
-  object.isCached = reader.readBool(offsets[15]);
-  object.isMovie = reader.readBoolOrNull(offsets[16]);
-  object.isResearchDone = reader.readBoolOrNull(offsets[17]);
-  object.isSubtitleReady = reader.readBoolOrNull(offsets[18]);
-  object.isSynced = reader.readBool(offsets[19]);
-  object.isUnverified = reader.readBoolOrNull(offsets[20]);
-  object.lastPositionMs = reader.readLongOrNull(offsets[21]);
-  object.lastSyncedAt = reader.readDateTimeOrNull(offsets[22]);
-  object.malId = reader.readLongOrNull(offsets[23]);
-  object.metadataProvider = reader.readStringOrNull(offsets[24]);
-  object.nameJumaku = reader.readStringOrNull(offsets[25]);
-  object.originalLanguage = reader.readStringOrNull(offsets[26]);
-  object.originalName = reader.readStringOrNull(offsets[27]);
-  object.pathSubtitle = reader.readStringOrNull(offsets[28]);
-  object.pipelineIndetificator = reader.readStringOrNull(offsets[29]);
-  object.processingProgress = reader.readDoubleOrNull(offsets[30]);
-  object.researchInformation = reader.readStringOrNull(offsets[31]);
-  object.score = reader.readDoubleOrNull(offsets[32]);
-  object.season = reader.readStringOrNull(offsets[33]);
-  object.selectedAudioTrackIndex = reader.readLongOrNull(offsets[34]);
-  object.seriesName = reader.readStringOrNull(offsets[35]);
-  object.shikimoriId = reader.readLongOrNull(offsets[36]);
-  object.status = reader.readStringOrNull(offsets[37]);
-  object.subtitleFileName = reader.readStringOrNull(offsets[38]);
-  object.subtitleMethodUsed = reader.readStringOrNull(offsets[39]);
-  object.subtitleSource = reader.readStringOrNull(offsets[40]);
-  object.textFormat = reader.readStringOrNull(offsets[41]);
-  object.thetvdbId = reader.readStringOrNull(offsets[42]);
-  object.tmdbId = reader.readStringOrNull(offsets[43]);
-  object.totalEpisodes = reader.readLongOrNull(offsets[44]);
-  object.transcriptionResumeSeconds = reader.readLongOrNull(offsets[45]);
-  object.transcriptionStatus = reader.readStringOrNull(offsets[46]);
-  object.translatedLanguage = reader.readStringOrNull(offsets[47]);
-  object.tvmazeId = reader.readLongOrNull(offsets[48]);
-  object.videoPath = reader.readStringOrNull(offsets[49]);
+  object.imdbId = reader.readStringOrNull(offsets[13]);
+  object.isAdult = reader.readBoolOrNull(offsets[14]);
+  object.isAnime = reader.readBoolOrNull(offsets[15]);
+  object.isCached = reader.readBool(offsets[16]);
+  object.isMovie = reader.readBoolOrNull(offsets[17]);
+  object.isResearchDone = reader.readBoolOrNull(offsets[18]);
+  object.isSubtitleReady = reader.readBoolOrNull(offsets[19]);
+  object.isSynced = reader.readBool(offsets[20]);
+  object.isUnverified = reader.readBoolOrNull(offsets[21]);
+  object.lastPositionMs = reader.readLongOrNull(offsets[22]);
+  object.lastSyncedAt = reader.readDateTimeOrNull(offsets[23]);
+  object.malId = reader.readLongOrNull(offsets[24]);
+  object.metadataProvider = reader.readStringOrNull(offsets[25]);
+  object.nameJumaku = reader.readStringOrNull(offsets[26]);
+  object.originalLanguage = reader.readStringOrNull(offsets[27]);
+  object.originalName = reader.readStringOrNull(offsets[28]);
+  object.pathSubtitle = reader.readStringOrNull(offsets[29]);
+  object.pipelineIndetificator = reader.readStringOrNull(offsets[30]);
+  object.processingProgress = reader.readDoubleOrNull(offsets[31]);
+  object.researchInformation = reader.readStringOrNull(offsets[32]);
+  object.score = reader.readDoubleOrNull(offsets[33]);
+  object.season = reader.readStringOrNull(offsets[34]);
+  object.selectedAudioTrackIndex = reader.readLongOrNull(offsets[35]);
+  object.seriesName = reader.readStringOrNull(offsets[36]);
+  object.shikimoriId = reader.readLongOrNull(offsets[37]);
+  object.source = reader.readStringOrNull(offsets[38]);
+  object.status = reader.readStringOrNull(offsets[39]);
+  object.subtitleFileName = reader.readStringOrNull(offsets[40]);
+  object.subtitleMethodUsed = reader.readStringOrNull(offsets[41]);
+  object.subtitleSource = reader.readStringOrNull(offsets[42]);
+  object.textFormat = reader.readStringOrNull(offsets[43]);
+  object.thetvdbId = reader.readStringOrNull(offsets[44]);
+  object.title = reader.readStringOrNull(offsets[45]);
+  object.tmdbId = reader.readStringOrNull(offsets[46]);
+  object.totalEpisodes = reader.readLongOrNull(offsets[47]);
+  object.transcriptionResumeSeconds = reader.readLongOrNull(offsets[48]);
+  object.transcriptionStatus = reader.readStringOrNull(offsets[49]);
+  object.translatedLanguage = reader.readStringOrNull(offsets[50]);
+  object.tvmazeId = reader.readLongOrNull(offsets[51]);
+  object.url = reader.readStringOrNull(offsets[52]);
+  object.videoPath = reader.readStringOrNull(offsets[53]);
   return object;
 }
 
@@ -558,33 +612,33 @@ P _videoDeserializeProp<P>(
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readStringList(offset)) as P;
-    case 12:
       return (reader.readStringOrNull(offset)) as P;
+    case 12:
+      return (reader.readStringList(offset)) as P;
     case 13:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 14:
       return (reader.readBoolOrNull(offset)) as P;
     case 15:
-      return (reader.readBool(offset)) as P;
-    case 16:
       return (reader.readBoolOrNull(offset)) as P;
+    case 16:
+      return (reader.readBool(offset)) as P;
     case 17:
       return (reader.readBoolOrNull(offset)) as P;
     case 18:
       return (reader.readBoolOrNull(offset)) as P;
     case 19:
-      return (reader.readBool(offset)) as P;
-    case 20:
       return (reader.readBoolOrNull(offset)) as P;
+    case 20:
+      return (reader.readBool(offset)) as P;
     case 21:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 22:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 23:
       return (reader.readLongOrNull(offset)) as P;
+    case 23:
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 24:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 25:
       return (reader.readStringOrNull(offset)) as P;
     case 26:
@@ -596,21 +650,21 @@ P _videoDeserializeProp<P>(
     case 29:
       return (reader.readStringOrNull(offset)) as P;
     case 30:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 31:
-      return (reader.readStringOrNull(offset)) as P;
-    case 32:
       return (reader.readDoubleOrNull(offset)) as P;
+    case 32:
+      return (reader.readStringOrNull(offset)) as P;
     case 33:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 34:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 35:
-      return (reader.readStringOrNull(offset)) as P;
-    case 36:
       return (reader.readLongOrNull(offset)) as P;
-    case 37:
+    case 36:
       return (reader.readStringOrNull(offset)) as P;
+    case 37:
+      return (reader.readLongOrNull(offset)) as P;
     case 38:
       return (reader.readStringOrNull(offset)) as P;
     case 39:
@@ -624,16 +678,24 @@ P _videoDeserializeProp<P>(
     case 43:
       return (reader.readStringOrNull(offset)) as P;
     case 44:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 45:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 46:
       return (reader.readStringOrNull(offset)) as P;
     case 47:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 48:
       return (reader.readLongOrNull(offset)) as P;
     case 49:
+      return (reader.readStringOrNull(offset)) as P;
+    case 50:
+      return (reader.readStringOrNull(offset)) as P;
+    case 51:
+      return (reader.readLongOrNull(offset)) as P;
+    case 52:
+      return (reader.readStringOrNull(offset)) as P;
+    case 53:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -650,6 +712,60 @@ List<IsarLinkBase<dynamic>> _videoGetLinks(Video object) {
 
 void _videoAttach(IsarCollection<dynamic> col, Id id, Video object) {
   object.id = id;
+}
+
+extension VideoByIndex on IsarCollection<Video> {
+  Future<Video?> getByUrl(String? url) {
+    return getByIndex(r'url', [url]);
+  }
+
+  Video? getByUrlSync(String? url) {
+    return getByIndexSync(r'url', [url]);
+  }
+
+  Future<bool> deleteByUrl(String? url) {
+    return deleteByIndex(r'url', [url]);
+  }
+
+  bool deleteByUrlSync(String? url) {
+    return deleteByIndexSync(r'url', [url]);
+  }
+
+  Future<List<Video?>> getAllByUrl(List<String?> urlValues) {
+    final values = urlValues.map((e) => [e]).toList();
+    return getAllByIndex(r'url', values);
+  }
+
+  List<Video?> getAllByUrlSync(List<String?> urlValues) {
+    final values = urlValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'url', values);
+  }
+
+  Future<int> deleteAllByUrl(List<String?> urlValues) {
+    final values = urlValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'url', values);
+  }
+
+  int deleteAllByUrlSync(List<String?> urlValues) {
+    final values = urlValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'url', values);
+  }
+
+  Future<Id> putByUrl(Video object) {
+    return putByIndex(r'url', object);
+  }
+
+  Id putByUrlSync(Video object, {bool saveLinks = true}) {
+    return putByIndexSync(r'url', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByUrl(List<Video> objects) {
+    return putAllByIndex(r'url', objects);
+  }
+
+  List<Id> putAllByUrlSync(List<Video> objects, {bool saveLinks = true}) {
+    return putAllByIndexSync(r'url', objects, saveLinks: saveLinks);
+  }
 }
 
 extension VideoQueryWhereSort on QueryBuilder<Video, Video, QWhere> {
@@ -726,6 +842,77 @@ extension VideoQueryWhere on QueryBuilder<Video, Video, QWhereClause> {
           includeUpper: includeUpper,
         ),
       );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterWhereClause> urlIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'url', value: [null]),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterWhereClause> urlIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'url',
+          lower: [null],
+          includeLower: false,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterWhereClause> urlEqualTo(String? url) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'url', value: [url]),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterWhereClause> urlNotEqualTo(String? url) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'url',
+                lower: [],
+                upper: [url],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'url',
+                lower: [url],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'url',
+                lower: [url],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'url',
+                lower: [],
+                upper: [url],
+                includeUpper: false,
+              ),
+            );
+      }
     });
   }
 }
@@ -1540,6 +1727,168 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
           upper: upper,
           includeUpper: includeUpper,
         ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> creationSourceIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'creationSource'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> creationSourceIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'creationSource'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> creationSourceEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'creationSource',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> creationSourceGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'creationSource',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> creationSourceLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'creationSource',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> creationSourceBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'creationSource',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> creationSourceStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'creationSource',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> creationSourceEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'creationSource',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> creationSourceContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'creationSource',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> creationSourceMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'creationSource',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> creationSourceIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'creationSource', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> creationSourceIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'creationSource', value: ''),
       );
     });
   }
@@ -4666,6 +5015,168 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterFilterCondition> sourceIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'source'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> sourceIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'source'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> sourceEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'source',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> sourceGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'source',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> sourceLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'source',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> sourceBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'source',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> sourceStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'source',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> sourceEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'source',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> sourceContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'source',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> sourceMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'source',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> sourceIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'source', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> sourceIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'source', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterFilterCondition> statusIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -5642,6 +6153,168 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterFilterCondition> titleIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'title'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> titleIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'title'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> titleEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'title',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> titleGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'title',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> titleLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'title',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> titleBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'title',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> titleStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'title',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> titleEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'title',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> titleContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'title',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> titleMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'title',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> titleIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'title', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> titleIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'title', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterFilterCondition> tmdbIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -6364,6 +7037,168 @@ extension VideoQueryFilter on QueryBuilder<Video, Video, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterFilterCondition> urlIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'url'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> urlIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'url'),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> urlEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'url',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> urlGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'url',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> urlLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'url',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> urlBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'url',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> urlStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'url',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> urlEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'url',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> urlContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'url',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> urlMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'url',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> urlIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'url', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterFilterCondition> urlIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'url', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterFilterCondition> videoPathIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -6625,6 +7460,18 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
   QueryBuilder<Video, Video, QAfterSortBy> sortByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByCreationSource() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'creationSource', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByCreationSourceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'creationSource', Sort.desc);
     });
   }
 
@@ -6964,6 +7811,18 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> sortBySource() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'source', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortBySourceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'source', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> sortByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'status', Sort.asc);
@@ -7033,6 +7892,18 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
   QueryBuilder<Video, Video, QAfterSortBy> sortByThetvdbIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'thetvdbId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByTitle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByTitleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.desc);
     });
   }
 
@@ -7106,6 +7977,18 @@ extension VideoQuerySortBy on QueryBuilder<Video, Video, QSortBy> {
   QueryBuilder<Video, Video, QAfterSortBy> sortByTvmazeIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'tvmazeId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByUrl() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'url', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> sortByUrlDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'url', Sort.desc);
     });
   }
 
@@ -7216,6 +8099,18 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
   QueryBuilder<Video, Video, QAfterSortBy> thenByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByCreationSource() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'creationSource', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByCreationSourceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'creationSource', Sort.desc);
     });
   }
 
@@ -7567,6 +8462,18 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> thenBySource() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'source', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenBySourceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'source', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> thenByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'status', Sort.asc);
@@ -7636,6 +8543,18 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
   QueryBuilder<Video, Video, QAfterSortBy> thenByThetvdbIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'thetvdbId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByTitle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByTitleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.desc);
     });
   }
 
@@ -7712,6 +8631,18 @@ extension VideoQuerySortThenBy on QueryBuilder<Video, Video, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Video, Video, QAfterSortBy> thenByUrl() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'url', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Video, Video, QAfterSortBy> thenByUrlDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'url', Sort.desc);
+    });
+  }
+
   QueryBuilder<Video, Video, QAfterSortBy> thenByVideoPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'videoPath', Sort.asc);
@@ -7780,6 +8711,17 @@ extension VideoQueryWhereDistinct on QueryBuilder<Video, Video, QDistinct> {
   QueryBuilder<Video, Video, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
+    });
+  }
+
+  QueryBuilder<Video, Video, QDistinct> distinctByCreationSource({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'creationSource',
+        caseSensitive: caseSensitive,
+      );
     });
   }
 
@@ -7995,6 +8937,14 @@ extension VideoQueryWhereDistinct on QueryBuilder<Video, Video, QDistinct> {
     });
   }
 
+  QueryBuilder<Video, Video, QDistinct> distinctBySource({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'source', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Video, Video, QDistinct> distinctByStatus({
     bool caseSensitive = true,
   }) {
@@ -8052,6 +9002,14 @@ extension VideoQueryWhereDistinct on QueryBuilder<Video, Video, QDistinct> {
     });
   }
 
+  QueryBuilder<Video, Video, QDistinct> distinctByTitle({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'title', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Video, Video, QDistinct> distinctByTmdbId({
     bool caseSensitive = true,
   }) {
@@ -8097,6 +9055,14 @@ extension VideoQueryWhereDistinct on QueryBuilder<Video, Video, QDistinct> {
   QueryBuilder<Video, Video, QDistinct> distinctByTvmazeId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'tvmazeId');
+    });
+  }
+
+  QueryBuilder<Video, Video, QDistinct> distinctByUrl({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'url', caseSensitive: caseSensitive);
     });
   }
 
@@ -8161,6 +9127,12 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
   QueryBuilder<Video, DateTime?, QQueryOperations> createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
+    });
+  }
+
+  QueryBuilder<Video, String?, QQueryOperations> creationSourceProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'creationSource');
     });
   }
 
@@ -8340,6 +9312,12 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Video, String?, QQueryOperations> sourceProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'source');
+    });
+  }
+
   QueryBuilder<Video, String?, QQueryOperations> statusProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'status');
@@ -8373,6 +9351,12 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
   QueryBuilder<Video, String?, QQueryOperations> thetvdbIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'thetvdbId');
+    });
+  }
+
+  QueryBuilder<Video, String?, QQueryOperations> titleProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'title');
     });
   }
 
@@ -8410,6 +9394,12 @@ extension VideoQueryProperty on QueryBuilder<Video, Video, QQueryProperty> {
   QueryBuilder<Video, int?, QQueryOperations> tvmazeIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'tvmazeId');
+    });
+  }
+
+  QueryBuilder<Video, String?, QQueryOperations> urlProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'url');
     });
   }
 

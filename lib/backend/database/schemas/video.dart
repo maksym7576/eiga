@@ -7,6 +7,13 @@ part 'video.g.dart';
 class Video {
   Id id = Isar.autoIncrement;
 
+  @Index(unique: true, replace: true)
+  String? url;
+
+  String? source;
+  String? title;
+  String? creationSource; // 'extension', 'local_file'
+
   String? originalLanguage;
   String? translatedLanguage;
   String? textFormat;
@@ -89,6 +96,10 @@ class Video {
 
   Video copyWith({
     Id? id,
+    String? url,
+    String? source,
+    String? title,
+    String? creationSource,
     String? originalLanguage,
     String? translatedLanguage,
     String? textFormat,
@@ -138,6 +149,10 @@ class Video {
   }) {
     return Video()
       ..id = id ?? this.id
+      ..url = url ?? this.url
+      ..source = source ?? this.source
+      ..title = title ?? this.title
+      ..creationSource = creationSource ?? this.creationSource
       ..originalLanguage = originalLanguage ?? this.originalLanguage
       ..translatedLanguage = translatedLanguage ?? this.translatedLanguage
       ..textFormat = textFormat ?? this.textFormat

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
 import 'package:eiga/config/languages/language_hub.dart';
@@ -9,6 +10,11 @@ import '../database/phrase_service.dart';
 import '../database/video_service.dart';
 import 'ass_parser_service.dart';
 import 'srt_parser_service.dart';
+
+enum SubtitleDepackMode {
+  raw,
+  hideParentheses,
+}
 
 class SubtitleDepackerService {
   final VideoService videoService;
@@ -23,8 +29,16 @@ class SubtitleDepackerService {
     required String filePath,
     required String language,
     int videoId = 0,
+    SubtitleDepackMode mode = SubtitleDepackMode.raw,
+    bool hideParentheses = false,
   }) async {
-    final streams = await parseMultiStreamPreview(filePath: filePath, language: language, videoId: videoId);
+    final effectiveMode = hideParentheses ? SubtitleDepackMode.hideParentheses : mode;
+    final streams = await parseMultiStreamPreview(
+      filePath: filePath,
+      language: language,
+      videoId: videoId,
+      mode: effectiveMode,
+    );
     if (streams.isEmpty) return [];
     return streams.values.first;
   }
@@ -33,7 +47,10 @@ class SubtitleDepackerService {
     required String filePath,
     required String language,
     int videoId = 0,
+    SubtitleDepackMode mode = SubtitleDepackMode.raw,
+    bool hideParentheses = false,
   }) async {
+    final effectiveMode = hideParentheses ? SubtitleDepackMode.hideParentheses : mode;
     String fileContent = await _readFile(filePath);
     if (fileContent.isEmpty) return {};
 
@@ -60,33 +77,101 @@ class SubtitleDepackerService {
       rawStreams = {'Default SRT': phrases};
     }
 
-    // Застосовуємо алгоритм розумного мержингу та очищення до кожного потоку субтитрів
-    final Map<String, List<Phrase>> mergedStreams = {};
+    final Map<String, List<Phrase>> processedStreams = {};
     rawStreams.forEach((streamName, phrasesList) {
-      mergedStreams[streamName] = mergePhraseCues(phrasesList);
+      final merged = mergePhraseCues(phrasesList);
+      processedStreams[streamName] = applyDepackingOptions(merged, mode: effectiveMode, streamName: streamName);
     });
 
-    return mergedStreams;
+    return processedStreams;
   }
 
-  static Map<String, List<Phrase>> _parseAssMultiStreamInIsolate(_SubtitleParseInput input) {
-    return AssParser(removeAllSpaces: input.removeAllSpaces).parseMultiStream(input.content, input.videoId);
+  static List<Phrase> applyDepackingOptions(
+    List<Phrase> phrases, {
+    SubtitleDepackMode mode = SubtitleDepackMode.raw,
+    String streamName = 'Default',
+  }) {
+    if (mode == SubtitleDepackMode.raw) {
+      developer.log('SubtitleDepackerService: Mode is RAW. Keeping raw phrases for stream $streamName', name: 'SubtitleDepackerService');
+      return phrases;
+    }
+
+    developer.log('SubtitleDepackerService: Mode is HIDE_PARENTHESES. Cleaning phrases for stream $streamName', name: 'SubtitleDepackerService');
+    return phrases.map((p) {
+      final text = p.originalPhrase ?? '';
+      final isFullyBracketed = (text.startsWith('(') && text.endsWith(')')) ||
+          (text.startsWith('[') && text.endsWith(']')) ||
+          (text.startsWith('{') && text.endsWith('}')) ||
+          (text.startsWith('（') && text.endsWith('）')) ||
+          (text.startsWith('［') && text.endsWith('］')) ||
+          (text.startsWith('｛') && text.endsWith('｝'));
+
+      if (isFullyBracketed) {
+        developer.log('SubtitleDepackerService: Fully bracketed phrase kept: "$text"', name: 'SubtitleDepackerService');
+        return p;
+      }
+
+      final cleaned = removeBracketsRecursive(text);
+      developer.log('SubtitleDepackerService: Before: "$text" => After: "$cleaned"', name: 'SubtitleDepackerService');
+      
+      return Phrase(
+        videoId: p.videoId,
+        phraseOrder: p.phraseOrder,
+        originalPhrase: cleaned,
+        translatedPhrase: p.translatedPhrase,
+        startTime: p.startTime,
+        endTime: p.endTime,
+        isActive: p.isActive,
+        originalTokens: p.originalTokens,
+        translatedWords: p.translatedWords,
+        linkGroups: p.linkGroups,
+        idiomSpans: p.idiomSpans,
+        stageStatuses: p.stageStatuses,
+      );
+    }).toList();
   }
 
-  static List<Phrase> _parseSrtInIsolate(_SubtitleParseInput input) {
-    return SrtParser(removeAllSpaces: input.removeAllSpaces).parse(input.content, input.videoId);
+  static String removeBracketsRecursive(String input) {
+    String res = input;
+    final regex = RegExp(r'[\(\[\{（［｛][^\)\]\}）］｝]*[\)\]\}）］｝]');
+    while (regex.hasMatch(res)) {
+      res = res.replaceAll(regex, '');
+    }
+    res = res.replaceAll(RegExp(r'[\)\]\}）］｝]+'), '');
+    res = res.replaceAll(RegExp(r'[\(\[\{（［｛]+'), '');
+    return res.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
-  Future<void> depack(Video video, {List<Phrase>? preParsedPhrases}) async {
+  Future<void> depack(
+    Video video, {
+    List<Phrase>? preParsedPhrases,
+    SubtitleDepackMode mode = SubtitleDepackMode.raw,
+    bool hideParentheses = false,
+  }) async {
     if (video.videoPath == null) return;
+    final effectiveMode = hideParentheses ? SubtitleDepackMode.hideParentheses : mode;
 
     List<Phrase> phrases;
 
     if (preParsedPhrases != null && preParsedPhrases.isNotEmpty) {
       phrases = preParsedPhrases.map((p) {
-        p.videoId = video.id;
-        return p;
+        return Phrase(
+          videoId: video.id,
+          phraseOrder: p.phraseOrder,
+          originalPhrase: p.originalPhrase,
+          translatedPhrase: p.translatedPhrase,
+          startTime: p.startTime,
+          endTime: p.endTime,
+          isActive: p.isActive,
+          originalTokens: p.originalTokens,
+          translatedWords: p.translatedWords,
+          linkGroups: p.linkGroups,
+          idiomSpans: p.idiomSpans,
+          stageStatuses: p.stageStatuses,
+        );
       }).toList();
+      // Ensure applied options are respected
+      phrases = applyDepackingOptions(phrases, mode: effectiveMode);
     } else {
       if (video.pathSubtitle == null) return;
       final content = await _readFile(video.pathSubtitle!);
@@ -101,11 +186,23 @@ class SubtitleDepackerService {
         isAss: video.pathSubtitle!.toLowerCase().endsWith('.ass'),
       ));
       
-      // Застосовуємо мержинг при імпорті в базу даних
-      phrases = mergePhraseCues(parsedRaw);
+      final merged = mergePhraseCues(parsedRaw);
+      phrases = applyDepackingOptions(merged, mode: effectiveMode);
+    }
+
+    for (final p in phrases) {
+      p.videoId = video.id;
     }
 
     await phraseService.addPhrasesList(phrases);
+  }
+
+  static Map<String, List<Phrase>> _parseAssMultiStreamInIsolate(_SubtitleParseInput input) {
+    return AssParser(removeAllSpaces: input.removeAllSpaces).parseMultiStream(input.content, input.videoId);
+  }
+
+  static List<Phrase> _parseSrtInIsolate(_SubtitleParseInput input) {
+    return SrtParser(removeAllSpaces: input.removeAllSpaces).parse(input.content, input.videoId);
   }
 
   static List<Phrase> _parseSubtitlesInIsolate(_SubtitleParseInput input) {
@@ -130,12 +227,8 @@ class SubtitleDepackerService {
     }
   }
 
-  /// Допоміжні методи для розумного очищення та мержингу фраз
-  static final RegExp _bracketNoise = RegExp(r'[([\{（［｛].*?[)\]\}）］｝]', dotAll: true);
-
   static String _normalize(String raw) {
     return raw
-        .replaceAll(_bracketNoise, '')
         .replaceAll(RegExp(r'\\N', caseSensitive: false), ' ')
         .replaceAll(RegExp(r'[\r\n]+'), ' ')
         .replaceAll(RegExp(r'\s+'), ' ')
@@ -202,7 +295,6 @@ class SubtitleDepackerService {
     }
     flush();
 
-    // Сортуємо фінальний результат за часом, щоб уникнути багів з "стрибаючими" таймінгами
     result.sort((a, b) {
       if (a.startTime == null || b.startTime == null) return 0;
       return a.startTime!.compareTo(b.startTime!);

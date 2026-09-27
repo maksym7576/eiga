@@ -281,7 +281,7 @@ class _VideoPlayerBackgroundLayer extends ConsumerWidget {
       onDoubleTap: () {
         ref.read(playerProvider(scope).notifier).handleLockTap(orientation);
       },
-      behavior: HitTestBehavior.opaque,
+      behavior: HitTestBehavior.translucent,
       child: const SizedBox.expand(),
     );
   }

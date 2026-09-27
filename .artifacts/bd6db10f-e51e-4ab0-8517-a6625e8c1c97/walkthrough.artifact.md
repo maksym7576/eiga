@@ -1,14 +1,16 @@
-# Walkthrough - Subtitle Settings & Spacing Refinement
+# Walkthrough - Subtitle Parsing & Bracket Handling Refactoring
 
-Implemented all requested enhancements for subtitle settings:
+## Changes
 
-1. **Windowed Subtitle Default Font Size:**
-   - Increased default font size from `12.0` to `16.0` in [app_config.dart](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/config/app_config.dart) for improved readability.
+### Subtitle Depacker Service
+- Removed `_bracketNoise` and all automatic bracket/parentheses stripping from `_normalize(...)` in [subtitle_depacker_service.dart](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/backend/services/depacker_subtitles/subtitle_depacker_service.dart).
+- Subtitles now parse, preview, and save to the database in their original raw form without losing parentheses or brackets.
 
-2. **Proportional Spacing Between Original and Translation (Fullscreen):**
-   - Added `originalToTranslationSpacing` property to `ModeSubtitleSettings` and preference persistence in [app_config.dart](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/config/app_config.dart).
-   - Added a slider in [subtitle_settings_side_panel.dart](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/ui/widgets/player/subtitle_settings_side_panel.dart) to adjust it, allowing it to go down to `0.0` ("в притик").
+### Smart Bracket Hiding in Subtitle Rendering
+- Updated [phrase_original_content.dart](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/ui/widgets/subtitles/components/phrase_original_content.dart) and [translation_styled_content.dart](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/ui/widgets/subtitles/components/translation_styled_content.dart).
+- When "Hide content in brackets" is enabled in settings:
+  - Partial brackets / parenthetical notes inside sentences are hidden.
+  - **Exception**: If the entire text of a phrase/line is enclosed in brackets (e.g., `（セミの鳴き声）`), it is fully preserved on screen so that sound effects or standalone parenthetical lines remain visible.
 
-3. **Proportional Spacing Between Original and Additional (Fullscreen):**
-   - Added `originalToAdditionalSpacing` property with corresponding persistence, state management, and side panel slider controls.
-   - Applied proportional gap scaling in [subtitle_text_content.dart](file:///C:/Users/fcjhx/StudioProjects/eiga/lib/ui/widgets/subtitles/subtitle_text_content.dart).
+## Validation Results
+- Verified with flutter analyze.

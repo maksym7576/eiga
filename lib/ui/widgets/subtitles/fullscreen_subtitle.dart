@@ -76,7 +76,7 @@ class FullscreenSubtitle extends ConsumerWidget {
           return Align(
             alignment: Alignment(0.0, effectiveY),
             child: IgnorePointer(
-              ignoring: !playerState.isLocked,
+              ignoring: false,
               child: Container(
                 decoration: settings.showBackdrop
                     ? BoxDecoration(

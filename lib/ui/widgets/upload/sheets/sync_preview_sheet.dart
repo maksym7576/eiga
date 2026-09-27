@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import '../../../../backend/database/schemas/phrase.dart';
@@ -34,6 +36,9 @@ class _SyncPreviewSheetState extends State<SyncPreviewSheet> {
   @override
   void initState() {
     super.initState();
+    if (!(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    }
     _initPlayer();
   }
 
@@ -106,6 +111,13 @@ class _SyncPreviewSheetState extends State<SyncPreviewSheet> {
 
   @override
   void dispose() {
+    if (!(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    }
     _posSub?.cancel();
     _player.dispose();
     super.dispose();
@@ -136,7 +148,10 @@ class _SyncPreviewSheetState extends State<SyncPreviewSheet> {
                         child: Stack(
                           alignment: Alignment.bottomCenter,
                           children: [
-                            Video(controller: _videoController),
+                            Video(
+                              controller: _videoController,
+                              controls: NoVideoControls,
+                            ),
                             // Subtitle Overlay
                             if (_activeSubtitle.isNotEmpty)
                               Positioned(

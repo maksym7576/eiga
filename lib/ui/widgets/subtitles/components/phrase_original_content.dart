@@ -72,16 +72,25 @@ class PhraseOriginalContent extends HookConsumerWidget {
 
     List<TokenEntry> originalTokens = phrase.originalTokens ?? [];
 
-    if (hideBrackets) {
-      originalTokens =
-          originalTokens.where((t) => !hiddenWordIds.contains(t.wordPosition)).toList();
-    }
+    // Do not filter out tokens based on hideBrackets here anymore. 
+    // Brackets cleaning is now fully handled at insertion/database storage time.
+    // (Keeping phraseOriginalContent pure and displaying whatever phrases are stored in DB).
 
     if (originalTokens.isEmpty) {
       String trimmedFallback = fallbackText?.trim() ?? '';
       if (hideBrackets) {
-        final bracketRegExp = RegExp(r'[([{（［｛].*?[)]}）］｝]');
-        trimmedFallback = trimmedFallback.replaceAll(bracketRegExp, '').trim();
+        final trimmedFull = trimmedFallback;
+        final isFullyBracketed = (trimmedFull.startsWith('(') && trimmedFull.endsWith(')')) ||
+            (trimmedFull.startsWith('[') && trimmedFull.endsWith(']')) ||
+            (trimmedFull.startsWith('{') && trimmedFull.endsWith('}')) ||
+            (trimmedFull.startsWith('（') && trimmedFull.endsWith('）')) ||
+            (trimmedFull.startsWith('［') && trimmedFull.endsWith('］')) ||
+            (trimmedFull.startsWith('｛') && trimmedFull.endsWith('｝'));
+
+        if (!isFullyBracketed) {
+          final bracketRegExp = RegExp(r'[([{（［｛].*?[)]}）］｝]');
+          trimmedFallback = trimmedFallback.replaceAll(bracketRegExp, '').trim();
+        }
       }
 
       if (trimmedFallback.isEmpty) {

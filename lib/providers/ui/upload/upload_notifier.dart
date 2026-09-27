@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:async';
 import 'dart:io';
 import 'dart:developer' as developer;
@@ -13,6 +12,7 @@ import 'package:eiga/config/secure_storage.dart';
 import 'package:eiga/backend/database/schemas/phrase.dart';
 import 'package:eiga/backend/database/schemas/video.dart';
 import 'package:eiga/backend/services/depacker_subtitles/season_episode_info.dart';
+import 'package:eiga/backend/services/depacker_subtitles/subtitle_depacker_service.dart';
 import 'package:eiga/backend/database/dto/media_dto.dart';
 import 'package:eiga/backend/database/dto/jimaku_file_dto.dart';
 import 'package:eiga/backend/services/audio/audio_sync_service.dart';
@@ -424,7 +424,11 @@ class UploadNotifier extends Notifier<UploadState> {
   Future<List<Phrase>> _parsePhrases(String path) async {
     final languages = ref.read(languageProvider);
     final depacker = ref.read(subtitleDepackerServiceProvider);
-    return await depacker.parseSrtPreview(filePath: path, language: languages.original ?? 'Japanese');
+    return await depacker.parseSrtPreview(
+      filePath: path,
+      language: languages.original ?? 'Japanese',
+      mode: state.hideParenthesesInPreview ? SubtitleDepackMode.hideParentheses : SubtitleDepackMode.raw,
+    );
   }
 
   Future<void> pickSubtitle() async {
@@ -556,7 +560,8 @@ class UploadNotifier extends Notifier<UploadState> {
       final depacker = ref.read(subtitleDepackerServiceProvider);
       final streams = await depacker.parseMultiStreamPreview(
         filePath: path, 
-        language: ref.read(languageProvider).original ?? 'Japanese'
+        language: ref.read(languageProvider).original ?? 'Japanese',
+        mode: state.hideParenthesesInPreview ? SubtitleDepackMode.hideParentheses : SubtitleDepackMode.raw,
       );
       
       if (streams.isEmpty) {
@@ -579,7 +584,10 @@ class UploadNotifier extends Notifier<UploadState> {
       final defaultSelection = versions.first;
       
       state = state.copyWith(
-        manualSelection: defaultSelection,
+        manualSelection: state.subtitleMethod == SubtitleMethod.manual ? defaultSelection : state.manualSelection,
+        quickSelection: state.subtitleMethod == SubtitleMethod.quick ? defaultSelection : state.quickSelection,
+        aiSelection: state.subtitleMethod == SubtitleMethod.ai_scan ? defaultSelection : state.aiSelection,
+        videoSelection: state.subtitleMethod == SubtitleMethod.video ? defaultSelection : state.videoSelection,
         analyzedVersions: versions,
         availableStreams: streams,
         selectedStreamKey: streams.keys.first,
@@ -596,6 +604,14 @@ class UploadNotifier extends Notifier<UploadState> {
     final phrases = state.availableStreams[streamKey] ?? [];
     final updatedSelection = AnalyzedSubtitle(fileName: state.subtitleFileName!, path: state.subtitlePath!, confidence: 0.0, phrases: phrases);
     state = state.copyWith(selectedStreamKey: streamKey, manualSelection: state.subtitleMethod == SubtitleMethod.manual ? updatedSelection : state.manualSelection, quickSelection: state.subtitleMethod == SubtitleMethod.quick ? updatedSelection : state.quickSelection, aiSelection: state.subtitleMethod == SubtitleMethod.ai_scan ? updatedSelection : state.aiSelection, videoSelection: state.subtitleMethod == SubtitleMethod.video ? updatedSelection : state.videoSelection);
+  }
+
+  Future<void> toggleHideParenthesesInPreview(bool value) async {
+    developer.log('Toggle hideParenthesesInPreview changed to: $value', name: 'UploadNotifier');
+    state = state.copyWith(hideParenthesesInPreview: value);
+    if (state.subtitlePath != null) {
+      await handleSubtitleSelected(state.subtitlePath!, source: state.subtitleSource);
+    }
   }
 
   void optimizeTimings(int paddingMs, {bool fillGaps = false}) {
@@ -693,7 +709,8 @@ class UploadNotifier extends Notifier<UploadState> {
           final depacker = ref.read(subtitleDepackerServiceProvider);
           final streams = await depacker.parseMultiStreamPreview(
             filePath: path, 
-            language: ref.read(languageProvider).original ?? 'Japanese'
+            language: ref.read(languageProvider).original ?? 'Japanese',
+            mode: state.hideParenthesesInPreview ? SubtitleDepackMode.hideParentheses : SubtitleDepackMode.raw,
           );
 
           final multiStreamPenalty = streams.length > 1 ? 0.05 : 0.0;
@@ -863,26 +880,16 @@ class UploadNotifier extends Notifier<UploadState> {
       }
 
       final videoId = await videoService.addVideo(video);
+      video.id = videoId;
       developer.log('Video saved with ID: $videoId', name: 'UploadNotifier');
       
-      final phrases = state.previewPhrases.map((p) => Phrase(
-        videoId: videoId,
-        phraseOrder: p.phraseOrder,
-        originalPhrase: p.originalPhrase,
-        translatedPhrase: p.translatedPhrase,
-        startTime: p.startTime,
-        endTime: p.endTime,
-        isActive: p.isActive,
-        originalTokens: p.originalTokens,
-        translatedWords: p.translatedWords,
-        linkGroups: p.linkGroups,
-        idiomSpans: p.idiomSpans,
-        stageStatuses: p.stageStatuses,
-      )).toList();
-
-      if (phrases.isNotEmpty) {
-        developer.log('Saving ${phrases.length} phrases', name: 'UploadNotifier');
-        await phraseService.addPhrasesList(phrases);
+      if (state.previewPhrases.isNotEmpty) {
+        developer.log('Saving ${state.previewPhrases.length} phrases via SubtitleDepackerService', name: 'UploadNotifier');
+        await ref.read(subtitleDepackerServiceProvider).depack(
+          video,
+          preParsedPhrases: state.previewPhrases,
+          mode: state.hideParenthesesInPreview ? SubtitleDepackMode.hideParentheses : SubtitleDepackMode.raw,
+        );
       }
 
       state = state.copyWith(isSaving: false);

@@ -222,9 +222,10 @@ class _BottomBar extends ConsumerWidget {
     final duration = ref.watch(playerProvider(playerScope).select((s) => s.duration));
     final position = ref.watch(playerTimeProvider(playerScope));
     final playbackRate = ref.watch(playerProvider(playerScope).select((s) => s.playbackRate));
+    final isFullscreen = ref.watch(playerProvider(playerScope).select((s) => s.isFullscreen));
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+      padding: EdgeInsets.fromLTRB(16, 20, 16, isFullscreen ? 8 : 2),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,

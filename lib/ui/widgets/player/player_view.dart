@@ -28,6 +28,7 @@ class PlayerView extends HookConsumerWidget {
             controller: controller,
             fill: Colors.black,
             fit: BoxFit.contain,
+            controls: NoVideoControls,
           ),
         ),
       ),

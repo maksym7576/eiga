@@ -162,7 +162,7 @@ class RubyText extends HookConsumerWidget {
       ],
     );
 
-    final bool canTap = word.isClickable && (!isFullscreen || isLocked);
+    final bool canTap = word.isClickable && (isLocked || !isFullscreen);
 
     Widget gestureContent = mainContent;
 

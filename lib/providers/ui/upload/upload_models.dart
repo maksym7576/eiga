@@ -69,6 +69,7 @@ class UploadState {
 
   final int appliedPaddingMs;
   final bool appliedFillGaps;
+  final bool hideParenthesesInPreview;
 
   final bool isCheckingSync;
   final SyncMatchStatus syncStatus;
@@ -131,6 +132,7 @@ class UploadState {
     this.isInitialized = false,
     this.appliedPaddingMs = 0,
     this.appliedFillGaps = false,
+    this.hideParenthesesInPreview = false,
     this.isCheckingSync = false,
     this.syncStatus = SyncMatchStatus.idle,
     this.suggestedOffset,
@@ -244,6 +246,7 @@ class UploadState {
     CoverSourceMode? coverSourceMode,
     String? manualCoverPath,
     int? currentStepIndex,
+    bool? hideParenthesesInPreview,
   }) {
     return UploadState(
       videoSource: videoSource ?? this.videoSource,
@@ -268,6 +271,7 @@ class UploadState {
       isInitialized: isInitialized ?? this.isInitialized,
       appliedPaddingMs: appliedPaddingMs ?? this.appliedPaddingMs,
       appliedFillGaps: appliedFillGaps ?? this.appliedFillGaps,
+      hideParenthesesInPreview: hideParenthesesInPreview ?? this.hideParenthesesInPreview,
       isCheckingSync: isCheckingSync ?? this.isCheckingSync,
       syncStatus: syncStatus ?? this.syncStatus,
       suggestedOffset: suggestedOffset ?? this.suggestedOffset,

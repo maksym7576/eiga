@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/backend/database/schemas/phrase.dart';
+import 'package:eiga/providers/ui/upload_provider.dart';
 import '../../../styles/additional_window_theme.dart';
 import '../../../styles/app_colors.dart';
 
-class SubtitlePreviewList extends StatelessWidget {
+class SubtitlePreviewList extends ConsumerWidget {
   final List<Phrase> phrases;
   const SubtitlePreviewList({super.key, required this.phrases});
 
@@ -16,9 +18,11 @@ class SubtitlePreviewList extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = AdditionalWindowTheme.of(context);
-    if (phrases.isEmpty) {
+    final List<Phrase> processedPhrases = phrases;
+
+    if (processedPhrases.isEmpty) {
       return Text('No lines parsed', style: TextStyle(color: theme.mutedText, fontSize: 12));
     }
     return Column(
@@ -41,7 +45,7 @@ class SubtitlePreviewList extends StatelessWidget {
               const Text('•', style: TextStyle(color: Color(0xFFCBD5E1))),
               const SizedBox(width: 8),
               Text(
-                '${phrases.length} lines',
+                '${processedPhrases.length} lines',
                 style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF475569), fontFamily: 'monospace'),
               ),
             ],
@@ -63,10 +67,10 @@ class SubtitlePreviewList extends StatelessWidget {
           ),
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: phrases.length,
+            itemCount: processedPhrases.length,
             separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
             itemBuilder: (_, i) {
-              final p = phrases[i];
+              final p = processedPhrases[i];
               final tr = p.translatedPhrase;
               const bool isSpecial = false; 
               

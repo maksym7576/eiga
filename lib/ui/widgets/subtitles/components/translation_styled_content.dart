@@ -60,15 +60,21 @@ class TranslationStyledContent extends HookConsumerWidget {
         ? (baseFontSize * 0.05) * modeSettings.translationOutlineWidth * modeSettings.globalOutlineWidth
         : 0.0;
 
-    if (hideBrackets) {
-      tokens = tokens.where((t) => !hiddenTranslationIds.contains(t.translatedWordPosition)).toList();
-    }
-
     if (tokens.isEmpty) {
       String text = phrase.translatedPhrase ?? '';
       if (hideBrackets) {
-        final bracketRegExp = RegExp(r'[([{（［｛].*?[)]}）］｝]');
-        text = text.replaceAll(bracketRegExp, '').trim();
+        final trimmedFull = text;
+        final isFullyBracketed = (trimmedFull.startsWith('(') && trimmedFull.endsWith(')')) ||
+            (trimmedFull.startsWith('[') && trimmedFull.endsWith(']')) ||
+            (trimmedFull.startsWith('{') && trimmedFull.endsWith('}')) ||
+            (trimmedFull.startsWith('（') && trimmedFull.endsWith('）')) ||
+            (trimmedFull.startsWith('［') && trimmedFull.endsWith('］')) ||
+            (trimmedFull.startsWith('｛') && trimmedFull.endsWith('｝'));
+
+        if (!isFullyBracketed) {
+          final bracketRegExp = RegExp(r'[([{（［｛].*?[)]}）］｝]');
+          text = text.replaceAll(bracketRegExp, '').trim();
+        }
       }
 
       if (text.isEmpty) {
@@ -233,7 +239,7 @@ class _TranslationTokenWidget extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bool canTap = !isFullscreen || isLocked;
+    final bool canTap = isLocked || !isFullscreen;
     final bool showHighlight = isHighlighted && !isPunctuation;
 
     // 1. Отримуємо налаштування (припускаємо, що у settings.fullscreen/windowed є noSpacing)

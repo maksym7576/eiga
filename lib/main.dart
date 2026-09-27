@@ -7,6 +7,7 @@ import 'package:media_kit/media_kit.dart';
 import 'dart:io';
 
 import 'package:eiga/backend/services/database/database_service.dart';
+import 'package:eiga/backend/services/api/video_api_server.dart';
 import 'package:eiga/providers/database/isar_providers.dart';
 import 'package:eiga/providers/services/app_configs_provider.dart';
 import 'package:eiga/ui/navigators/router.dart';
@@ -58,11 +59,13 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(videoApiServerProvider);
+
     return MaterialApp.router(
       title: 'Eiga',
       debugShowCheckedModeBanner: false,
