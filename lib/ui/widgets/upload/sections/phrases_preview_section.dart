@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
 import '../../../styles/additional_window_theme.dart';
-import '../../../styles/app_colors.dart';
 
 class PhrasesPreviewSection extends ConsumerWidget {
   const PhrasesPreviewSection({super.key});
@@ -40,13 +39,6 @@ class PhrasesPreviewSection extends ConsumerWidget {
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A), letterSpacing: 0.5),
               ),
               const Spacer(),
-              const Text('Clean Brackets', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
-              Switch(
-                value: state.hideParenthesesInPreview,
-                onChanged: (val) => notifier.toggleHideParenthesesInPreview(val),
-                activeColor: const Color(0xFF2563EB),
-              ),
-              const SizedBox(width: 10),
               if (state.appliedPaddingMs > 0 || state.appliedFillGaps)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -87,14 +79,6 @@ class PhrasesPreviewSection extends ConsumerWidget {
                   label: '+500ms',
                   isSelected: state.appliedPaddingMs == 500,
                   onSelected: () => notifier.optimizeTimings(500, fillGaps: state.appliedFillGaps),
-                ),
-                const SizedBox(width: 8),
-                Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),
-                const SizedBox(width: 8),
-                _OptionChip(
-                  label: 'Hide ()',
-                  isSelected: state.hideParenthesesInPreview,
-                  onSelected: () => notifier.toggleHideParenthesesInPreview(!state.hideParenthesesInPreview),
                 ),
                 const SizedBox(width: 8),
                 Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),

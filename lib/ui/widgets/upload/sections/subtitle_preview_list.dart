@@ -3,7 +3,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/backend/database/schemas/phrase.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
 import '../../../styles/additional_window_theme.dart';
-import '../../../styles/app_colors.dart';
 
 class SubtitlePreviewList extends ConsumerWidget {
   final List<Phrase> phrases;
@@ -20,6 +19,8 @@ class SubtitlePreviewList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = AdditionalWindowTheme.of(context);
+    final state = ref.watch(uploadProvider);
+    final notifier = ref.read(uploadProvider.notifier);
     final List<Phrase> processedPhrases = phrases;
 
     if (processedPhrases.isEmpty) {
@@ -29,7 +30,7 @@ class SubtitlePreviewList extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: const BoxDecoration(
             color: Color(0xFFF8FAFC),
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -47,6 +48,17 @@ class SubtitlePreviewList extends ConsumerWidget {
               Text(
                 '${processedPhrases.length} lines',
                 style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF475569), fontFamily: 'monospace'),
+              ),
+              const Spacer(),
+              const Text('Clean Brackets', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+              const SizedBox(width: 4),
+              Transform.scale(
+                scale: 0.8,
+                child: Switch.adaptive(
+                  value: state.hideParenthesesInPreview,
+                  onChanged: (val) => notifier.toggleHideParenthesesInPreview(val),
+                  activeColor: const Color(0xFF2563EB),
+                ),
               ),
             ],
           ),
