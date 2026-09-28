@@ -25,13 +25,15 @@ class UploadScreen extends HookConsumerWidget {
     );
     final selectedProvider = ref.watch(selectedMetadataProvider);
     final previewPlayer = ref.read(playerProvider('preview').notifier);
+    final uploadNotifier = ref.read(uploadProvider.notifier);
 
     useEffect(() {
       return () {
+        uploadNotifier.resetUploadSession();
         previewPlayer.setPlaying(false);
         unawaited(previewPlayer.disposeController());
       };
-    }, [previewPlayer]);
+    }, [previewPlayer, uploadNotifier]);
 
     developer.log(
       'UploadScreen build: triggering health check for $selectedProvider',

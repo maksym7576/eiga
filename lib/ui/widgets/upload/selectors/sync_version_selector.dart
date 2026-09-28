@@ -8,6 +8,7 @@ import '../../../styles/additional_window_theme.dart';
 import '../../../styles/app_colors.dart';
 import '../components/sync_technical_details.dart';
 import '../components/subtitle_sync_plaque.dart';
+import '../components/upload_video_preview_button.dart';
 
 class SyncVersionSelector extends HookConsumerWidget {
   final ValueNotifier<bool>? isExpanded;
@@ -27,9 +28,13 @@ class SyncVersionSelector extends HookConsumerWidget {
     final localExpanded = useState(false);
     final effectiveExpanded = isExpanded ?? localExpanded;
 
-    if (state.analyzedVersions.isEmpty) return const SizedBox.shrink();
+    final analyzedList = state.analyzedVersions.isNotEmpty
+        ? state.analyzedVersions
+        : (state.activeSelection != null ? [state.activeSelection!] : <AnalyzedSubtitle>[]);
 
-    final sortedVersions = List<AnalyzedSubtitle>.from(state.analyzedVersions)
+    if (analyzedList.isEmpty) return const SizedBox.shrink();
+
+    final sortedVersions = List<AnalyzedSubtitle>.from(analyzedList)
       ..sort((a, b) => b.confidence.compareTo(a.confidence));
 
     final bestVersion = sortedVersions.first;
@@ -63,35 +68,43 @@ class SyncVersionSelector extends HookConsumerWidget {
                     ),
                   ],
                 ),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => effectiveExpanded.value = !effectiveExpanded.value,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      child: Row(
-                        children: [
-                          Text(
-                            effectiveExpanded.value ? 'Collapse' : 'Change version',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF2563EB)),
+                Row(
+                  children: [
+                    const UploadVideoPreviewButton(compact: true),
+                    const SizedBox(width: 8),
+                    if (sortedVersions.length > 1) ...[
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => effectiveExpanded.value = !effectiveExpanded.value,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            child: Row(
+                              children: [
+                                Text(
+                                  effectiveExpanded.value ? 'Collapse' : 'Change version',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF2563EB)),
+                                ),
+                                const SizedBox(width: 6),
+                                AnimatedRotation(
+                                  duration: const Duration(milliseconds: 250),
+                                  turns: effectiveExpanded.value ? 0.5 : 0,
+                                  child: const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: Color(0xFF2563EB)),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(width: 6),
-                          AnimatedRotation(
-                            duration: const Duration(milliseconds: 250),
-                            turns: effectiveExpanded.value ? 0.5 : 0,
-                            child: const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: Color(0xFF2563EB)),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
+                    ],
+                  ],
                 ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-  
+
           // 2. Version List (Plaques)
           AnimatedSize(
             duration: const Duration(milliseconds: 350),
@@ -141,4 +154,3 @@ class SyncVersionSelector extends HookConsumerWidget {
     );
   }
 }
-

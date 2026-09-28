@@ -24,13 +24,14 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
 
     final geminiTokenAsync = ref.watch(tokenProvider(ApiTokenType.gemini));
 
-    final hasGeminiToken = geminiTokenAsync.maybeWhen(data: (t) => t.isNotEmpty, orElse: () => false);
+    final hasGeminiToken = geminiTokenAsync.maybeWhen(
+      data: (t) => t.isNotEmpty,
+      orElse: () => false,
+    );
 
     return Scaffold(
       backgroundColor: theme.backgroundColor,
-      appBar: const AppBlurHeader(
-        title: 'AI Settings & Providers',
-      ),
+      appBar: const AppBlurHeader(title: 'AI Settings & Providers'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         child: Column(
@@ -68,7 +69,8 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
             _buildSwitchCard(
               context,
               title: 'Adaptive Audio Chunking',
-              subtitle: 'Automatically reduce chunk size based on model TPM limits.',
+              subtitle:
+                  'Automatically reduce chunk size based on model TPM limits.',
               value: config.getIsAdaptiveChunkSizeEnabled,
               onChanged: (val) async {
                 await config.setIsAdaptiveChunkSizeEnabled(val);
@@ -79,10 +81,23 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
             _buildSwitchCard(
               context,
               title: 'Auto-Translate on Import',
-              subtitle: 'Start translating the first batch immediately after adding a video.',
+              subtitle:
+                  'Start translating the first batch immediately after adding a video.',
               value: config.getAutoTranslateOnImport,
               onChanged: (val) async {
                 await config.setAutoTranslateOnImport(val);
+                setState(() {});
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildSwitchCard(
+              context,
+              title: 'Auto-Apply AI Sync & Clean Brackets',
+              subtitle:
+                  'Apply AI subtitle timing recommendations on Step 3 and clean brackets by default.',
+              value: config.getAutoApplyUploadAdjustments,
+              onChanged: (val) async {
+                await config.setAutoApplyUploadAdjustments(val);
                 setState(() {});
               },
             ),
@@ -158,7 +173,11 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                       const SizedBox(height: 6),
                       const Text(
                         'API Key required to enable this provider',
-                        style: TextStyle(fontSize: 10, color: Colors.redAccent, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ],
@@ -180,7 +199,10 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
     final theme = AdditionalWindowTheme.of(context);
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const ProcessingModeScreen()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProcessingModeScreen()),
+        );
       },
       child: Container(
         padding: const EdgeInsets.all(20),
@@ -197,20 +219,37 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                 color: theme.primaryAccent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(Icons.auto_awesome_motion_rounded, color: theme.primaryAccent, size: 24),
+              child: Icon(
+                Icons.auto_awesome_motion_rounded,
+                color: theme.primaryAccent,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Processing Mode', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: theme.titleColor)),
+                  Text(
+                    'Processing Mode',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: theme.titleColor,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text('5 Stages (Advanced)', style: TextStyle(fontSize: 12, color: theme.mutedText)),
+                  Text(
+                    '5 Stages (Advanced)',
+                    style: TextStyle(fontSize: 12, color: theme.mutedText),
+                  ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: theme.mutedText.withValues(alpha: 0.5)),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: theme.mutedText.withValues(alpha: 0.5),
+            ),
           ],
         ),
       ),
@@ -232,7 +271,11 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline_rounded, color: theme.primaryAccent, size: 20),
+              Icon(
+                Icons.info_outline_rounded,
+                color: theme.primaryAccent,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               Text(
                 'How AI Fallbacks work',
@@ -284,11 +327,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
         Expanded(
           child: Text(
             text,
-            style: TextStyle(
-              fontSize: 12,
-              color: theme.mutedText,
-              height: 1.4,
-            ),
+            style: TextStyle(fontSize: 12, color: theme.mutedText, height: 1.4),
           ),
         ),
       ],

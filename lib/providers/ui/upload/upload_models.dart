@@ -188,10 +188,10 @@ class UploadState {
     if (subtitleSource == SubtitleSource.none) return null;
     
     switch (subtitleMethod) {
-      case SubtitleMethod.manual: return manualSelection;
-      case SubtitleMethod.quick: return quickSelection;
-      case SubtitleMethod.ai_scan: return aiSelection;
-      case SubtitleMethod.video: return videoSelection;
+      case SubtitleMethod.manual: return manualSelection ?? quickSelection ?? aiSelection ?? videoSelection;
+      case SubtitleMethod.quick: return quickSelection ?? manualSelection ?? aiSelection ?? videoSelection;
+      case SubtitleMethod.ai_scan: return aiSelection ?? quickSelection ?? manualSelection ?? videoSelection;
+      case SubtitleMethod.video: return videoSelection ?? aiSelection ?? quickSelection ?? manualSelection;
     }
   }
 
@@ -257,6 +257,7 @@ class UploadState {
     bool clearSelectedTranslationSubtitle = false,
     bool clearTranslationSubtitlePath = false,
     bool clearSuggestedOffset = false,
+    bool clearSyncExplanation = false,
   }) {
     final clearAllSubtitleData = replaceVideo || clearSubtitleData;
     return UploadState(
@@ -288,7 +289,7 @@ class UploadState {
       suggestedOffset: clearAllSubtitleData || clearSuggestedOffset ? null : (suggestedOffset ?? this.suggestedOffset),
       syncConfidence: clearAllSubtitleData ? 0.0 : (syncConfidence ?? this.syncConfidence),
       isWrongEpisodePromptVisible: isWrongEpisodePromptVisible ?? (clearAllSubtitleData ? false : this.isWrongEpisodePromptVisible),
-      syncExplanation: clearAllSubtitleData ? null : (syncExplanation ?? this.syncExplanation),
+      syncExplanation: clearAllSubtitleData || clearSyncExplanation ? null : (syncExplanation ?? this.syncExplanation),
       syncCheckpoints: clearAllSubtitleData ? const [] : (syncCheckpoints ?? this.syncCheckpoints),
       syncPnr: clearAllSubtitleData ? 0.0 : (syncPnr ?? this.syncPnr),
       syncUniqueness: clearAllSubtitleData ? 0.0 : (syncUniqueness ?? this.syncUniqueness),

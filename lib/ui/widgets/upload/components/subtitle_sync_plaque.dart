@@ -128,15 +128,14 @@ class SubtitleSyncPlaque extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Icon(Icons.history_rounded, size: 12, color: AppColors.slate400),
+                      Icon(Icons.timer_rounded, size: 12, color: AppColors.slate400),
                       const SizedBox(width: 4),
                       Text(
-                        '${offsetMs >= 0 ? '+' : ''}${offsetMs}ms',
+                        'Start/End Match: ${offsetMs >= 0 ? '+' : ''}${(offsetMs / 1000.0).toStringAsFixed(2)}s',
                         style: const TextStyle(
                           fontSize: 11, 
                           color: AppColors.slate500, 
                           fontWeight: FontWeight.w700,
-                          fontFamily: 'monospace',
                         ),
                       ),
                     ],

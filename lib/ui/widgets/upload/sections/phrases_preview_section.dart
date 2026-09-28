@@ -20,6 +20,20 @@ class PhrasesPreviewSection extends ConsumerWidget {
   }
 
   Widget _buildOptimizationControls(AdditionalWindowTheme theme, UploadState state, UploadNotifier notifier) {
+    final bool hasAiRecommendation = state.syncStatus == SyncMatchStatus.perfect || state.syncStatus == SyncMatchStatus.offset;
+
+    int recommendedMs = 0;
+    if (hasAiRecommendation) {
+      if (state.syncConfidence > 0.8) {
+        recommendedMs = 200;
+      } else if (state.syncConfidence > 0.5) {
+        recommendedMs = 100;
+      } else {
+        recommendedMs = 0;
+      }
+    }
+    final recommendedLabel = recommendedMs == 0 ? 'Original' : '+${recommendedMs}ms';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -55,6 +69,35 @@ class PhrasesPreviewSection extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
+          // AI Recommendation Banner (Only shown when AI has actually responded)
+          if (hasAiRecommendation) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFBFDBFE)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.recommend_rounded, size: 16, color: Color(0xFF1D4ED8)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'AI Recommendation: $recommendedLabel (You can keep Original or choose any variant)',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF1E40AF)),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => notifier.optimizeTimings(recommendedMs, fillGaps: false),
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(50, 24)),
+                    child: const Text('Apply AI', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF2563EB))),
+                  ),
+                ],
+              ),
+            ),
+          ],
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -64,21 +107,37 @@ class PhrasesPreviewSection extends ConsumerWidget {
                   isSelected: state.appliedPaddingMs == 0 && !state.appliedFillGaps,
                   onSelected: () => notifier.optimizeTimings(0, fillGaps: false),
                   showCheck: true,
+                  isRecommended: hasAiRecommendation && recommendedMs == 0,
                 ),
                 _OptionChip(
                   label: '+100ms',
                   isSelected: state.appliedPaddingMs == 100,
                   onSelected: () => notifier.optimizeTimings(100, fillGaps: state.appliedFillGaps),
+                  isRecommended: hasAiRecommendation && recommendedMs == 100,
                 ),
                 _OptionChip(
                   label: '+200ms',
                   isSelected: state.appliedPaddingMs == 200,
                   onSelected: () => notifier.optimizeTimings(200, fillGaps: state.appliedFillGaps),
+                  isRecommended: hasAiRecommendation && recommendedMs == 200,
+                ),
+                _OptionChip(
+                  label: '+300ms',
+                  isSelected: state.appliedPaddingMs == 300,
+                  onSelected: () => notifier.optimizeTimings(300, fillGaps: state.appliedFillGaps),
+                  isRecommended: hasAiRecommendation && recommendedMs == 300,
+                ),
+                _OptionChip(
+                  label: '+400ms',
+                  isSelected: state.appliedPaddingMs == 400,
+                  onSelected: () => notifier.optimizeTimings(400, fillGaps: state.appliedFillGaps),
+                  isRecommended: hasAiRecommendation && recommendedMs == 400,
                 ),
                 _OptionChip(
                   label: '+500ms',
                   isSelected: state.appliedPaddingMs == 500,
                   onSelected: () => notifier.optimizeTimings(500, fillGaps: state.appliedFillGaps),
+                  isRecommended: hasAiRecommendation && recommendedMs == 500,
                 ),
                 const SizedBox(width: 8),
                 Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),
@@ -102,12 +161,14 @@ class _OptionChip extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onSelected;
   final bool showCheck;
+  final bool isRecommended;
 
   const _OptionChip({
     required this.label,
     required this.isSelected,
     required this.onSelected,
     this.showCheck = false,
+    this.isRecommended = false,
   });
 
   @override
@@ -126,8 +187,8 @@ class _OptionChip extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFFCBD5E1),
-                width: isSelected ? 2 : 1,
+                color: isSelected ? const Color(0xFF3B82F6) : (isRecommended ? const Color(0xFF93C5FD) : const Color(0xFFCBD5E1)),
+                width: isSelected ? 2 : (isRecommended ? 1.5 : 1),
               ),
               boxShadow: isSelected ? [
                 BoxShadow(
@@ -148,10 +209,24 @@ class _OptionChip extends StatelessWidget {
                   label,
                   style: TextStyle(
                     fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    fontWeight: isSelected || isRecommended ? FontWeight.bold : FontWeight.w500,
                     color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFF475569),
                   ),
                 ),
+                if (isRecommended) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'AI',
+                      style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.white),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

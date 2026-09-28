@@ -55,9 +55,7 @@ class _UploadMobileViewState extends State<UploadMobileView> {
           backgroundColor: Colors.white,
           appBar: AppBlurHeader(
             title: 'Create Video',
-            onBack: () {
-              Navigator.pop(context);
-            },
+            onBack: () => _exitUpload(context, notifier),
             actions: [
               IconButton(
                 icon: const Icon(Icons.help_outline, size: 20, color: AppColors.slate600),
@@ -178,9 +176,7 @@ class _UploadMobileViewState extends State<UploadMobileView> {
                               type: AppActionButtonType.outlined,
                             )
                           : AppActionButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
+                              onPressed: () => _exitUpload(context, notifier),
                               text: 'Cancel',
                               type: AppActionButtonType.outlined,
                             ),
@@ -231,10 +227,20 @@ class _UploadMobileViewState extends State<UploadMobileView> {
     final success = await notifier.saveVideo();
     if (context.mounted) {
       if (success) {
-        Navigator.pop(context);
+        await _exitUpload(context, notifier);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to add video')));
       }
     }
+  }
+
+  Future<void> _exitUpload(
+    BuildContext context,
+    UploadNotifier notifier,
+  ) async {
+    await notifier.stopPreviewPlayer();
+    notifier.resetUploadSession();
+    if (!context.mounted) return;
+    Navigator.pop(context);
   }
 }

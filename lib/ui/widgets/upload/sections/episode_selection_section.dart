@@ -16,6 +16,7 @@ import '../components/sync_technical_details.dart';
 import '../components/subtitle_sync_plaque.dart';
 import '../../search/cloud/cloud_file_tile.dart';
 import '../../search/cloud/cloud_group_tile.dart';
+import '../components/upload_video_preview_button.dart';
 import 'subtitle_version_section.dart';
 import 'subtitle_input_section.dart';
 import 'subtitle_preview_list.dart';
@@ -425,18 +426,7 @@ class EpisodeSelectionSection extends HookConsumerWidget {
         Row(
           children: [
             Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => notifier.setStepIndex(0),
-                icon: const Icon(Icons.play_circle_outline_rounded, size: 16),
-                label: const Text('Video Preview'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  side: const BorderSide(color: Color(0xFFE2E8F0)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  foregroundColor: AppColors.slate700,
-                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-              ),
+              child: const UploadVideoPreviewButton(),
             ),
             const SizedBox(width: 10),
             Expanded(

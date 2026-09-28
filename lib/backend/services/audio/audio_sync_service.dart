@@ -74,7 +74,8 @@ class SyncResult {
 class _SyncSegment {
   final int startS;
   final int durationS;
-  _SyncSegment(this.startS, this.durationS);
+  final bool isRetried;
+  _SyncSegment(this.startS, this.durationS, {this.isRetried = false});
 }
 
 class _CorrelationInput {
@@ -235,7 +236,7 @@ class AudioSyncService {
       if (vadIterator == null) throw Exception('VAD engine failed to initialize');
 
       for (int i = 0; i < segments.length; i++) {
-        final seg = segments[i];
+        var seg = segments[i];
         List<double>? audioSignal = _cachedAudioSignals[seg.startS];
         
         if (audioSignal == null) {
@@ -246,6 +247,9 @@ class AudioSyncService {
           }
         }
 
+        bool needsRetry = false;
+        _CorrelationResult? correlation;
+
         if (audioSignal != null && audioSignal.isNotEmpty) {
           final subSignal = await compute(_generateSubtitleActivityMapInIsolate, _SubtitleActivityInput(
             phrases: phrases,
@@ -254,56 +258,98 @@ class AudioSyncService {
             windowSizeMs: windowSizeMs,
           ));
           
-          final correlation = await compute(_findBestOffsetInIsolate, _CorrelationInput(
+          correlation = await compute(_findBestOffsetInIsolate, _CorrelationInput(
             audioSignal: audioSignal,
             subSignal: subSignal,
             windowSizeMs: windowSizeMs,
           ));
-          
-          if (correlation.confidence > 0.1) {
-            results.add(correlation);
-            developer.log('Segment ${i+1} result: ${correlation.offsetWindows * windowSizeMs}ms (Conf: ${correlation.confidence.toStringAsFixed(2)})', name: 'AudioSync');
-            
-            // Create checkpoint
+
+          if (correlation != null) {
             final offsetMs = correlation.offsetWindows * windowSizeMs;
-            final isDeviation = correlation.confidence < 0.3 || offsetMs.abs() > 1000;
-            
-            // Find a phrase in this segment for display
-            final representativePhrase = _findRepresentativePhrase(phrases, seg.startS, seg.durationS);
-            
-            checkpoints.add(SyncCheckpoint(
-              index: '${i + 1}',
-              timeRange: _formatTimeRange(seg.startS, seg.durationS),
-              startS: seg.startS,
-              endS: seg.startS + seg.durationS,
-              phraseText: representativePhrase != null ? '“${representativePhrase.originalPhrase}”' : 'Silence / No subtitles',
-              offsetMs: offsetMs.toDouble(),
-              offsetText: '${offsetMs >= 0 ? '+' : ''}${(offsetMs / 1000.0).toStringAsFixed(2)}s',
-              statusText: isDeviation ? 'deviation' : 'aligned',
-              explanationText: correlation.confidence > 0.6 
-                  ? 'Matched via audio correlation with high confidence.' 
-                  : (correlation.confidence > 0.3 
-                      ? 'Aligned successfully with slight local variations.'
-                      : 'Potential deviation detected due to weak signal or noise.'),
-              isDeviation: isDeviation,
-              confidence: correlation.confidence,
-            ));
-          } else {
-            // Add failed checkpoint for visualization
-            checkpoints.add(SyncCheckpoint(
-              index: '${i + 1}',
-              timeRange: _formatTimeRange(seg.startS, seg.durationS),
-              startS: seg.startS,
-              endS: seg.startS + seg.durationS,
-              phraseText: 'Match failed',
-              offsetMs: 0,
-              offsetText: 'N/A',
-              statusText: 'failed',
-              explanationText: 'No clear voice activity match found in this segment.',
-              isDeviation: true,
-              confidence: 0.0,
-            ));
+            if (correlation.confidence < 0.3 || offsetMs.abs() > 1000) {
+              needsRetry = true;
+            }
           }
+        } else {
+          needsRetry = true;
+        }
+
+        // Single retry with +60s shift if poor result or deviation and not yet retried
+        if (needsRetry && !seg.isRetried) {
+          developer.log('Segment ${i + 1} poor result or deviation. Retrying once with +60s shift...', name: 'AudioSync');
+          final retriedSeg = _SyncSegment(seg.startS + 60, seg.durationS, isRetried: true);
+          List<double>? retriedAudioSignal = _cachedAudioSignals[retriedSeg.startS];
+          if (retriedAudioSignal == null) {
+            retriedAudioSignal = await _extractAndGenerateVoiceMap(videoPath, retriedSeg, vadIterator);
+            if (retriedAudioSignal != null) {
+              _cachedAudioSignals[retriedSeg.startS] = retriedAudioSignal;
+            }
+          }
+
+          if (retriedAudioSignal != null && retriedAudioSignal.isNotEmpty) {
+            final subSignal = await compute(_generateSubtitleActivityMapInIsolate, _SubtitleActivityInput(
+              phrases: phrases,
+              length: retriedAudioSignal.length,
+              segmentStartS: retriedSeg.startS,
+              windowSizeMs: windowSizeMs,
+            ));
+            
+            final retriedCorrelation = await compute(_findBestOffsetInIsolate, _CorrelationInput(
+              audioSignal: retriedAudioSignal,
+              subSignal: subSignal,
+              windowSizeMs: windowSizeMs,
+            ));
+
+            if (retriedCorrelation.confidence > (correlation?.confidence ?? 0.0)) {
+              correlation = retriedCorrelation;
+              seg = retriedSeg;
+            }
+          }
+        }
+
+        if (correlation != null && correlation.confidence > 0.1) {
+          results.add(correlation);
+          developer.log('Segment ${i+1} result: ${correlation.offsetWindows * windowSizeMs}ms (Conf: ${correlation.confidence.toStringAsFixed(2)})', name: 'AudioSync');
+          
+          // Create checkpoint
+          final offsetMs = correlation.offsetWindows * windowSizeMs;
+          final isDeviation = correlation.confidence < 0.3 || offsetMs.abs() > 1000;
+          
+          // Find a phrase in this segment for display
+          final representativePhrase = _findRepresentativePhrase(phrases, seg.startS, seg.durationS);
+          
+          checkpoints.add(SyncCheckpoint(
+            index: '${i + 1}',
+            timeRange: _formatTimeRange(seg.startS, seg.durationS),
+            startS: seg.startS,
+            endS: seg.startS + seg.durationS,
+            phraseText: representativePhrase != null ? '“${representativePhrase.originalPhrase}”' : 'Silence / No subtitles',
+            offsetMs: offsetMs.toDouble(),
+            offsetText: '${offsetMs >= 0 ? '+' : ''}${(offsetMs / 1000.0).toStringAsFixed(2)}s',
+            statusText: isDeviation ? 'deviation' : 'aligned',
+            explanationText: correlation.confidence > 0.6 
+                ? 'Matched via audio correlation with high confidence (shift-optimized).' 
+                : (correlation.confidence > 0.3 
+                    ? 'Aligned successfully with slight local variations.'
+                    : 'Potential deviation detected.'),
+            isDeviation: isDeviation,
+            confidence: correlation.confidence,
+          ));
+        } else {
+          // Add failed checkpoint for visualization
+          checkpoints.add(SyncCheckpoint(
+            index: '${i + 1}',
+            timeRange: _formatTimeRange(seg.startS, seg.durationS),
+            startS: seg.startS,
+            endS: seg.startS + seg.durationS,
+            phraseText: 'Match failed',
+            offsetMs: 0,
+            offsetText: 'N/A',
+            statusText: 'failed',
+            explanationText: 'No clear voice activity match found in this segment after shift retry.',
+            isDeviation: true,
+            confidence: 0.0,
+          ));
         }
       }
 

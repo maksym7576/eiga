@@ -23,7 +23,7 @@ class AppConfig {
   static const int defaultSyncPointDurationMinutes = 2;
   static const int defaultAudioChunkDurationMinutes = 3;
   static const int defaultTranscriptionOverlapSeconds = 10;
-  
+
   static const Map<TranslationPipelineStep, String> defaultModels = {
     TranslationPipelineStep.research: 'gemini-3.5-flash-lite',
     TranslationPipelineStep.transcribe: 'gemini-3.5-transcribe',
@@ -37,11 +37,12 @@ class AppConfig {
   static const _keySecondsAhead = 'seconds_before_send';
   static const _keyNumberOfPhrases = 'number_of_phrases';
   static const _keyIsAutomaticModelSwitch = 'is_automatic_model_switch';
-  static const _keyIsAdaptiveChunkSizeEnabled = 'is_adaptive_chunk_size_enabled';
+  static const _keyIsAdaptiveChunkSizeEnabled =
+      'is_adaptive_chunk_size_enabled';
   static const _keyIsAutoLockEnabled = 'is_auto_lock_enabled';
   static const _keyLastResetDate = 'last_reset_date_utc';
   static const _keyMaxConcurrentProcesses = 'max_concurrent_processes';
-  
+
   // Subtitle Settings Keys
   static const _keySubFontSize = 'sub_font_size';
   static const _keySubWindowedFontSize = 'sub_windowed_font_size';
@@ -53,27 +54,32 @@ class AppConfig {
   static const _keySubFontWeightFs = 'sub_font_weight_fs';
   static const _keySubFontWeightWin = 'sub_font_weight_win';
   static const _keySubGlobalOutlineWidthFs = 'sub_global_outline_width_fs';
-  
+
   // Advanced Typography - Fullscreen
   static const _keySubLetterSpacingFs = 'sub_letter_spacing_fs';
-  static const _keySubTranslationLetterSpacingFs = 'sub_translation_letter_spacing_fs';
+  static const _keySubTranslationLetterSpacingFs =
+      'sub_translation_letter_spacing_fs';
   static const _keySubOriginalScaleFs = 'sub_original_scale_fs';
   static const _keySubTranslationScaleFs = 'sub_translation_scale_fs';
   static const _keySubAdditionalScaleFs = 'sub_additional_scale_fs';
   static const _keySubOriginalOutlineWidthFs = 'sub_original_outline_width_fs';
-  static const _keySubTranslationOutlineWidthFs = 'sub_translation_outline_width_fs';
-  static const _keySubOriginalToTranslationSpacingFs = 'sub_original_to_translation_spacing_fs';
-  static const _keySubOriginalToAdditionalSpacingFs = 'sub_original_to_additional_spacing_fs';
+  static const _keySubTranslationOutlineWidthFs =
+      'sub_translation_outline_width_fs';
+  static const _keySubOriginalToTranslationSpacingFs =
+      'sub_original_to_translation_spacing_fs';
+  static const _keySubOriginalToAdditionalSpacingFs =
+      'sub_original_to_additional_spacing_fs';
 
   // Advanced Typography - Windowed
   static const _keySubLetterSpacingWin = 'sub_letter_spacing_win';
-  static const _keySubTranslationLetterSpacingWin = 'sub_translation_letter_spacing_win';
+  static const _keySubTranslationLetterSpacingWin =
+      'sub_translation_letter_spacing_win';
   static const _keySubOriginalScaleWin = 'sub_original_scale_win';
   static const _keySubTranslationScaleWin = 'sub_translation_scale_win';
   static const _keySubAdditionalScaleWin = 'sub_additional_scale_win';
 
   static const _keyVideoCachingEnabled = 'video_caching_enabled';
-  
+
   static const _keyBatchSizeTranslate = 'batch_size_translate';
   static const _keyBatchSizeTokenize = 'batch_size_tokenize';
   static const _keyBatchSizeMorphemes = 'batch_size_morphemes';
@@ -81,21 +87,25 @@ class AppConfig {
   static const _keySyncSkipMinutes = 'sync_skip_minutes';
   static const _keySyncPointDurationMinutes = 'sync_point_duration_minutes';
   static const _keyAudioChunkDurationMinutes = 'audio_chunk_duration_minutes';
-  static const _keyTranscriptionOverlapSeconds = 'transcription_overlap_seconds';
+  static const _keyTranscriptionOverlapSeconds =
+      'transcription_overlap_seconds';
   static const _keyAutoTranslateOnImport = 'auto_translate_on_import';
   static const _keyHideParenthesesContent = 'hide_parentheses_content';
   static const _keyFullscreenAutoShrink = 'fs_auto_shrink';
   static const _keyIsGeminiEnabled = 'is_gemini_enabled';
-
-
+  static const _keyAutoApplyUploadAdjustments = 'auto_apply_upload_adjustments';
+  static const _keyAutoApplyAiRecommendations = 'auto_apply_ai_recommendations';
+  static const _keyCleanBracketsDefault = 'clean_brackets_default';
 
   static const _keyAnkiConnectUrl = 'anki_connect_url';
   static const _keyAnkiDeckName = 'anki_deck_name';
   static const _keyAnkiNoteType = 'anki_note_type';
   static const _keyAppLanguage = 'app_language';
-  
-  static String _modelKey(TranslationPipelineStep step) => 'active_model_${step.name}';
-  static String _languageMethodKey(String langName) => 'lang_method_${langName.toLowerCase()}';
+
+  static String _modelKey(TranslationPipelineStep step) =>
+      'active_model_${step.name}';
+  static String _languageMethodKey(String langName) =>
+      'lang_method_${langName.toLowerCase()}';
 
   // --- Getters & Setters ---
 
@@ -171,6 +181,12 @@ class AppConfig {
     await _prefs.setBool(_keyIsGeminiEnabled, value);
   }
 
+  Future<void> setAutoApplyUploadAdjustments(bool value) async {
+    await _prefs.setBool(_keyAutoApplyUploadAdjustments, value);
+    await _prefs.setBool(_keyAutoApplyAiRecommendations, value);
+    await _prefs.setBool(_keyCleanBracketsDefault, value);
+  }
+
   Future<void> setSubFontSize(double value) async {
     await _prefs.setDouble(_keySubFontSize, value);
   }
@@ -215,27 +231,35 @@ class AppConfig {
   Future<void> setSubLetterSpacingFs(double value) async {
     await _prefs.setDouble(_keySubLetterSpacingFs, value);
   }
+
   Future<void> setSubTranslationLetterSpacingFs(double value) async {
     await _prefs.setDouble(_keySubTranslationLetterSpacingFs, value);
   }
+
   Future<void> setSubOriginalScaleFs(double value) async {
     await _prefs.setDouble(_keySubOriginalScaleFs, value);
   }
+
   Future<void> setSubTranslationScaleFs(double value) async {
     await _prefs.setDouble(_keySubTranslationScaleFs, value);
   }
+
   Future<void> setSubAdditionalScaleFs(double value) async {
     await _prefs.setDouble(_keySubAdditionalScaleFs, value);
   }
+
   Future<void> setSubOriginalOutlineWidthFs(double value) async {
     await _prefs.setDouble(_keySubOriginalOutlineWidthFs, value);
   }
+
   Future<void> setSubTranslationOutlineWidthFs(double value) async {
     await _prefs.setDouble(_keySubTranslationOutlineWidthFs, value);
   }
+
   Future<void> setSubOriginalToTranslationSpacingFs(double value) async {
     await _prefs.setDouble(_keySubOriginalToTranslationSpacingFs, value);
   }
+
   Future<void> setSubOriginalToAdditionalSpacingFs(double value) async {
     await _prefs.setDouble(_keySubOriginalToAdditionalSpacingFs, value);
   }
@@ -244,15 +268,19 @@ class AppConfig {
   Future<void> setSubLetterSpacingWin(double value) async {
     await _prefs.setDouble(_keySubLetterSpacingWin, value);
   }
+
   Future<void> setSubTranslationLetterSpacingWin(double value) async {
     await _prefs.setDouble(_keySubTranslationLetterSpacingWin, value);
   }
+
   Future<void> setSubOriginalScaleWin(double value) async {
     await _prefs.setDouble(_keySubOriginalScaleWin, value);
   }
+
   Future<void> setSubTranslationScaleWin(double value) async {
     await _prefs.setDouble(_keySubTranslationScaleWin, value);
   }
+
   Future<void> setSubAdditionalScaleWin(double value) async {
     await _prefs.setDouble(_keySubAdditionalScaleWin, value);
   }
@@ -261,11 +289,17 @@ class AppConfig {
     await _prefs.setBool(_keyVideoCachingEnabled, value);
   }
 
-  Future<void> setActiveModelForStep(TranslationPipelineStep step, String modelName) async {
+  Future<void> setActiveModelForStep(
+    TranslationPipelineStep step,
+    String modelName,
+  ) async {
     await _prefs.setString(_modelKey(step), modelName);
   }
 
-  Future<void> setTokenizationMethod(String langName, TokenizationMethod method) async {
+  Future<void> setTokenizationMethod(
+    String langName,
+    TokenizationMethod method,
+  ) async {
     await _prefs.setString(_languageMethodKey(langName), method.name);
   }
 
@@ -273,64 +307,109 @@ class AppConfig {
     await _prefs.setString(_keyAppLanguage, langCode);
   }
 
-  int get getSecondsAhead => _prefs.getInt(_keySecondsAhead) ?? defaultSecondsAhead;
+  int get getSecondsAhead =>
+      _prefs.getInt(_keySecondsAhead) ?? defaultSecondsAhead;
 
-  int get getNumberOfPhrases => _prefs.getInt(_keyNumberOfPhrases) ?? defaultPhrasesPerRequest;
+  int get getNumberOfPhrases =>
+      _prefs.getInt(_keyNumberOfPhrases) ?? defaultPhrasesPerRequest;
 
-  int get getMaxConcurrentProcesses => _prefs.getInt(_keyMaxConcurrentProcesses) ?? defaultMaxConcurrentProcesses;
+  int get getMaxConcurrentProcesses =>
+      _prefs.getInt(_keyMaxConcurrentProcesses) ??
+      defaultMaxConcurrentProcesses;
 
   int get getBatchSizeTranslate => _prefs.getInt(_keyBatchSizeTranslate) ?? 70;
   int get getBatchSizeTokenize => _prefs.getInt(_keyBatchSizeTokenize) ?? 70;
   int get getBatchSizeMorphemes => _prefs.getInt(_keyBatchSizeMorphemes) ?? 70;
-  int get getBatchSizeGrammarRole => _prefs.getInt(_keyBatchSizeGrammarRole) ?? 70;
+  int get getBatchSizeGrammarRole =>
+      _prefs.getInt(_keyBatchSizeGrammarRole) ?? 70;
 
-  int get getSyncSkipMinutes => _prefs.getInt(_keySyncSkipMinutes) ?? defaultSyncSkipMinutes;
-  int get getSyncPointDurationMinutes => _prefs.getInt(_keySyncPointDurationMinutes) ?? defaultSyncPointDurationMinutes;
-  int get getAudioChunkDurationMinutes => _prefs.getInt(_keyAudioChunkDurationMinutes) ?? defaultAudioChunkDurationMinutes;
-  int get getTranscriptionOverlapSeconds => _prefs.getInt(_keyTranscriptionOverlapSeconds) ?? defaultTranscriptionOverlapSeconds;
+  int get getSyncSkipMinutes =>
+      _prefs.getInt(_keySyncSkipMinutes) ?? defaultSyncSkipMinutes;
+  int get getSyncPointDurationMinutes =>
+      _prefs.getInt(_keySyncPointDurationMinutes) ??
+      defaultSyncPointDurationMinutes;
+  int get getAudioChunkDurationMinutes =>
+      _prefs.getInt(_keyAudioChunkDurationMinutes) ??
+      defaultAudioChunkDurationMinutes;
+  int get getTranscriptionOverlapSeconds =>
+      _prefs.getInt(_keyTranscriptionOverlapSeconds) ??
+      defaultTranscriptionOverlapSeconds;
 
-  bool get getAutoTranslateOnImport => _prefs.getBool(_keyAutoTranslateOnImport) ?? false;
+  bool get getAutoTranslateOnImport =>
+      _prefs.getBool(_keyAutoTranslateOnImport) ?? false;
 
-  bool get getIsAutomaticModelSwitch => _prefs.getBool(_keyIsAutomaticModelSwitch) ?? true;
+  bool get getIsAutomaticModelSwitch =>
+      _prefs.getBool(_keyIsAutomaticModelSwitch) ?? true;
 
-  bool get getIsAdaptiveChunkSizeEnabled => _prefs.getBool(_keyIsAdaptiveChunkSizeEnabled) ?? true;
+  bool get getIsAdaptiveChunkSizeEnabled =>
+      _prefs.getBool(_keyIsAdaptiveChunkSizeEnabled) ?? true;
 
-  bool get getIsAutoLockEnabled => _prefs.getBool(_keyIsAutoLockEnabled) ?? true;
+  bool get getIsAutoLockEnabled =>
+      _prefs.getBool(_keyIsAutoLockEnabled) ?? true;
 
-  bool get getHideParenthesesContent => _prefs.getBool(_keyHideParenthesesContent) ?? false;
+  bool get getHideParenthesesContent =>
+      _prefs.getBool(_keyHideParenthesesContent) ?? false;
 
-  bool get getFullscreenAutoShrink => _prefs.getBool(_keyFullscreenAutoShrink) ?? false;
+  bool get getFullscreenAutoShrink =>
+      _prefs.getBool(_keyFullscreenAutoShrink) ?? false;
 
   bool get getIsGeminiEnabled => _prefs.getBool(_keyIsGeminiEnabled) ?? true;
 
+  bool get getAutoApplyUploadAdjustments =>
+      _prefs.getBool(_keyAutoApplyUploadAdjustments) ??
+      ((_prefs.getBool(_keyAutoApplyAiRecommendations) ?? false) ||
+          (_prefs.getBool(_keyCleanBracketsDefault) ?? false));
+
   double get getSubFontSize => _prefs.getDouble(_keySubFontSize) ?? 12.0;
-  double get getSubWindowedFontSize => _prefs.getDouble(_keySubWindowedFontSize) ?? 16.0; // Updated default to 16.0
+  double get getSubWindowedFontSize =>
+      _prefs.getDouble(_keySubWindowedFontSize) ??
+      16.0; // Updated default to 16.0
   double get getSubOutlineWidth => _prefs.getDouble(_keySubOutlineWidth) ?? 1.0;
-  double get getSubBackdropOpacity => _prefs.getDouble(_keySubBackdropOpacity) ?? 0.6;
-  double get getSubBackdropPadding => _prefs.getDouble(_keySubBackdropPadding) ?? 8.0;
+  double get getSubBackdropOpacity =>
+      _prefs.getDouble(_keySubBackdropOpacity) ?? 0.6;
+  double get getSubBackdropPadding =>
+      _prefs.getDouble(_keySubBackdropPadding) ?? 8.0;
   bool get getSubShowBackdrop => _prefs.getBool(_keySubShowBackdrop) ?? true;
-  double get getSubVerticalOffset => _prefs.getDouble(_keySubVerticalOffset) ?? 0.03;
-  double get getSubFontWeightFs => _prefs.getDouble(_keySubFontWeightFs) ?? 0.7; // 0.0 to 1.0
-  double get getSubFontWeightWin => _prefs.getDouble(_keySubFontWeightWin) ?? 0.0;
-  double get getSubGlobalOutlineWidthFs => _prefs.getDouble(_keySubGlobalOutlineWidthFs) ?? 1.5;
+  double get getSubVerticalOffset =>
+      _prefs.getDouble(_keySubVerticalOffset) ?? 0.03;
+  double get getSubFontWeightFs =>
+      _prefs.getDouble(_keySubFontWeightFs) ?? 0.7; // 0.0 to 1.0
+  double get getSubFontWeightWin =>
+      _prefs.getDouble(_keySubFontWeightWin) ?? 0.0;
+  double get getSubGlobalOutlineWidthFs =>
+      _prefs.getDouble(_keySubGlobalOutlineWidthFs) ?? 1.5;
 
   // Getters - FS
-  double get getSubLetterSpacingFs => _prefs.getDouble(_keySubLetterSpacingFs) ?? 2.0;
-  double get getSubTranslationLetterSpacingFs => _prefs.getDouble(_keySubTranslationLetterSpacingFs) ?? 0.0;
-  double get getSubOriginalScaleFs => _prefs.getDouble(_keySubOriginalScaleFs) ?? 1.0;
-  double get getSubTranslationScaleFs => _prefs.getDouble(_keySubTranslationScaleFs) ?? 1.0;
-  double get getSubAdditionalScaleFs => _prefs.getDouble(_keySubAdditionalScaleFs) ?? 1.0;
-  double get getSubOriginalOutlineWidthFs => _prefs.getDouble(_keySubOriginalOutlineWidthFs) ?? 1.0;
-  double get getSubTranslationOutlineWidthFs => _prefs.getDouble(_keySubTranslationOutlineWidthFs) ?? 1.0;
-  double get getSubOriginalToTranslationSpacingFs => _prefs.getDouble(_keySubOriginalToTranslationSpacingFs) ?? 0.0;
-  double get getSubOriginalToAdditionalSpacingFs => _prefs.getDouble(_keySubOriginalToAdditionalSpacingFs) ?? 1;
+  double get getSubLetterSpacingFs =>
+      _prefs.getDouble(_keySubLetterSpacingFs) ?? 2.0;
+  double get getSubTranslationLetterSpacingFs =>
+      _prefs.getDouble(_keySubTranslationLetterSpacingFs) ?? 0.0;
+  double get getSubOriginalScaleFs =>
+      _prefs.getDouble(_keySubOriginalScaleFs) ?? 1.0;
+  double get getSubTranslationScaleFs =>
+      _prefs.getDouble(_keySubTranslationScaleFs) ?? 1.0;
+  double get getSubAdditionalScaleFs =>
+      _prefs.getDouble(_keySubAdditionalScaleFs) ?? 1.0;
+  double get getSubOriginalOutlineWidthFs =>
+      _prefs.getDouble(_keySubOriginalOutlineWidthFs) ?? 1.0;
+  double get getSubTranslationOutlineWidthFs =>
+      _prefs.getDouble(_keySubTranslationOutlineWidthFs) ?? 1.0;
+  double get getSubOriginalToTranslationSpacingFs =>
+      _prefs.getDouble(_keySubOriginalToTranslationSpacingFs) ?? 0.0;
+  double get getSubOriginalToAdditionalSpacingFs =>
+      _prefs.getDouble(_keySubOriginalToAdditionalSpacingFs) ?? 1;
 
   // Getters - Windowed
-  double get getSubLetterSpacingWin => _prefs.getDouble(_keySubLetterSpacingWin) ?? 0.0;
-  double get getSubTranslationLetterSpacingWin => _prefs.getDouble(_keySubTranslationLetterSpacingWin) ?? 0.0;
-  double get getSubOriginalScaleWin => _prefs.getDouble(_keySubOriginalScaleWin) ?? 1.0;
-  double get getSubTranslationScaleWin => _prefs.getDouble(_keySubTranslationScaleWin) ?? 1.0;
-  double get getSubAdditionalScaleWin => _prefs.getDouble(_keySubAdditionalScaleWin) ?? 1.0;
+  double get getSubLetterSpacingWin =>
+      _prefs.getDouble(_keySubLetterSpacingWin) ?? 0.0;
+  double get getSubTranslationLetterSpacingWin =>
+      _prefs.getDouble(_keySubTranslationLetterSpacingWin) ?? 0.0;
+  double get getSubOriginalScaleWin =>
+      _prefs.getDouble(_keySubOriginalScaleWin) ?? 1.0;
+  double get getSubTranslationScaleWin =>
+      _prefs.getDouble(_keySubTranslationScaleWin) ?? 1.0;
+  double get getSubAdditionalScaleWin =>
+      _prefs.getDouble(_keySubAdditionalScaleWin) ?? 1.0;
 
   bool get getVideoCachingEnabled {
     final def = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
@@ -391,20 +470,24 @@ class AppConfig {
     await _prefs.remove(_keyAudioChunkDurationMinutes);
     await _prefs.remove(_keyTranscriptionOverlapSeconds);
     await _prefs.remove(_keyAutoTranslateOnImport);
-    
+
     for (final step in TranslationPipelineStep.values) {
       await _prefs.remove(_modelKey(step));
     }
   }
 
-  String get getAnkiConnectUrl => _prefs.getString(_keyAnkiConnectUrl) ?? 'http://localhost:8765';
-  Future<void> setAnkiConnectUrl(String value) async => await _prefs.setString(_keyAnkiConnectUrl, value);
+  String get getAnkiConnectUrl =>
+      _prefs.getString(_keyAnkiConnectUrl) ?? 'http://localhost:8765';
+  Future<void> setAnkiConnectUrl(String value) async =>
+      await _prefs.setString(_keyAnkiConnectUrl, value);
 
   String get getAnkiDeckName => _prefs.getString(_keyAnkiDeckName) ?? 'Eiga';
-  Future<void> setAnkiDeckName(String value) async => await _prefs.setString(_keyAnkiDeckName, value);
+  Future<void> setAnkiDeckName(String value) async =>
+      await _prefs.setString(_keyAnkiDeckName, value);
 
   String get getAnkiNoteType => _prefs.getString(_keyAnkiNoteType) ?? 'Basic';
-  Future<void> setAnkiNoteType(String value) async => await _prefs.setString(_keyAnkiNoteType, value);
+  Future<void> setAnkiNoteType(String value) async =>
+      await _prefs.setString(_keyAnkiNoteType, value);
 
   Future<void> resetBatchSettings() async {
     await _prefs.remove(_keyNumberOfPhrases);

@@ -524,6 +524,16 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     _resetAutoLockTimer();
   }
 
+  Future<void> stopPlayback() async {
+    _positionSaveTimer?.cancel();
+    final player = _player;
+    if (player != null) {
+      await player.pause();
+    }
+    state = state.copyWith(isPlaying: false);
+    _resetAutoLockTimer();
+  }
+
   void setPlaybackRate(double rate) {
     state = state.copyWith(playbackRate: rate);
     _player?.setRate(rate);

@@ -26,6 +26,8 @@ class _UploadDesktopViewState extends State<UploadDesktopView> {
       builder: (context, ref, child) {
         final state = ref.watch(uploadProvider);
         final notifier = ref.read(uploadProvider.notifier);
+        final navigator = Navigator.of(context);
+        final messenger = ScaffoldMessenger.of(context);
         final languages = ref.watch(languageProvider);
         
         // Listen to the preview player's fullscreen state
@@ -57,9 +59,7 @@ class _UploadDesktopViewState extends State<UploadDesktopView> {
             ? null 
             : AppBlurHeader(
                 title: 'Create Video',
-                onBack: () {
-                  Navigator.pop(context);
-                },
+                onBack: () => _exitUpload(notifier, navigator),
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.help_outline, size: 20, color: AppColors.slate600),
@@ -123,7 +123,15 @@ class _UploadDesktopViewState extends State<UploadDesktopView> {
                     ),
 
                     // Nav
-                    _buildBottomNav(visibleSections, state, notifier, canAddVideo, currentIndex),
+                    _buildBottomNav(
+                      visibleSections,
+                      state,
+                      notifier,
+                      canAddVideo,
+                      currentIndex,
+                      navigator,
+                      messenger,
+                    ),
                   ],
                 ),
         );
@@ -229,7 +237,15 @@ class _UploadDesktopViewState extends State<UploadDesktopView> {
     );
   }
 
-  Widget _buildBottomNav(List<UploadScreenSection> visibleSections, UploadState state, UploadNotifier notifier, bool canAddVideo, int currentIndex) {
+  Widget _buildBottomNav(
+    List<UploadScreenSection> visibleSections,
+    UploadState state,
+    UploadNotifier notifier,
+    bool canAddVideo,
+    int currentIndex,
+    NavigatorState navigator,
+    ScaffoldMessengerState messenger,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
       decoration: BoxDecoration(
@@ -254,9 +270,7 @@ class _UploadDesktopViewState extends State<UploadDesktopView> {
                 SizedBox(
                   width: 150,
                   child: AppActionButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
+                    onPressed: () => _exitUpload(notifier, navigator),
                     text: 'Cancel',
                     type: AppActionButtonType.outlined,
                   ),
@@ -287,7 +301,9 @@ class _UploadDesktopViewState extends State<UploadDesktopView> {
                         icon: const Icon(Icons.arrow_forward_rounded, size: 18),
                       )
                     : AppActionButton(
-                        onPressed: canAddVideo ? () => _onSave(context, notifier) : null,
+                        onPressed: canAddVideo
+                            ? () => _onSave(notifier, navigator, messenger)
+                            : null,
                         text: 'Add Video',
                         isLoading: state.isSaving,
                         icon: const Icon(Icons.play_arrow_rounded),
@@ -300,14 +316,27 @@ class _UploadDesktopViewState extends State<UploadDesktopView> {
     );
   }
 
-  Future<void> _onSave(BuildContext context, UploadNotifier notifier) async {
+  Future<void> _onSave(
+    UploadNotifier notifier,
+    NavigatorState navigator,
+    ScaffoldMessengerState messenger,
+  ) async {
     final success = await notifier.saveVideo();
-    if (context.mounted) {
-      if (success) {
-        Navigator.pop(context);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to add video')));
-      }
+    if (!navigator.mounted) return;
+    if (success) {
+      await _exitUpload(notifier, navigator);
+    } else {
+      messenger.showSnackBar(const SnackBar(content: Text('Failed to add video')));
     }
+  }
+
+  Future<void> _exitUpload(
+    UploadNotifier notifier,
+    NavigatorState navigator,
+  ) async {
+    await notifier.stopPreviewPlayer();
+    notifier.resetUploadSession();
+    if (!navigator.mounted) return;
+    navigator.pop();
   }
 }
