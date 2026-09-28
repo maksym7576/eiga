@@ -5,9 +5,11 @@ import '../../backend/database/schemas/video.dart';
 import '../../backend/database/schemas/job.dart';
 import '../../backend/database/schemas/phrase.dart';
 import '../../backend/database/schemas/user_word_status.dart';
+import '../../backend/database/schemas/ai_model_event.dart';
 import '../../config/ui/word_styles.dart';
 import '../../backend/services/depacker_subtitles/season_episode_info.dart';
 import '../services/isar_services_providers.dart';
+import '../../backend/services/utils/stream_throttler.dart';
 
 import 'player_provider.dart';
 
@@ -267,7 +269,7 @@ final blockLayerLinkProvider = Provider<LayerLink>((ref) => LayerLink());
 
 final lemmaToStatusMapProvider = StreamProvider<Map<String, UserWordStatus>>((ref) {
   final service = ref.read(knownWordStatusServiceProvider);
-  return service.db.userWordStatus.where().watch(fireImmediately: true).map((list) {
+  return service.db.userWordStatus.where().watch(fireImmediately: true).throttle(const Duration(milliseconds: 300)).map((list) {
     return {for (final s in list) s.lemma: s};
   });
 });
@@ -313,7 +315,12 @@ final phrasesStreamProvider = StreamProvider<List<Phrase>>((ref) {
   if (videoId == null) return Stream.value([]);
 
   final phraseService = ref.read(phraseServiceProvider);
-  return phraseService.watchPhrasesByVideoId(videoId);
+  return phraseService.watchPhrasesByVideoId(videoId).throttle(const Duration(milliseconds: 300));
+});
+
+final phrasesByVideoIdProvider = StreamProvider.family<List<Phrase>, int>((ref, videoId) {
+  final phraseService = ref.read(phraseServiceProvider);
+  return phraseService.watchPhrasesByVideoId(videoId).throttle(const Duration(milliseconds: 300));
 });
 
 final activePhraseIdProvider = Provider.family<int?, String>((ref, scope) {
@@ -403,6 +410,11 @@ class WordWithStyle {
   final WordStatus? status;
   WordWithStyle({required this.word, required this.block, this.status});
 }
+
+final recentAiEventsProvider = StreamProvider<List<AiModelEvent>>((ref) {
+  final aiModelService = ref.read(aiModelServiceProvider);
+  return aiModelService.watchRecentEvents();
+});
 
 class TranslationTokenWithStyle {
   final TranslationTokenEntry token;

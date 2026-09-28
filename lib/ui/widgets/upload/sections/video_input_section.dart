@@ -19,6 +19,7 @@ class VideoInputSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppPlayer(
+            key: ValueKey(state.videoPath),
             scope: 'preview',
             videoPath: state.videoPath!,
             phrases: state.previewPhrases,

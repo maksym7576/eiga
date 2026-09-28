@@ -12,8 +12,14 @@ class AiModelScorer {
       // 1. Must be suitable for task
       if (!_isSuitableForTask(m, taskType)) return false;
       
-      // 2. Filter out exhausted models (Rate Limit logic)
+      // 2. Filter out exhausted models or models with too many recent errors (Rate Limit logic)
       if (m.dailyUsed >= m.currentDailyMaxLimit && m.currentDailyMaxLimit > 0) return false;
+      if (m.errorCount >= 4) {
+        // If error happened recently (within last 10 minutes), skip it
+        if (m.lastErrorAt != null && DateTime.now().difference(m.lastErrorAt!) < const Duration(minutes: 10)) {
+          return false;
+        }
+      }
       
       return true;
     }).toList();
@@ -52,7 +58,7 @@ class AiModelScorer {
     double score = m.quality.index * 10.0;
 
     // Reliability signal (Errors are very expensive)
-    score -= m.errorCount * 30.0;
+    score -= m.errorCount * 120.0;
 
     // Experience signal (Usage is a positive signal if no errors)
     score += (m.used / 10.0);

@@ -3,6 +3,53 @@ import 'package:isar_community/isar.dart';
 
 part 'video.g.dart';
 
+@embedded
+class VideoBlock {
+  int? blockIndex;
+  int? startSeconds;
+  int? endSeconds;
+  String? status; // 'pending', 'processing', 'completed', 'failed'
+  String? assignedThreadId;
+
+  VideoBlock({
+    this.blockIndex,
+    this.startSeconds,
+    this.endSeconds,
+    this.status = 'pending',
+    this.assignedThreadId,
+  });
+}
+
+@embedded
+class SongSegment {
+  int? startSeconds;
+  int? endSeconds;
+  String? label;
+
+  SongSegment({
+    this.startSeconds,
+    this.endSeconds,
+    this.label = 'Song / Opening',
+  });
+}
+
+@embedded
+class VideoActivityLogEntry {
+  String? modelName;
+  DateTime? timestamp;
+  String? result; // 'success', 'error', 'warning'
+  String? message;
+  String? step;
+
+  VideoActivityLogEntry({
+    this.modelName,
+    this.timestamp,
+    this.result,
+    this.message,
+    this.step,
+  });
+}
+
 @collection
 class Video {
   Id id = Isar.autoIncrement;
@@ -80,6 +127,10 @@ class Video {
   DateTime? lastSyncedAt;
 
   int? selectedAudioTrackIndex;
+
+  List<VideoBlock>? transcriptionBlocks;
+  List<SongSegment>? songSegments;
+  List<VideoActivityLogEntry>? activityLogs;
 
   Video();
 

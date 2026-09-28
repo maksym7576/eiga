@@ -40,7 +40,6 @@ class AiModelsNotifier extends Notifier<Map<TranslationPipelineStep, String>> {
     
     final enabledProviders = {
       if (configs.getIsGeminiEnabled) AiProvider.google,
-      if (configs.getIsGroqEnabled) AiProvider.groq,
     };
 
     final Map<TranslationPipelineStep, String> updates = {};
@@ -117,7 +116,6 @@ final modelsForStepProvider = Provider.family<List<AiModel>, TranslationPipeline
     data: (models) {
       final enabledProviders = {
         if (config.getIsGeminiEnabled) AiProvider.google,
-        if (config.getIsGroqEnabled) AiProvider.groq,
       };
 
       final filtered = models.where((m) {

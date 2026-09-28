@@ -35,7 +35,6 @@ class UploadActionButtons extends ConsumerWidget {
               Expanded(
                 child: AppActionButton(
                   onPressed: () {
-                    notifier.reset();
                     Navigator.pop(context);
                   },
                   text: 'Cancel',
@@ -63,7 +62,6 @@ class UploadActionButtons extends ConsumerWidget {
     final success = await notifier.saveVideo();
     if (context.mounted) {
       if (success) {
-        notifier.reset();
         Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to add video')));

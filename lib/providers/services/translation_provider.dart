@@ -25,8 +25,8 @@ class TranslationNotifier extends Notifier<void> {
     
     // Clear cache on rebuild (e.g. video change)
     _sentToQueueIds.clear();
-    
-    // Immediate check on screen entry
+
+    // Immediate check on screen entry for current playback position (on-demand dynamic translation)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final currentTime = ref.read(playerTimeProvider('main'));
       _checkAndTranslateRealtime(currentTime);

@@ -226,26 +226,29 @@ class _SelectiveClearDataDialogState extends ConsumerState<_SelectiveClearDataDi
     required AdditionalWindowTheme theme,
     bool isCritical = false,
   }) {
-    return CheckboxListTile(
-      value: value,
-      onChanged: onChanged,
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: isCritical ? Colors.redAccent : theme.titleColor,
+    return Material(
+      color: Colors.transparent,
+      child: CheckboxListTile(
+        value: value,
+        onChanged: onChanged,
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isCritical ? Colors.redAccent : theme.titleColor,
+          ),
         ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(fontSize: 11, color: theme.mutedText),
+        ),
+        activeColor: isCritical ? Colors.redAccent : theme.primaryAccent,
+        contentPadding: EdgeInsets.zero,
+        controlAffinity: ListTileControlAffinity.leading,
+        dense: true,
+        visualDensity: VisualDensity.compact,
       ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(fontSize: 11, color: theme.mutedText),
-      ),
-      activeColor: isCritical ? Colors.redAccent : theme.primaryAccent,
-      contentPadding: EdgeInsets.zero,
-      controlAffinity: ListTileControlAffinity.leading,
-      dense: true,
-      visualDensity: VisualDensity.compact,
     );
   }
 }

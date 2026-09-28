@@ -44,35 +44,6 @@ class ControlButtonWidget extends ConsumerStatefulWidget {
     );
   }
 
-  static void openGroqKeyDialog(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ApiKeyConfigScreen(
-          type: ApiTokenType.groq,
-          title: 'Groq Cloud API Key',
-          description: 'Ultra-fast inference for translation and tokenization',
-          iconGradient: const [Color(0xFFF55036), Color(0xFFD946EF)],
-          icon: Icons.speed_rounded,
-          steps: const [
-            GuideStep(
-              title: 'Create Groq Account',
-              subtitle: 'Go to GroqCloud console and sign up.',
-              link: 'https://console.groq.com/',
-              linkLabel: 'Open GroqCloud',
-            ),
-            GuideStep(
-              title: 'Generate API Key',
-              subtitle: 'Go to API Keys section and create a new secret key.',
-              link: 'https://console.groq.com/keys',
-              linkLabel: 'Open API Keys',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   static void openJimakuKeyDialog(BuildContext context) {
     Navigator.push(
       context,
@@ -177,10 +148,6 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
         ref.read(openJimakuDialogProvider.notifier).state = false;
         ControlButtonWidget.openJimakuKeyDialog(context);
       }
-      if (ref.read(openGroqDialogProvider)) {
-        ref.read(openGroqDialogProvider.notifier).state = false;
-        ControlButtonWidget.openGroqKeyDialog(context);
-      }
     });
   }
 
@@ -228,35 +195,24 @@ class _ControlButtonWidgetState extends ConsumerState<ControlButtonWidget> {
             Expanded(
               child: _settingsButton(
                 context,
-                title: 'Groq key',
-                onPressed: () => ControlButtonWidget.openGroqKeyDialog(context),
+                title: 'Jimaku key',
+                onPressed: () => ControlButtonWidget.openJimakuKeyDialog(context),
               ),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _settingsButton(
-                context,
-                title: 'Jimaku key',
-                onPressed: () => ControlButtonWidget.openJimakuKeyDialog(context),
-              ),
+        SizedBox(
+          width: double.infinity,
+          child: _settingsButton(
+            context,
+            title: 'Clear Database',
+            onPressed: () => ControlButtonWidget._openSettingDialogStatic(
+              context,
+              title: 'Clear Database',
+              builder: (context) => _clearDatabaseDialog(context),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _settingsButton(
-                context,
-                title: 'Clear Database',
-                onPressed: () => ControlButtonWidget._openSettingDialogStatic(
-                  context,
-                  title: 'Clear Database',
-                  builder: (context) => _clearDatabaseDialog(context),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ],
     );

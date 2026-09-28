@@ -5,6 +5,7 @@ import 'package:eiga/backend/database/schemas/job.dart';
 import 'package:eiga/backend/services/background/translation_background_manager.dart';
 import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/ui/styles/app_colors.dart';
+import 'package:eiga/ui/widgets/shared/video_timeline_progress.dart';
 import '../cards/translation_job_card.dart';
 import '../cards/translation_queue_card.dart';
 
@@ -49,6 +50,7 @@ class TranslationProgressSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final videoAsync = ref.watch(currentVideoStreamProvider);
     final queue = ref.watch(translationQueueProvider);
+    final phrases = ref.watch(phrasesStreamProvider).value ?? [];
     final expandedGroups = useState<Set<String>>({});
 
     return videoAsync.when(
@@ -141,6 +143,23 @@ class TranslationProgressSheet extends HookConsumerWidget {
                     shrinkWrap: true,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     children: [
+                      // Timeline Map (only if blocks exist)
+                      if (video.transcriptionBlocks != null && video.transcriptionBlocks!.isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.slate200),
+                          ),
+                          child: VideoTimelineProgress(
+                            video: video,
+                            phrases: phrases,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
                       // Active Pipelines
                       if (activeGroups.isNotEmpty) ...[
                         ...activeGroups.map((group) => _buildGroupBlock(group, expandedGroups.value, expandedGroups, totalPhrasesCount)),

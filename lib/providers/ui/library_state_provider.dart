@@ -70,5 +70,21 @@ final filteredVideosProvider = Provider<AsyncValue<List<Video>>>((ref) {
 
 final activeJobsProvider = StreamProvider<List<Job>>((ref) {
   final service = ref.watch(jobServiceProvider);
-  return service.watchAllActiveJobs();
+  return service.watchAllActiveJobs().map((jobs) {
+    final seenVideoIdsForTranscription = <int>{};
+    final uniqueJobs = <Job>[];
+    for (var job in jobs) {
+      if (job.pipelineId == 'ai_transcription_v1') {
+        if (job.videoId != null && !seenVideoIdsForTranscription.contains(job.videoId)) {
+          seenVideoIdsForTranscription.add(job.videoId!);
+          uniqueJobs.add(job);
+        } else if (job.videoId == null) {
+          uniqueJobs.add(job);
+        }
+      } else {
+        uniqueJobs.add(job);
+      }
+    }
+    return uniqueJobs;
+  });
 });

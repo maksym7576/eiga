@@ -122,7 +122,7 @@ class LibraryScreen extends ConsumerWidget {
                     crossAxisCount: 2,
                     mainAxisSpacing: 16,
                     crossAxisSpacing: 16,
-                    childAspectRatio: 0.7,
+                    childAspectRatio: 0.60,
                   ),
                   itemCount: videos.length,
                   itemBuilder: (context, index) {

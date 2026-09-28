@@ -56,7 +56,7 @@ class PhraseOriginalContent extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final video = ref.watch(currentVideoProvider).value;
+    final video = ref.read(currentVideoProvider).value;
     final languageName = video?.originalLanguage ?? 'Japanese';
     final languageConfig = LanguageHub.getByName(languageName);
 
@@ -94,7 +94,7 @@ class PhraseOriginalContent extends HookConsumerWidget {
       }
 
       if (trimmedFallback.isEmpty) {
-        if (phrase.uiStatus.isProcessing) {
+        if (phrase.isTranslating) {
           final stage = phrase.uiStatus.activeStageKey;
           String label = 'Processing...';
 

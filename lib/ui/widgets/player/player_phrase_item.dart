@@ -1,48 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../backend/database/schemas/phrase.dart';
-import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
+import 'package:eiga/providers/ui/video_data_providers.dart';
 import '../../../providers/services/translation_provider.dart';
 import '../subtitles/windowed_subtitle.dart';
-import '../subtitles/components/shimmer_text.dart';
 
 class PlayerPhraseItem extends HookConsumerWidget {
   final Phrase phrase;
-  final bool isActive;
-  final bool isPast;
-  final bool isFuture;
   final String playerScope;
 
   const PlayerPhraseItem({
     super.key,
     required this.phrase,
-    this.isActive = false,
-    this.isPast = false,
-    this.isFuture = false,
     this.playerScope = 'main',
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isActive = ref.watch(
+      stickyActivePhraseIdProvider(playerScope).select((activePhraseId) => activePhraseId == phrase.id),
+    );
     final isAutoScrollEnabled = ref.watch(isAutoScrollEnabledProvider(playerScope));
-    // Removed playerTimeProvider watch to prevent high-frequency rebuilds
 
     final startBase = DateTime(1970, 1, 1);
 
-    // Transparency logic for both text and time
-    double itemOpacity = 1.0;
-    if (isActive) {
-      itemOpacity = 1.0;
-    } else if (isPast) {
-      itemOpacity = 0.5; // Increased from 0.35 to ensure processing animations are visible
-    } else if (isFuture) {
-      itemOpacity = 0.7; // Slightly increased for better overall balance
-    }
-
-    // A card is only considered "translating" if its current stage is actually in 'processing' state.
-    // Cards in 'pending' or 'completed' should not show background animations.
-    final bool isTranslating = phrase.uiStatus.isProcessing;
+    double itemOpacity = isActive ? 1.0 : 0.7;
+    final bool isTranslating = phrase.isTranslating;
 
     return RepaintBoundary(
       child: GestureDetector(
@@ -53,21 +37,19 @@ class PlayerPhraseItem extends HookConsumerWidget {
             ref.read(playerProvider(playerScope).notifier).seekTo(position);
             ref.read(playerProvider(playerScope).notifier).setAutoScroll(true);
             
-            // If not translated, trigger a focused translation request for this part of video
             if (!phrase.isTranslated && !phrase.isTranslating) {
               ref.read(translationProvider.notifier).checkAndTranslateRealtime(position);
             }
           }
-          // Clear word selection when tapping background
           ref.read(playerProvider(playerScope).notifier).clearSelection();
           ref.read(playerProvider(playerScope).notifier).setPlaying(true);
         },
-        child: _buildMainContent(context, ref, isAutoScrollEnabled, isTranslating, itemOpacity),
+        child: _buildMainContent(context, ref, isAutoScrollEnabled, isTranslating, itemOpacity, isActive),
       ),
     );
   }
 
-  Widget _buildMainContent(BuildContext context, WidgetRef ref, bool isAutoScrollEnabled, bool isTranslating, double itemOpacity) {
+  Widget _buildMainContent(BuildContext context, WidgetRef ref, bool isAutoScrollEnabled, bool isTranslating, double itemOpacity, bool isActive) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.only(
@@ -80,8 +62,8 @@ class PlayerPhraseItem extends HookConsumerWidget {
         gradient: isActive
             ? const LinearGradient(
                 colors: [
-                  Color(0xB2EEF2FF), // EEF2FF @ 70%
-                  Color(0x4DEEF2FF), // EEF2FF @ 30%
+                  Color(0xB2EEF2FF),
+                  Color(0x4DEEF2FF),
                   Colors.transparent,
                 ],
                 stops: [0.0, 0.5, 1.0],
@@ -111,7 +93,7 @@ class PlayerPhraseItem extends HookConsumerWidget {
                 Expanded(
                   child: WindowedSubtitle(
                     phrase: phrase,
-                    isPast: isPast,
+                    isPast: false,
                     playerScope: playerScope,
                   ),
                 ),
@@ -143,7 +125,6 @@ class PlayerPhraseItem extends HookConsumerWidget {
     final startTime = phrase.startTime;
     if (startTime == null) return const SizedBox(width: 28);
 
-    // Use DateTime components directly - much faster than duration difference math
     final minutes = startTime.minute.toString().padLeft(2, '0');
     final seconds = startTime.second.toString().padLeft(2, '0');
     final hours = startTime.hour;

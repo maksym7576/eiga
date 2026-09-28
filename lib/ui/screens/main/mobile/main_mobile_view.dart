@@ -253,7 +253,7 @@ class _MainMobileViewState extends ConsumerState<MainMobileView> {
           // 6. Video Horizontal List
           SliverToBoxAdapter(
             child: SizedBox(
-              height: 240,
+              height: 310,
               child: videosAsync.when(
                 data: (videos) {
                   if (videos.isEmpty) {
@@ -273,7 +273,7 @@ class _MainMobileViewState extends ConsumerState<MainMobileView> {
                       final video = videos[index];
                       return VideoLibraryCard(
                         videoId: video.id,
-                        width: 150,
+                        width: 175,
 
                         onTap: () {
                           ref.read(playerIdProvider.notifier).state = video.id;

@@ -31,10 +31,13 @@ class FFmpegService {
     required int startSeconds,
     required int durationSeconds,
     int bitRateKbps = 128,
+    int? audioTrackIndex,
   }) async {
-    final session = await FFmpegKit.execute(
-      '-ss $startSeconds -t $durationSeconds -i "$inputPath" -vn -acodec libmp3lame -b:a ${bitRateKbps}k "$outputPath"'
-    );
+    final mapArg = audioTrackIndex != null && audioTrackIndex >= 0 ? '-map 0:a:$audioTrackIndex' : '';
+    final command = '-y -ss $startSeconds -t $durationSeconds -i "$inputPath" $mapArg -vn -acodec libmp3lame -b:a ${bitRateKbps}k "$outputPath"';
+    logger.i('[FFmpegService] Extracting audio (track: $audioTrackIndex, start: ${startSeconds}s, duration: ${durationSeconds}s)');
+    
+    final session = await FFmpegKit.execute(command);
     
     final returnCode = await session.getReturnCode();
     if (!ReturnCode.isSuccess(returnCode)) {
@@ -52,10 +55,11 @@ class FFmpegService {
     required int startSeconds,
     required int durationSeconds,
     int sampleRate = 16000,
+    int? audioTrackIndex,
   }) async {
-    final session = await FFmpegKit.execute(
-      '-ss $startSeconds -t $durationSeconds -i "$inputPath" -vn -ac 1 -ar $sampleRate -f wav "$outputPath"'
-    );
+    final mapArg = audioTrackIndex != null && audioTrackIndex >= 0 ? '-map 0:a:$audioTrackIndex' : '';
+    final command = '-y -ss $startSeconds -t $durationSeconds -i "$inputPath" $mapArg -vn -ac 1 -ar $sampleRate -f wav "$outputPath"';
+    final session = await FFmpegKit.execute(command);
     
     final returnCode = await session.getReturnCode();
     return ReturnCode.isSuccess(returnCode);

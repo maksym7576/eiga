@@ -55,7 +55,7 @@ class SubtitleTextContent extends HookConsumerWidget {
     final selectionLayerLink =
     isThisPhraseSelected ? ref.watch(selectionLayerLinkProvider(playerScope)) : null;
 
-    final statusMap = ref.watch(lemmaToStatusMapProvider).value ?? {};
+    final statusMap = ref.read(lemmaToStatusMapProvider).value ?? {};
     final index =
     PhraseLinkIndex(phrase.originalTokens ?? [], phrase.translatedWords ?? [], phrase.linkGroups);
 

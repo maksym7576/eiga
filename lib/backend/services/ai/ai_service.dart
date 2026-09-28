@@ -230,9 +230,6 @@ class AiService {
         
         // Force v1beta for ALL models for consistency and compatibility
         return 'https://generativelanguage.googleapis.com/v1beta/models/${model.name}$endpoint?key=$token$sse';
-      
-      case AiProvider.groq:
-        return 'https://api.groq.com/openai/v1/chat/completions';
 
       case AiProvider.openai:
       case AiProvider.anthropic:
@@ -271,7 +268,6 @@ class AiService {
               final allModels = await ref.read(aiModelServiceProvider).getAllModels();
               final enabledProviders = {
                 if (config.getIsGeminiEnabled) AiProvider.google,
-                if (config.getIsGroqEnabled) AiProvider.groq,
               };
               final ranked = AiModelScorer.rankModels(
                 allModels, 
@@ -316,7 +312,6 @@ class AiService {
            final allModels = await ref.read(aiModelServiceProvider).getAllModels();
            final enabledProviders = {
              if (config.getIsGeminiEnabled) AiProvider.google,
-             if (config.getIsGroqEnabled) AiProvider.groq,
            };
            final ranked = AiModelScorer.rankModels(
              allModels, 
@@ -427,13 +422,14 @@ class AiService {
     final origMethod = config.getTokenizationMethod(origLangName);
     final destMethod = config.getTokenizationMethod(destLangName);
 
-    final toTranslateIds = phrases.where((p) => p.translatedPhrase == null || p.translatedPhrase!.isEmpty).map((e) => e.id).toList();
-    final toTokenizeOrigIds = phrases.where((p) => p.originalTokens == null || p.originalTokens!.isEmpty).map((e) => e.id).toList();
-    final toTokenizeDestIds = phrases.where((p) => p.translatedWords == null || p.translatedWords!.isEmpty).toList();
-    final toMorphIds = phrases.where((p) => p.stageStatuses[StageKey.morphology] != 'completed').map((e) => e.id).toList();
-    final toGrammarRoleIds = phrases.where((p) => p.stageStatuses[StageKey.grammarRole] != 'completed').map((e) => e.id).toList();
+    final toContextIds = phrases.where((p) => !p.isStageCompleted(StageKey.context)).map((e) => e.id).toList();
+    final toTranslateIds = phrases.where((p) => !p.isStageCompleted(StageKey.translation)).map((e) => e.id).toList();
+    final toTokenizeOrigIds = phrases.where((p) => !p.isStageCompleted(StageKey.tokenizeSource)).map((e) => e.id).toList();
+    final toTokenizeDestIds = phrases.where((p) => !p.isStageCompleted(StageKey.tokenizeTranslation)).map((e) => e.id).toList();
+    final toMorphIds = phrases.where((p) => !p.isStageCompleted(StageKey.morphology)).map((e) => e.id).toList();
+    final toGrammarRoleIds = phrases.where((p) => !p.isStageCompleted(StageKey.grammarRole)).map((e) => e.id).toList();
 
-    if (video.isResearchDone != true && toTranslateIds.isNotEmpty) {
+    if (video.isResearchDone != true && toContextIds.isNotEmpty) {
       plan.add({
         'type': 'context', 
         'method': 'ai',
@@ -453,36 +449,19 @@ class AiService {
     }
 
     // For translated language
-    final List<int> destTokenizeIds = {
-      ...toTranslateIds, 
-      ...phrases.where((p) => p.translatedWords == null || p.translatedWords!.isEmpty).map((e) => e.id)
-    }.toList();
-
-    if (destTokenizeIds.isNotEmpty) {
+    if (toTokenizeDestIds.isNotEmpty) {
       final methodStr = (destMethod == TokenizationMethod.ai) ? 'ai' : 'local';
-      _addBatchesToPlan(plan, 'tokenize_translation', destTokenizeIds, config.getBatchSizeTokenize, extra: {'method': methodStr});
+      _addBatchesToPlan(plan, 'tokenize_translation', toTokenizeDestIds, config.getBatchSizeTokenize, extra: {'method': methodStr});
     }
 
     // 4. Morphology (Predictive)
-    final List<int> morphologyNeededIds = {
-      ...toTranslateIds,
-      ...toTokenizeOrigIds,
-      ...toTokenizeDestIds.map((e) => e.id),
-      ...toMorphIds,
-    }.toList();
-
-    if (morphologyNeededIds.isNotEmpty) {
-      _addBatchesToPlan(plan, 'morphology', morphologyNeededIds, config.getBatchSizeMorphemes, extra: {'method': 'ai'});
+    if (toMorphIds.isNotEmpty) {
+      _addBatchesToPlan(plan, 'morphology', toMorphIds, config.getBatchSizeMorphemes, extra: {'method': 'ai'});
     }
 
     // 5. Grammar Role & Sentence Diagram (Predictive)
-    final List<int> grammarRoleNeededIds = {
-      ...morphologyNeededIds,
-      ...toGrammarRoleIds,
-    }.toList();
-
-    if (grammarRoleNeededIds.isNotEmpty) {
-      _addBatchesToPlan(plan, 'grammar_role', grammarRoleNeededIds, config.getBatchSizeGrammarRole, extra: {'method': 'ai'});
+    if (toGrammarRoleIds.isNotEmpty) {
+      _addBatchesToPlan(plan, 'grammar_role', toGrammarRoleIds, config.getBatchSizeGrammarRole, extra: {'method': 'ai'});
     }
 
     return plan;

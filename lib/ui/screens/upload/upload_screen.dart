@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -5,9 +6,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/ui/styles/additional_window_theme.dart';
 import 'package:eiga/utils/ui/responsive_helper.dart';
 import 'package:eiga/providers/ui/upload_provider.dart';
-import 'package:eiga/providers/ui/search_provider.dart';
-import 'package:eiga/providers/ui/video_data_providers.dart';
 import 'package:eiga/providers/ui/player_provider.dart';
+import 'package:eiga/providers/ui/search_provider.dart';
 
 import 'package:eiga/ui/widgets/shared/loading_splash.dart';
 import 'package:eiga/providers/services/service_health_providers.dart';
@@ -24,13 +24,14 @@ class UploadScreen extends HookConsumerWidget {
       uploadProvider.select((s) => s.isInitialized),
     );
     final selectedProvider = ref.watch(selectedMetadataProvider);
+    final previewPlayer = ref.read(playerProvider('preview').notifier);
 
     useEffect(() {
-      Future.microtask(() {
-        ref.read(uploadProvider.notifier).reset();
-      });
-      return null;
-    }, []);
+      return () {
+        previewPlayer.setPlaying(false);
+        unawaited(previewPlayer.disposeController());
+      };
+    }, [previewPlayer]);
 
     developer.log(
       'UploadScreen build: triggering health check for $selectedProvider',
@@ -39,11 +40,6 @@ class UploadScreen extends HookConsumerWidget {
     ref.watch(checkServiceProviderStatus(selectedProvider));
 
     return PopScope(
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) {
-          ref.read(uploadProvider.notifier).reset();
-        }
-      },
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 600),
         switchInCurve: Curves.easeIn,

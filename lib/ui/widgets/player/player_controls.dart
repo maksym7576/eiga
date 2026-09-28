@@ -13,11 +13,11 @@ class PlayerControls extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playerState = ref.watch(playerProvider(playerScope));
-    final isLocked = playerState.isLocked;
+    final isLocked = ref.watch(playerProvider(playerScope).select((state) => state.isLocked));
     final isPlaying = ref.watch(isPlayingProvider(playerScope));
-    final areVisible = playerState.areControlsVisible;
-    final isFullscreen = playerState.isFullscreen;
+    final areVisible = ref.watch(playerProvider(playerScope).select((state) => state.areControlsVisible));
+    final isFullscreen = ref.watch(playerProvider(playerScope).select((state) => state.isFullscreen));
+    final isLocking = ref.watch(playerProvider(playerScope).select((state) => state.isLocking));
 
     return Stack(
       children: [
@@ -75,13 +75,13 @@ class PlayerControls extends ConsumerWidget {
         // 4. Top Overlay (always clickable when locked or locking or visible so the lock button works!)
         AnimatedPositioned(
           duration: const Duration(milliseconds: 250),
-          top: (areVisible || playerState.isLocking || isLocked) ? 12 : -60,
+          top: (areVisible || isLocking || isLocked) ? 12 : -60,
           right: 12,
           child: AnimatedOpacity(
-            opacity: (areVisible || playerState.isLocking || isLocked) ? 1.0 : 0.0,
+            opacity: (areVisible || isLocking || isLocked) ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 250),
             child: IgnorePointer(
-              ignoring: (!areVisible && !playerState.isLocking && !isLocked),
+              ignoring: (!areVisible && !isLocking && !isLocked),
               child: _TopOverlay(playerScope: playerScope),
             ),
           ),
@@ -220,7 +220,6 @@ class _BottomBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final duration = ref.watch(playerProvider(playerScope).select((s) => s.duration));
-    final position = ref.watch(playerTimeProvider(playerScope));
     final playbackRate = ref.watch(playerProvider(playerScope).select((s) => s.playbackRate));
     final isFullscreen = ref.watch(playerProvider(playerScope).select((s) => s.isFullscreen));
 
@@ -242,7 +241,7 @@ class _BottomBar extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _ProgressBar(
-            position: position,
+            playerScope: playerScope,
             duration: duration,
             onSeek: (val) {
               ref.read(playerProvider(playerScope).notifier).seekTo(val);
@@ -255,15 +254,7 @@ class _BottomBar extends ConsumerWidget {
             children: [
               _FrostedPill(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                child: Text(
-                  '${_formatDuration(position)} / ${_formatDuration(duration)}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    fontFamily: 'monospace',
-                  ),
-                ),
+                child: _PositionDuration(playerScope: playerScope, duration: duration),
               ),
               Row(
                 children: [
@@ -310,6 +301,30 @@ class _BottomBar extends ConsumerWidget {
     );
   }
 
+}
+
+class _PositionDuration extends ConsumerWidget {
+  final String playerScope;
+  final Duration duration;
+
+  const _PositionDuration({required this.playerScope, required this.duration});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final positionSeconds = ref.watch(
+      playerPositionStreamProvider(playerScope).select((value) => value.value?.inSeconds ?? 0),
+    );
+    return Text(
+      '${_formatDuration(Duration(seconds: positionSeconds))} / ${_formatDuration(duration)}',
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        fontFamily: 'monospace',
+      ),
+    );
+  }
+
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, "0");
     String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
@@ -321,19 +336,20 @@ class _BottomBar extends ConsumerWidget {
   }
 }
 
-class _ProgressBar extends StatelessWidget {
-  final Duration position;
+class _ProgressBar extends ConsumerWidget {
+  final String playerScope;
   final Duration duration;
   final ValueChanged<Duration> onSeek;
 
   const _ProgressBar({
-    required this.position,
+    required this.playerScope,
     required this.duration,
     required this.onSeek,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final position = ref.watch(playerPositionStreamProvider(playerScope)).value ?? Duration.zero;
     final double value = duration.inMilliseconds > 0 
         ? position.inMilliseconds / duration.inMilliseconds 
         : 0.0;

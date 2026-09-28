@@ -2,9 +2,7 @@ import 'dart:convert';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:eiga/backend/database/schemas/ai_model.dart';
 import 'package:eiga/backend/services/petition_ai/gemini/gemini_service.dart';
-import 'package:eiga/backend/services/petition_ai/groq/groq_service.dart';
 import 'package:eiga/backend/services/petition_ai/gemini/gemini_streaming_service.dart';
-import 'package:eiga/backend/services/petition_ai/groq/groq_streaming_service.dart';
 import 'package:eiga/providers/services/ai_request_state.dart';
 import 'package:eiga/backend/services/utils/ai_exceptions.dart';
 import 'package:eiga/utils/logger.dart';
@@ -12,24 +10,18 @@ import 'package:eiga/utils/logger.dart';
 class TextAiService {
   final Ref ref;
   final GeminiService geminiService;
-  final GroqService groqService;
   final GeminiStreamingService geminiStreamingService;
-  final GroqStreamingService groqStreamingService;
 
   TextAiService({
     required this.ref,
     required this.geminiService,
-    required this.groqService,
     required this.geminiStreamingService,
-    required this.groqStreamingService,
   });
 
   Future<String> sendRequest(String url, String prompt, {required AiModel model}) async {
     switch (model.provider) {
       case AiProvider.google:
         return await geminiService.sendRequest(url, prompt, model: model);
-      case AiProvider.groq:
-        return await groqService.sendRequest(url, prompt, model: model);
       case AiProvider.openai:
       case AiProvider.anthropic:
       case AiProvider.custom:
@@ -55,10 +47,6 @@ class TextAiService {
           return await geminiStreamingService.fetchParseAndSaveData(
             url, prompt, model: model, expectedIds: expectedIds, onProgress: onProgress, language: language, useSoftReset: useSoftReset
           );
-        case AiProvider.groq:
-          return await groqStreamingService.fetchParseAndSaveData(
-            url, prompt, model: model, expectedIds: expectedIds, onProgress: onProgress, language: language, useSoftReset: useSoftReset
-          );
         default:
           return await geminiStreamingService.fetchParseAndSaveData(
             url, prompt, model: model, expectedIds: expectedIds, onProgress: onProgress, language: language, useSoftReset: useSoftReset
@@ -68,11 +56,6 @@ class TextAiService {
       switch (model.provider) {
         case AiProvider.google:
           return await geminiService.fetchParseAndSaveData(
-            url, prompt, model: model, expectedIds: expectedIds, onProgress: onProgress, language: language, useSoftReset: useSoftReset
-          );
-        // Add Groq non-streaming parsing if needed
-        case AiProvider.groq:
-          return await groqService.fetchParseAndSaveData(
             url, prompt, model: model, expectedIds: expectedIds, onProgress: onProgress, language: language, useSoftReset: useSoftReset
           );
         default:

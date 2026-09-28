@@ -3,6 +3,7 @@ import 'package:eiga/backend/database/schemas/ai_model.dart';
 import 'package:eiga/backend/database/schemas/ai_model_event.dart';
 import 'package:eiga/config/pipelines/pipeline_steps.dart';
 import 'package:eiga/providers/services/ai_request_state.dart';
+import 'package:eiga/utils/logger.dart';
 
 class AiModelService {
   final Isar isar;
@@ -72,6 +73,14 @@ class AiModelService {
         .watch(fireImmediately: true);
   }
 
+  Stream<List<AiModelEvent>> watchRecentEvents({int limit = 15}) {
+    return isar.aiModelEvents
+        .where()
+        .sortByTimestampDesc()
+        .limit(limit)
+        .watch(fireImmediately: true);
+  }
+
   Future<void> incrementUsage(String name, int amount) async {
     // Deprecated: use logEvent for better tracking
     await logEvent(modelName: name, result: AiRequestPhase.success);
@@ -102,6 +111,23 @@ class AiModelService {
         await isar.aiModels.put(model);
       }
     });
+  }
+
+  Future<void> resetQuotasForProvider(AiProvider provider) async {
+    final models = await getAllModels();
+    await isar.writeTxn(() async {
+      for (var model in models) {
+        if (model.provider == provider) {
+          model.dailyUsed = 0;
+          model.used = 0;
+          model.errorCount = 0;
+          model.lastErrorMessage = null;
+          model.lastErrorAt = null;
+          await isar.aiModels.put(model);
+        }
+      }
+    });
+    logger.i('[AiModelService] 🔄 Reset quotas and error counts for provider: ${provider.name}');
   }
 
   Future<void> resetToDefaults(String name) async {

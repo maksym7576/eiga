@@ -26,8 +26,9 @@ class FullscreenSubtitle extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playerState = ref.watch(playerProvider(playerScope));
-    if (!playerState.isInitialized && !forceShow) return const SizedBox.shrink();
+    final isInitialized = ref.watch(playerProvider(playerScope).select((state) => state.isInitialized));
+    final isFullscreen = ref.watch(playerProvider(playerScope).select((state) => state.isFullscreen));
+    if (!isInitialized && !forceShow) return const SizedBox.shrink();
 
     final position = ref.watch(playerTimeProvider(playerScope));
     final List<Phrase> activePhrases = [];
@@ -108,7 +109,7 @@ class FullscreenSubtitle extends ConsumerWidget {
                         addOpt,
                         showTranslation,
                         baseFontSize,
-                        playerState.isFullscreen,
+                        isFullscreen,
                       )),
 
                       // Переклад знизу тільки для прев'ю
@@ -149,7 +150,7 @@ class FullscreenSubtitle extends ConsumerWidget {
       double fontSize,
       bool isFullscreen,
       ) {
-    final isProcessing = phrase.uiStatus.isProcessing;
+    final isProcessing = phrase.isTranslating;
 
     final content = SubtitleTextContent(
       phrase: phrase,

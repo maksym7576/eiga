@@ -498,14 +498,12 @@ const _AiModelproviderEnumValueMap = {
   r'google': r'google',
   r'openai': r'openai',
   r'anthropic': r'anthropic',
-  r'groq': r'groq',
   r'custom': r'custom',
 };
 const _AiModelproviderValueEnumMap = {
   r'google': AiProvider.google,
   r'openai': AiProvider.openai,
   r'anthropic': AiProvider.anthropic,
-  r'groq': AiProvider.groq,
   r'custom': AiProvider.custom,
 };
 const _AiModelqualityEnumValueMap = {

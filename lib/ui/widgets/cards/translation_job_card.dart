@@ -5,6 +5,10 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import '../../../../backend/database/schemas/job.dart';
 import '../../../../backend/services/background/translation_background_manager.dart';
 import 'package:eiga/providers/ui/hint_provider.dart';
+import 'package:eiga/ui/widgets/shared/video_timeline_progress.dart';
+import 'package:eiga/providers/ui/video_data_providers.dart';
+import 'package:eiga/ui/styles/app_colors.dart';
+import 'package:eiga/providers/services/ai_request_state.dart';
 
 /// Кольорова палітра, як у макеті (iOS-style)
 class _C {
@@ -119,14 +123,7 @@ class TranslationJobCard extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: (job.totalPhrases ?? 0) > 0 || (job.status != 'active')
-                  ? (job.processedPhrases ?? 0) / 100
-                  : 0.0,
-              backgroundColor: _C.greyLine,
-              color: _C.accent,
-              borderRadius: BorderRadius.circular(4),
-            ),
+            _TranscriptionTimeBreakdown(job: job),
           ],
           if (job.executionPlan != null && job.pipelineId != 'ai_transcription_v1') ...[
             const SizedBox(height: 20),
@@ -257,6 +254,8 @@ class _Header extends StatelessWidget {
             letterSpacing: 0.2,
           ),
         ),
+        const SizedBox(height: 4),
+        _ElapsedTimeWidget(job: job),
       ],
     );
   }
@@ -330,6 +329,251 @@ class _ErrorBanner extends StatelessWidget {
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF9F1239)),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TranscriptionTimeBreakdown extends ConsumerWidget {
+  final Job job;
+  const _TranscriptionTimeBreakdown({required this.job});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final videoAsync = ref.watch(videoProvider(job.videoId));
+    final phrasesAsync = ref.watch(phrasesByVideoIdProvider(job.videoId));
+
+    final video = videoAsync.value;
+    final phrases = phrasesAsync.value ?? [];
+
+    if (video == null) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.slate200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _AiActivityLogSection(job: job),
+          const SizedBox(height: 12),
+          _VideoInternalDataSection(job: job),
+        ],
+      ),
+    );
+  }
+}
+
+class _VideoInternalDataSection extends ConsumerWidget {
+  final Job job;
+  const _VideoInternalDataSection({required this.job});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final videoAsync = ref.watch(videoProvider(job.videoId));
+    final video = videoAsync.value;
+
+    if (video == null) return const SizedBox.shrink();
+
+    return Material(
+      color: Colors.transparent,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.slate50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.slate200),
+          ),
+          child: ExpansionTile(
+            title: const Row(
+              children: [
+                Icon(Icons.code_rounded, size: 14, color: AppColors.brandBlue),
+                SizedBox(width: 6),
+                Text(
+                  'Video Internal Data & AI Schema',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.slate700),
+                ),
+              ],
+            ),
+            childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            backgroundColor: Colors.transparent,
+            collapsedBackgroundColor: Colors.transparent,
+            children: [
+              _kvRow('File Name', video.fileName ?? 'N/A'),
+              _kvRow('Metadata Source', video.metadataProvider ?? 'N/A'),
+              _kvRow('Subtitle Source', video.subtitleSource ?? 'N/A'),
+              _kvRow('Subtitle Method', video.subtitleMethodUsed ?? 'N/A'),
+              _kvRow('Languages', '${video.originalLanguage ?? 'Unknown'} - ${video.translatedLanguage ?? 'Unknown'}'),
+              _kvRow('Season / Episode', 'S${video.season ?? '1'} . Ep ${video.episode ?? '1'}'),
+              _kvRow('Audio Stream Index', '${video.selectedAudioTrackIndex ?? 0}'),
+              _kvRow('Is Subtitle Ready', video.isSubtitleReady == true ? 'YES' : 'NO'),
+              _kvRow('Total Blocks', '${video.transcriptionBlocks?.length ?? 0} blocks'),
+              _kvRow('Created At', video.createdAt?.toString() ?? 'N/A'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _kvRow(String key, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(key, style: const TextStyle(fontSize: 10, color: AppColors.slate500, fontWeight: FontWeight.w600)),
+          Text(value, style: const TextStyle(fontSize: 10, color: AppColors.slate800, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+        ],
+      ),
+    );
+  }
+}
+
+class _AiActivityLogSection extends ConsumerWidget {
+  final Job job;
+  const _AiActivityLogSection({required this.job});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final videoAsync = ref.watch(videoProvider(job.videoId));
+    final video = videoAsync.value;
+    final blocks = video?.transcriptionBlocks ?? [];
+    final completedCount = blocks.where((b) => b.status == 'completed' || b.status == 'warning').length;
+    final totalCount = blocks.isNotEmpty ? blocks.length : 1;
+    final bool isAllCompleted = blocks.isNotEmpty && completedCount == blocks.length;
+
+    final logs = video?.activityLogs ?? [];
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.slate50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.slate200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.verified_rounded, size: 14, color: AppColors.brandBlue),
+                  SizedBox(width: 6),
+                  Text(
+                    'Local AI Quality Judge & Model History',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.slate700),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  isAllCompleted ? 'Completed' : 'Processing ($completedCount/$totalCount)',
+                  style: TextStyle(
+                    fontSize: 9, 
+                    fontWeight: FontWeight.bold, 
+                    color: isAllCompleted ? const Color(0xFF10B981) : AppColors.brandBlue,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (logs.isEmpty)
+            const Text(
+              'Initializing transcription worker threads...',
+              style: TextStyle(fontSize: 10, color: AppColors.slate500, fontStyle: FontStyle.italic),
+            )
+          else
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 150),
+              child: ListView.builder(
+                shrinkWrap: false,
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: logs.length,
+                itemBuilder: (context, index) {
+                  final ev = logs[logs.length - 1 - index];
+                  final isAnalyzer = (ev.modelName ?? '').contains('AudioAnalyzer');
+                  final isSuccess = ev.result == 'success';
+                  final color = isAnalyzer ? AppColors.brandBlue : (isSuccess ? const Color(0xFF10B981) : AppColors.warningText);
+                  final timeStr = ev.timestamp != null 
+                      ? '${ev.timestamp!.hour.toString().padLeft(2, '0')}:${ev.timestamp!.minute.toString().padLeft(2, '0')}:${ev.timestamp!.second.toString().padLeft(2, '0')}'
+                      : '';
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 6, 
+                          height: 6, 
+                          decoration: BoxDecoration(
+                            color: color, 
+                            shape: isAnalyzer ? BoxShape.rectangle : BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '[$timeStr]',
+                          style: const TextStyle(fontSize: 9, color: AppColors.slate400, fontFamily: 'monospace'),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          ev.modelName ?? 'AI',
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.slate800),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            ev.message ?? (isSuccess ? 'Success' : 'Error'),
+                            style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          if (isAllCompleted) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFECFDF5),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xA010B981)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF10B981)),
+                  SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '✅ All audio chunks successfully transcribed, evaluated by local judge, and verified!',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF065F46)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -410,6 +654,18 @@ class _StepperGrid extends StatelessWidget {
   }
 }
 
+IconData _stepIconFor(String? stepType) {
+  switch (stepType) {
+    case 'context': return Icons.lightbulb_outline;
+    case 'translation': return Icons.translate;
+    case 'tokenize_source': return Icons.subject;
+    case 'tokenize_translation': return Icons.short_text;
+    case 'morphology': return Icons.grain;
+    case 'grammar_role': return Icons.schema;
+    default: return Icons.radio_button_unchecked;
+  }
+}
+
 class _StepColumn extends HookConsumerWidget {
   final String stepName;
   final String? stepType;
@@ -459,6 +715,7 @@ class _StepColumn extends HookConsumerWidget {
         : null;
 
     final circleSize = isCompact ? 24.0 : 28.0;
+    final bool isMobile = MediaQuery.sizeOf(context).width < 600 || isCompact;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -493,33 +750,38 @@ class _StepColumn extends HookConsumerWidget {
                     subMessage: 'Model: $_model',
                   );
                 },
-                child: _StepIcon(state: state, size: circleSize),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                stepName,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: isCompact ? 10 : 11,
-                  fontWeight: FontWeight.w700, // Slightly bolder for better readability at small size
-                  color: state == _StepState.pending ? _C.grey : _C.dark,
+                child: Tooltip(
+                  message: '$stepName ($_model)',
+                  child: _StepIcon(state: state, size: circleSize, stepType: stepType),
                 ),
               ),
-              const SizedBox(height: 2),
-              _StepFooter(state: state, durationMs: durationMs, startTime: startTime),
             ],
           ),
         ),
+        if (!isMobile) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  stepName,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: isCompact ? 10 : 11,
+                    fontWeight: FontWeight.w700,
+                    color: state == _StepState.pending ? _C.grey : _C.dark,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                _StepFooter(state: state, durationMs: durationMs, startTime: startTime),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -561,42 +823,39 @@ class _StepFooter extends HookWidget {
 class _StepIcon extends StatelessWidget {
   final _StepState state;
   final double size;
-  const _StepIcon({required this.state, required this.size});
+  final String? stepType;
+  const _StepIcon({required this.state, required this.size, this.stepType});
 
   @override
   Widget build(BuildContext context) {
+    final iconData = _stepIconFor(stepType);
+
     switch (state) {
       case _StepState.done:
         return Container(
           width: size,
           height: size,
           decoration: const BoxDecoration(color: _C.success, shape: BoxShape.circle),
-          child: Icon(Icons.check, size: size * 0.55, color: Colors.white),
+          child: Icon(iconData, size: size * 0.52, color: Colors.white),
         );
       case _StepState.failed:
         return Container(
           width: size,
           height: size,
           decoration: const BoxDecoration(color: _C.error, shape: BoxShape.circle),
-          child: Icon(Icons.close, size: size * 0.5, color: Colors.white),
+          child: Icon(iconData, size: size * 0.52, color: Colors.white),
         );
       case _StepState.current:
         return Container(
           width: size,
           height: size,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: _C.accentBg,
             shape: BoxShape.circle,
             border: Border.all(color: _C.accent, width: 2),
             boxShadow: [BoxShadow(color: _C.accent.withValues(alpha: 0.15), blurRadius: 6, spreadRadius: 1)],
           ),
-          child: Center(
-            child: Container(
-              width: size * 0.28,
-              height: size * 0.28,
-              decoration: const BoxDecoration(color: _C.accent, shape: BoxShape.circle),
-            ),
-          ),
+          child: Icon(iconData, size: size * 0.52, color: _C.accent),
         );
       case _StepState.pending:
         return Container(
@@ -607,13 +866,7 @@ class _StepIcon extends StatelessWidget {
             shape: BoxShape.circle,
             border: Border.all(color: _C.greyLine, width: 2),
           ),
-          child: Center(
-            child: Container(
-              width: size * 0.28,
-              height: size * 0.28,
-              decoration: const BoxDecoration(color: _C.greyLine, shape: BoxShape.circle),
-            ),
-          ),
+          child: Icon(iconData, size: size * 0.52, color: _C.grey),
         );
     }
   }
@@ -650,5 +903,47 @@ class _StopButton extends StatelessWidget {
         child: const Icon(Icons.close, size: 14, color: _C.grey),
       ),
     );
+  }
+}
+
+class _ElapsedTimeWidget extends HookWidget {
+  final Job job;
+  const _ElapsedTimeWidget({required this.job});
+
+  @override
+  Widget build(BuildContext context) {
+    if (job.startTime == null) return const SizedBox.shrink();
+
+    final isActive = job.status == 'active';
+    if (isActive) {
+      useStream(useMemoized(() => Stream.periodic(const Duration(milliseconds: 100)), [job.startTime]));
+    }
+
+    final end = job.endTime ?? DateTime.now();
+    final elapsedSec = end.difference(job.startTime!).inMilliseconds / 1000;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.timer_outlined, size: 12, color: _C.grey),
+        const SizedBox(width: 4),
+        Text(
+          isActive ? 'Elapsed: ${elapsedStr(elapsedSec)}' : 'Duration: ${elapsedStr(elapsedSec)}',
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: _C.grey,
+            fontFamily: 'monospace',
+          ),
+        ),
+      ],
+    );
+  }
+
+  String elapsedStr(double sec) {
+    if (sec < 60) return '${sec.toStringAsFixed(1)}s';
+    int m = (sec ~/ 60);
+    int s = (sec % 60).toInt();
+    return '${m}m ${s}s';
   }
 }

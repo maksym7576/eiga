@@ -56,7 +56,6 @@ class _UploadMobileViewState extends State<UploadMobileView> {
           appBar: AppBlurHeader(
             title: 'Create Video',
             onBack: () {
-              notifier.reset();
               Navigator.pop(context);
             },
             actions: [
@@ -180,7 +179,6 @@ class _UploadMobileViewState extends State<UploadMobileView> {
                             )
                           : AppActionButton(
                               onPressed: () {
-                                notifier.reset();
                                 Navigator.pop(context);
                               },
                               text: 'Cancel',
@@ -233,7 +231,6 @@ class _UploadMobileViewState extends State<UploadMobileView> {
     final success = await notifier.saveVideo();
     if (context.mounted) {
       if (success) {
-        notifier.reset();
         Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to add video')));

@@ -23,10 +23,8 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
     final isAutoSwitch = config.getIsAutomaticModelSwitch;
 
     final geminiTokenAsync = ref.watch(tokenProvider(ApiTokenType.gemini));
-    final groqTokenAsync = ref.watch(tokenProvider(ApiTokenType.groq));
 
     final hasGeminiToken = geminiTokenAsync.maybeWhen(data: (t) => t.isNotEmpty, orElse: () => false);
-    final hasGroqToken = groqTokenAsync.maybeWhen(data: (t) => t.isNotEmpty, orElse: () => false);
 
     return Scaffold(
       backgroundColor: theme.backgroundColor,
@@ -47,22 +45,8 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
               value: config.getIsGeminiEnabled && hasGeminiToken,
               isEnabled: hasGeminiToken,
               onChanged: (val) async {
-                if (!val && !config.getIsGroqEnabled) return; // Prevent disabling all
+                if (!val) return; // Prevent disabling all
                 await config.setIsGeminiEnabled(val);
-                ref.invalidate(aiModelsProvider);
-                setState(() {});
-              },
-            ),
-            const SizedBox(height: 12),
-            _buildSwitchCard(
-              context,
-              title: 'Enable Groq Cloud',
-              subtitle: 'Use Llama 3 & Mixtral via Groq for ultra-fast speed.',
-              value: config.getIsGroqEnabled && hasGroqToken,
-              isEnabled: hasGroqToken,
-              onChanged: (val) async {
-                if (!val && !config.getIsGeminiEnabled) return; // Prevent disabling all
-                await config.setIsGroqEnabled(val);
                 ref.invalidate(aiModelsProvider);
                 setState(() {});
               },

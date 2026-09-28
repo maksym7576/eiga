@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
@@ -17,6 +18,29 @@ import 'package:eiga/ui/widgets/overlays/global_hint_overlay.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
+
+  // Performance & FPS Monitor: logs FPS and jank stats to terminal every second
+  int frameCount = 0;
+  int jankCount = 0;
+  final stopwatch = Stopwatch()..start();
+
+  SchedulerBinding.instance.addTimingsCallback((List<FrameTiming> timings) {
+    frameCount += timings.length;
+    for (final timing in timings) {
+      if (timing.totalSpan.inMilliseconds > 18) {
+        jankCount++;
+      }
+    }
+
+    if (stopwatch.elapsedMilliseconds >= 1000) {
+      final fps = (frameCount * 1000) / stopwatch.elapsedMilliseconds;
+      debugPrint('📊 [Terminal FPS] ${fps.toStringAsFixed(1)} FPS | Jank frames: $jankCount');
+      frameCount = 0;
+      jankCount = 0;
+      stopwatch.reset();
+      stopwatch.start();
+    }
+  });
 
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     await windowManager.ensureInitialized();

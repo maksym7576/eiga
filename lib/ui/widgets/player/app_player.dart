@@ -37,19 +37,17 @@ class AppPlayer extends HookConsumerWidget {
     final orientation = MediaQuery.of(context).orientation;
     final isFullscreen = ref.watch(playerProvider(scope).select((s) => s.isFullscreen));
     final isInitialized = ref.watch(playerProvider(scope).select((s) => s.isInitialized));
+    final selectedVideoPath = videoPath;
 
     // Auto-init для preview scope або при зміні шляху
     useEffect(() {
-      if (videoPath != null && scope == 'preview') {
-        final playerState = ref.read(playerProvider(scope));
-        if (playerState.videoId != 0 || !playerState.isInitialized) {
-          Future.microtask(() {
-            ref.read(playerProvider(scope).notifier).initController(0, videoPath!);
-          });
-        }
+      if (selectedVideoPath != null && scope == 'preview') {
+        Future.microtask(() {
+          ref.read(playerProvider(scope).notifier).initController(0, selectedVideoPath);
+        });
       }
       return null;
-    }, [videoPath, scope]);
+    }, [selectedVideoPath, scope]);
 
     // Вибір доріжок з upload state (тільки для preview)
     if (scope == 'preview') {
@@ -96,7 +94,6 @@ class AppPlayer extends HookConsumerWidget {
               child: PlayerControls(playerScope: scope),
             ),
           ),
-          WordDetailsPopover(playerScope: scope),
         ],
       ),
     );

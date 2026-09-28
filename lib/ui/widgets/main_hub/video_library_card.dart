@@ -21,7 +21,7 @@ class VideoLibraryCard extends ConsumerWidget {
     super.key,
     required this.videoId,
     required this.onTap,
-    this.width = 160,
+    this.width = 175,
   });
 
   @override
@@ -109,71 +109,31 @@ class _VideoLibraryCardContent extends ConsumerWidget {
       final activeJob = activeJobs.firstOrNull;
       if (activeJob != null && activeJob.totalPhrases != null && activeJob.totalPhrases! > 0) {
         final jobProgress = (activeJob.processedPhrases ?? 0) / activeJob.totalPhrases!;
-        // Map job progress (0-1) to card progress (0.05 - 1.0)
         progress = 0.05 + (jobProgress * 0.95);
       }
-    }
-
-
-
-    Widget buildBaseImage(bool gray) {
-      Widget img = coverImage;
-      if (gray) {
-        img = ColorFiltered(
-          colorFilter: const ColorFilter.matrix([
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0,      0,      0,      1, 0,
-          ]),
-          child: img,
-        );
-      }
-      return img;
     }
 
     return GestureDetector(
       onTap: () {
         if (!isReady) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('AI is still generating subtitles for this video...')),
+            const SnackBar(content: Text('Opening video (AI is still generating subtitles)...')),
           );
-        } else if (hasNoSubtitles) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              title: const Text('Open without subtitles?'),
-              content: const Text('This video has no subtitles. Are you sure you want to open it?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    onTap();
-                  },
-                  child: const Text('Open', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
-          );
-        } else {
-          onTap();
         }
+        onTap();
       },
       child: SizedBox(
         width: width,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
+            AspectRatio(
+              aspectRatio: 3 / 4, // Taller portrait proportion for photo
               child: Container(
                 decoration: BoxDecoration(
                   color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05),
                   ),
@@ -181,90 +141,51 @@ class _VideoLibraryCardContent extends ConsumerWidget {
                 clipBehavior: Clip.antiAlias,
                 child: TweenAnimationBuilder<double>(
                   key: ValueKey(video.id),
-                  tween: Tween<double>(end: progress), // REMOVED begin: 0 to allow continuous animation
+                  tween: Tween<double>(end: progress),
                   duration: const Duration(milliseconds: 1500),
                   curve: Curves.easeOutCubic,
-
                   builder: (context, animatedProgress, child) {
-
                     return Stack(
                       fit: StackFit.expand,
                       children: [
-                        // Layer 1: The Grayscale & Blurred Base
-                        if (!isReady)
-                          ImageFiltered(
-                            imageFilter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                            child: buildBaseImage(true),
-                          )
-                        else
-                          buildBaseImage(false),
+                        coverImage,
                         
-                        // Layer 2: The Colored Part (Revealed left-to-right) - only during processing
-                        if (!isReady && animatedProgress > 0)
-                          ClipRect(
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: animatedProgress,
-                              child: buildBaseImage(false),
-                            ),
-                          ),
-
-
-                        // Layer 3: Shimmering Edge Line (for transcription)
-                        if (!isReady && animatedProgress > 0 && animatedProgress < 1.0)
-                          _ShimmerBoundary(progress: animatedProgress),
-
-                        // Layer 4: Global Shimmer for Active Translation (over the whole card)
-                        if (isReady && hasActiveTranslation)
-                          const _GlobalProcessingShimmer(),
-
-                        if (isReady) buildBaseImage(false),
-
-                        
+                        // Full Photo Shimmer & Processing Overlay when not ready
                         if (!isReady) ...[
-                          Positioned.fill(
-                            child: Container(
-                              color: Colors.black.withValues(alpha: 0.4),
-                              child: Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 32),
-                                    const SizedBox(height: 8),
-                                    const Text(
-                                      'AI WORKING',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 2,
-                                      ),
+                          const _GlobalProcessingShimmer(),
+                          Container(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 28),
+                                  const SizedBox(height: 6),
+                                  const Text(
+                                    'AI WORKING',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1.5,
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${(animatedProgress * 100).toInt()}%',
-                                      style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${(animatedProgress * 100).toInt()}%',
+                                    style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ),
-                          
-                          Positioned(
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            child: LinearProgressIndicator(
-                              value: animatedProgress,
-                              backgroundColor: Colors.white24,
-                              color: Colors.white,
-                              minHeight: 3,
                             ),
                           ),
                         ],
 
-                        // Gradient overlay
+                        // Global Shimmer for Active Translation
+                        if (isReady && hasActiveTranslation)
+                          const _GlobalProcessingShimmer(),
+
+                        // Gradient overlay for bottom elements
                         Positioned.fill(
                           child: DecoratedBox(
                             decoration: BoxDecoration(
@@ -283,24 +204,24 @@ class _VideoLibraryCardContent extends ConsumerWidget {
                         
                         // Top Info Row (Episode & Cache)
                         Positioned(
-                          top: 10,
-                          left: 10,
-                          right: 10,
+                          top: 8,
+                          left: 8,
+                          right: 8,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               if (video.episode != null)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                   decoration: BoxDecoration(
                                     color: Colors.black.withValues(alpha: 0.6),
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(8),
                                     border: Border.all(color: Colors.white24, width: 0.5),
                                   ),
                                   child: Text(
                                     'EP ${video.episode}',
                                     style: const TextStyle(
-                                      fontSize: 9, 
+                                      fontSize: 8, 
                                       fontWeight: FontWeight.w900, 
                                       color: Colors.white,
                                       letterSpacing: 0.5,
@@ -312,12 +233,12 @@ class _VideoLibraryCardContent extends ConsumerWidget {
                               
                               if (video.isCached)
                                 Container(
-                                  padding: const EdgeInsets.all(4),
+                                  padding: const EdgeInsets.all(3),
                                   decoration: BoxDecoration(
                                     color: AppColors.successText.withValues(alpha: 0.8),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(Icons.offline_pin_rounded, size: 10, color: Colors.white),
+                                  child: const Icon(Icons.offline_pin_rounded, size: 9, color: Colors.white),
                                 ),
                             ],
                           ),
@@ -325,28 +246,29 @@ class _VideoLibraryCardContent extends ConsumerWidget {
 
                         // Languages badge (Bottom Left)
                         Positioned(
-                          bottom: 12,
-                          left: 12,
+                          bottom: 8,
+                          left: 8,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(6),
                               border: Border.all(color: Colors.white24, width: 0.5),
                             ),
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   originalCode.toUpperCase(),
-                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white),
+                                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white),
                                 ),
                                 const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 4),
-                                  child: Icon(Icons.arrow_forward_rounded, size: 8, color: Colors.white70),
+                                  padding: EdgeInsets.symmetric(horizontal: 3),
+                                  child: Icon(Icons.arrow_forward_rounded, size: 7, color: Colors.white70),
                                 ),
                                 Text(
                                   targetCode.toUpperCase(),
-                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white),
+                                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white),
                                 ),
                               ],
                             ),
@@ -355,8 +277,8 @@ class _VideoLibraryCardContent extends ConsumerWidget {
                         
                         // Menu (Bottom Right)
                         Positioned(
-                          bottom: 8,
-                          right: 8,
+                          bottom: 6,
+                          right: 6,
                           child: _VideoCardMenu(video: video),
                         ),
                       ],
@@ -365,16 +287,17 @@ class _VideoLibraryCardContent extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 32,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     video.seriesName ?? video.fileName ?? 'Untitled',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 12,
                       fontWeight: FontWeight.w800,
                       color: isDark ? Colors.white : AppColors.slate900,
                       letterSpacing: -0.2,
@@ -382,18 +305,26 @@ class _VideoLibraryCardContent extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         dateStr,
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 10,
                           color: isDark ? Colors.white38 : AppColors.slate400,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+                      if (!isReady)
+                        Text(
+                          '${(progress * 100).toInt()}%',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Theme.of(context).primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                     ],
                   ),
                 ],

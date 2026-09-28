@@ -161,6 +161,9 @@ class TranslationBackgroundManager {
   }
 
   Future<void> _runTask(TranslationTask task) async {
+    // Delay task execution to allow smooth screen transition and player initialization at 60/120 FPS
+    await Future.delayed(const Duration(milliseconds: 1200));
+
     _activeTasks++;
     _activeTaskList.add(task);
     ref.read(activeTranslationTasksProvider.notifier).state = List.from(_activeTaskList);
@@ -176,7 +179,6 @@ class TranslationBackgroundManager {
       // PROACTIVE TOKEN CHECK: Avoid sending requests if tokens are completely empty
       final config = ref.read(appConfigsServiceProvider);
       final geminiToken = await SecureTokenStorage.getToken(ApiTokenType.gemini);
-      final groqToken = await SecureTokenStorage.getToken(ApiTokenType.groq);
 
       if (task.isTranscription) {
         if (geminiToken.isEmpty) {
@@ -216,25 +218,15 @@ class TranslationBackgroundManager {
 
       // PROACTIVE TOKEN & PROVIDER VALIDATION
       final isGeminiEnabled = config.getIsGeminiEnabled;
-      final isGroqEnabled = config.getIsGroqEnabled;
       final hasGeminiKey = geminiToken.isNotEmpty;
-      final hasGroqKey = groqToken.isNotEmpty;
 
-      // If we have at least one provider enabled and it HAS a key, we can proceed.
-      // The AiService/AiModelScorer will handle selecting the available one.
       final bool canWorkWithGemini = isGeminiEnabled && hasGeminiKey;
-      final bool canWorkWithGroq = isGroqEnabled && hasGroqKey;
 
-      if (!canWorkWithGemini && !canWorkWithGroq) {
+      if (!canWorkWithGemini) {
         logger.w('[Manager] Translation aborted: No available providers with API keys.');
         ref.read(playerProvider('main').notifier).setPlaying(false);
         
-        String errorMessage = 'Please enable at least one AI service (Gemini or Groq) and provide its API key in Settings.';
-        if (isGeminiEnabled && !hasGeminiKey && !isGroqEnabled) {
-          errorMessage = 'Gemini is enabled but API key is missing. Please add it in Settings.';
-        } else if (isGroqEnabled && !hasGroqKey && !isGeminiEnabled) {
-          errorMessage = 'Groq is enabled but API key is missing. Please add it in Settings.';
-        }
+        String errorMessage = 'Gemini is enabled but API key is missing. Please add it in Settings.';
 
         ref.read(aiErrorStateProvider.notifier).state = AiUserFacingError(
           title: 'AI Services Unavailable',
@@ -266,7 +258,6 @@ class TranslationBackgroundManager {
           if (stepType != null) {
              final enabledProviders = <AiProvider>{
                if (config.getIsGeminiEnabled) AiProvider.google,
-               if (config.getIsGroqEnabled) AiProvider.groq,
              };
              final fallback = await ref.read(aiModelServiceProvider).getBestFallbackModel(
                stepType, 

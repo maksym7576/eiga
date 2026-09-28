@@ -82,6 +82,61 @@ class Phrase {
     }
   }
 
+  factory Phrase.create({
+    int? videoId,
+    int? phraseOrder,
+    String? originalPhrase,
+    String? translatedPhrase,
+    DateTime? startTime,
+    DateTime? endTime,
+    bool isActive = false,
+    List<TokenEntry>? originalTokens,
+    List<TranslationTokenEntry>? translatedWords,
+    List<LinkGroup>? linkGroups,
+    List<List<int>>? idiomSpans,
+  }) {
+    final initialStatuses = <String, String>{};
+    for (final key in StageKey.order) {
+      initialStatuses[key] = StageState.pending.name;
+    }
+    return Phrase(
+      videoId: videoId,
+      phraseOrder: phraseOrder,
+      originalPhrase: originalPhrase,
+      translatedPhrase: translatedPhrase,
+      startTime: startTime,
+      endTime: endTime,
+      isActive: isActive,
+      originalTokens: originalTokens,
+      translatedWords: translatedWords,
+      linkGroups: linkGroups,
+      idiomSpans: idiomSpans,
+      stageStatuses: initialStatuses,
+    );
+  }
+
+  @ignore
+  int get totalStagesCount => StageKey.order.length;
+
+  @ignore
+  int get passedStagesCount {
+    final statuses = stageStatuses;
+    int count = 0;
+    for (final key in StageKey.order) {
+      if (statuses[key] == StageState.completed.name) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  @ignore
+  double get stageProgressRatio => totalStagesCount > 0 ? passedStagesCount / totalStagesCount : 0.0;
+
+  bool isStageCompleted(String stageKey) => stageStatuses[stageKey] == StageState.completed.name;
+
+  bool isStageProcessing(String stageKey) => stageStatuses[stageKey] == StageState.processing.name;
+
   @ignore
   Map<String, String> get stageStatuses {
     final map = <String, String>{};
@@ -123,7 +178,16 @@ class Phrase {
   bool get isTranslated => uiStatus.isDone;
 
   @ignore
-  bool get isTranslating => uiStatus.isProcessing;
+  bool get isTranslating {
+    final Map<String, String> statuses = stageStatuses;
+    final contextRaw = statuses[StageKey.context] ?? 'pending';
+    final transRaw = statuses[StageKey.translation] ?? 'pending';
+
+    final contextState = StageState.values.asNameMap()[contextRaw] ?? StageState.pending;
+    final transState = StageState.values.asNameMap()[transRaw] ?? StageState.pending;
+
+    return contextState == StageState.processing || transState == StageState.processing;
+  }
 
   @ignore
   String get activeStageName {

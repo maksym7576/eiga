@@ -79,7 +79,7 @@ class TranslationStyledContent extends HookConsumerWidget {
 
       if (text.isEmpty) {
         // If we are in the middle of active processing, show the current stage label
-        if (phrase.uiStatus.isProcessing) {
+        if (phrase.isTranslating) {
 
           return ShimmerText(
             blendMode: BlendMode.srcATop,

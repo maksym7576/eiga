@@ -109,7 +109,7 @@ class _MainDesktopViewState extends ConsumerState<MainDesktopView> {
                           maxCrossAxisExtent: 200,
                           mainAxisSpacing: 24,
                           crossAxisSpacing: 24,
-                          childAspectRatio: 0.7,
+                          childAspectRatio: 0.60,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {

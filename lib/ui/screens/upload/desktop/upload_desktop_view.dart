@@ -58,7 +58,6 @@ class _UploadDesktopViewState extends State<UploadDesktopView> {
             : AppBlurHeader(
                 title: 'Create Video',
                 onBack: () {
-                  notifier.reset();
                   Navigator.pop(context);
                 },
                 actions: [
@@ -256,7 +255,6 @@ class _UploadDesktopViewState extends State<UploadDesktopView> {
                   width: 150,
                   child: AppActionButton(
                     onPressed: () {
-                      notifier.reset();
                       Navigator.pop(context);
                     },
                     text: 'Cancel',
@@ -306,7 +304,6 @@ class _UploadDesktopViewState extends State<UploadDesktopView> {
     final success = await notifier.saveVideo();
     if (context.mounted) {
       if (success) {
-        notifier.reset();
         Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to add video')));

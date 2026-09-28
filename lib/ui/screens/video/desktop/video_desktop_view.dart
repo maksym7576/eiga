@@ -18,11 +18,31 @@ class VideoDesktopView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     const String scope = 'main';
-    final playerState = ref.watch(playerProvider(scope));
-    final isFullscreen = playerState.isFullscreen;
-    final areControlsVisible = playerState.areControlsVisible;
+    final isInitialized = ref.watch(playerProvider(scope).select((state) => state.isInitialized));
+    final isFullscreen = ref.watch(playerProvider(scope).select((state) => state.isFullscreen));
+    final areControlsVisible = ref.watch(playerProvider(scope).select((state) => state.areControlsVisible));
 
     final video = ref.watch(currentVideoProvider).value;
+    final bool isReady = isInitialized && video != null;
+
+    if (!isReady) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: Colors.white70),
+              const SizedBox(height: 16),
+              Text(
+                'Loading video & initializing player...',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     // --- Unified Player Layer ---
     // Стабільна глибина дерева, щоб не ламався MouseTracker

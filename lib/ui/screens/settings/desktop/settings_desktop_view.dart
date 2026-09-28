@@ -123,7 +123,6 @@ class SettingsDesktopView extends ConsumerWidget {
     return Consumer(
       builder: (context, ref, child) {
         final geminiToken = ref.watch(tokenProvider(ApiTokenType.gemini)).value ?? '';
-        final groqToken = ref.watch(tokenProvider(ApiTokenType.groq)).value ?? '';
         final jimakuToken = ref.watch(tokenProvider(ApiTokenType.jimaku)).value ?? '';
 
         return Container(
@@ -150,17 +149,6 @@ class SettingsDesktopView extends ConsumerWidget {
                 badgeText: geminiToken.isNotEmpty ? 'Has key' : 'No key',
                 badgeColor: geminiToken.isNotEmpty ? Colors.teal : Colors.redAccent,
                 onTap: () => ControlButtonWidget.openGeminiKeyDialog(context),
-              ),
-              Divider(height: 1, color: theme.dividerColor, indent: 64),
-              SettingTile(
-                title: 'Groq Cloud API Key',
-                subtitle: 'Ultra-fast inference speed',
-                icon: Icons.speed_rounded,
-                iconColor: Colors.white,
-                iconBackground: const [Color(0xFFF55036), Color(0xFFD946EF)],
-                badgeText: groqToken.isNotEmpty ? 'Has key' : 'No key',
-                badgeColor: groqToken.isNotEmpty ? Colors.teal : Colors.redAccent,
-                onTap: () => ControlButtonWidget.openGroqKeyDialog(context),
               ),
               Divider(height: 1, color: theme.dividerColor, indent: 64),
               SettingTile(

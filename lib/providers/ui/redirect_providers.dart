@@ -20,15 +20,7 @@ final openGeminiDialogProvider = NotifierProvider<OpenGeminiDialogNotifier, bool
   OpenGeminiDialogNotifier.new,
 );
 
-class OpenGroqDialogNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
-  set state(bool value) => super.state = value;
-}
 
-final openGroqDialogProvider = NotifierProvider<OpenGroqDialogNotifier, bool>(
-  OpenGroqDialogNotifier.new,
-);
 
 class UseAlternativeLogoNotifier extends Notifier<bool> {
   @override

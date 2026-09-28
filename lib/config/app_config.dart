@@ -21,7 +21,7 @@ class AppConfig {
   static const int defaultMaxConcurrentProcesses = 2;
   static const int defaultSyncSkipMinutes = 5;
   static const int defaultSyncPointDurationMinutes = 2;
-  static const int defaultAudioChunkDurationMinutes = 5;
+  static const int defaultAudioChunkDurationMinutes = 3;
   static const int defaultTranscriptionOverlapSeconds = 10;
   
   static const Map<TranslationPipelineStep, String> defaultModels = {
@@ -85,9 +85,9 @@ class AppConfig {
   static const _keyAutoTranslateOnImport = 'auto_translate_on_import';
   static const _keyHideParenthesesContent = 'hide_parentheses_content';
   static const _keyFullscreenAutoShrink = 'fs_auto_shrink';
-
   static const _keyIsGeminiEnabled = 'is_gemini_enabled';
-  static const _keyIsGroqEnabled = 'is_groq_enabled';
+
+
 
   static const _keyAnkiConnectUrl = 'anki_connect_url';
   static const _keyAnkiDeckName = 'anki_deck_name';
@@ -169,10 +169,6 @@ class AppConfig {
 
   Future<void> setIsGeminiEnabled(bool value) async {
     await _prefs.setBool(_keyIsGeminiEnabled, value);
-  }
-
-  Future<void> setIsGroqEnabled(bool value) async {
-    await _prefs.setBool(_keyIsGroqEnabled, value);
   }
 
   Future<void> setSubFontSize(double value) async {
@@ -306,8 +302,6 @@ class AppConfig {
   bool get getFullscreenAutoShrink => _prefs.getBool(_keyFullscreenAutoShrink) ?? false;
 
   bool get getIsGeminiEnabled => _prefs.getBool(_keyIsGeminiEnabled) ?? true;
-
-  bool get getIsGroqEnabled => _prefs.getBool(_keyIsGroqEnabled) ?? true;
 
   double get getSubFontSize => _prefs.getDouble(_keySubFontSize) ?? 12.0;
   double get getSubWindowedFontSize => _prefs.getDouble(_keySubWindowedFontSize) ?? 16.0; // Updated default to 16.0

@@ -29,7 +29,7 @@ class WindowedSubtitle extends ConsumerWidget {
             (phrase.translatedPhrase != null && phrase.translatedPhrase!.isNotEmpty)) {
           
           final Color textColor = isPast ? const Color(0xFF94A3B8) : const Color(0xFF0F172A);
-          final isProcessing = uiStatus.isProcessing;
+          final isProcessing = phrase.isTranslating;
           final content = _buildTranslatedContent(context, ref, constraints.maxWidth);
 
           if (isProcessing) {

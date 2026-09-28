@@ -125,6 +125,17 @@ class _ProcessingBatchSettingsScreenState extends ConsumerState<ProcessingBatchS
               setState(() {});
             },
           ),
+          const SizedBox(height: 12),
+          _BatchInputTile(
+            key: ValueKey('max_concurrent_$_resetCounter'),
+            title: 'Max Concurrent Threads',
+            subtitle: 'Number of audio chunks to process simultaneously in parallel',
+            value: config.getMaxConcurrentProcesses,
+            onChanged: (val) async {
+              await config.setMaxConcurrentProcesses(val);
+              setState(() {});
+            },
+          ),
         ],
       ),
     );

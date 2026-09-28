@@ -28,10 +28,10 @@ class VideoScreen extends HookConsumerWidget {
     final videoAsync = ref.watch(currentVideoProvider);
     final isFullscreen = ref.watch(playerProvider(scope).select((s) => s.isFullscreen));
     final isInitialized = ref.watch(playerProvider(scope).select((s) => s.isInitialized));
+    final initializationError = ref.watch(playerProvider(scope).select((s) => s.initializationError));
 
     useEffect(() {
       final playerNotifier = ref.read(playerProvider(scope).notifier);
-      final playerIdSetter = ref.read(playerIdProvider.notifier);
 
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
@@ -59,9 +59,7 @@ class VideoScreen extends HookConsumerWidget {
           playerNotifier.showControls();
           playerNotifier.setPlaying(false);
           playerNotifier.clearSelection();
-          playerNotifier.updatePosition(Duration.zero);
           playerNotifier.disposeController();
-          playerIdSetter.state = null;
         });
       };
     }, []);
@@ -135,9 +133,20 @@ class VideoScreen extends HookConsumerWidget {
           backgroundColor: isFullscreen ? Colors.black : const Color(0xFFF8FAFC),
           body: videoAsync.when(
             data: (video) {
-              if (video == null || !isInitialized) {
+              if (video == null) {
                 return const LoadingSplash(key: ValueKey('splash'));
               }
+              if (initializationError != null) {
+                return Center(
+                  key: const ValueKey('player-error'),
+                  child: Text(
+                    'Could not open video: $initializationError',
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                );
+              }
+              if (!isInitialized) return const LoadingSplash(key: ValueKey('splash'));
 
               if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
                 return const VideoDesktopView();

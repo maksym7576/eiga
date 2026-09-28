@@ -4,7 +4,7 @@ import 'job.dart';
 
 part 'ai_model.g.dart';
 
-enum AiProvider { google, openai, anthropic, groq, custom }
+enum AiProvider { google, openai, anthropic, custom }
 
 enum ModelQuality { basic, standard, high, frontier }
 

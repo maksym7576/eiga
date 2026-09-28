@@ -47,10 +47,32 @@ class VideoMobileView extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     const String scope = 'main';
-    final playerState = ref.watch(playerProvider(scope));
-    final isFullscreen = playerState.isFullscreen;
+    final isInitialized = ref.watch(playerProvider(scope).select((state) => state.isInitialized));
+    final isFullscreen = ref.watch(playerProvider(scope).select((state) => state.isFullscreen));
+    final resizableHeightState = ref.watch(playerProvider(scope).select((state) => state.resizableHeight));
     final orientation = MediaQuery.of(context).orientation;
     final video = ref.watch(currentVideoProvider).value;
+
+    final bool isReady = isInitialized && video != null;
+
+    if (!isReady) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: Colors.white70),
+              const SizedBox(height: 16),
+              Text(
+                'Loading video & initializing player...',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
@@ -61,7 +83,7 @@ class VideoMobileView extends HookConsumerWidget {
 
     final minHeight = orientation == Orientation.portrait ? screenWidth * 0.4 : screenHeight * 0.4;
     final maxHeight = orientation == Orientation.portrait ? screenHeight * 0.7 : screenHeight * 0.9;
-    final double resizableHeight = (playerState.resizableHeight ?? (screenWidth * 9 / 16)).clamp(minHeight, maxHeight);
+    final double resizableHeight = (resizableHeightState ?? (screenWidth * 9 / 16)).clamp(minHeight, maxHeight);
 
     final lastOrientationRef = useRef<Orientation?>(null);
     final isReturningToPortrait = lastOrientationRef.value == Orientation.landscape && orientation == Orientation.portrait;
@@ -190,6 +212,9 @@ class VideoMobileView extends HookConsumerWidget {
                 ),
               ),
             ),
+
+            // --- Word Details Popover (overlay over entire screen) ---
+            const WordDetailsPopover(playerScope: scope),
           ],
         ),
     );
